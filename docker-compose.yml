@@ -1,0 +1,17 @@
+---
+volumes:
+  calendar-database:
+
+
+services:
+  calendar:
+    image: calendar
+    build:
+      context: .
+    command: /calendar --addr=:8080
+    container_name: calendar
+    restart: unless-stopped
+    ports:
+      - "80:8080/tcp"
+    volumes:
+      - calendar-database:/database
