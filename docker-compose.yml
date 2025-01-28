@@ -4,14 +4,21 @@ volumes:
 
 
 services:
+  # TODO: add a HTTPS proxy service
+  # Caddyfile:
+
+  # example.com
+  # reverse_proxy calendar:8080
+
+
   calendar:
-    image: calendar
+    image: ghcr.io/mgnsk/calendar:edge
     build:
       context: .
-    command: /calendar --addr=:8080
+    command: /calendar --addr=:8080 --database-dir=/database
     container_name: calendar
     restart: unless-stopped
     ports:
-      - "80:8080/tcp"
+      - "8080:8080/tcp"
     volumes:
       - calendar-database:/database
