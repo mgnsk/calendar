@@ -71,21 +71,18 @@ func InsertEvent(ctx context.Context, db *bun.DB, ts time.Time, title, content s
 func ListEvents(ctx context.Context, db *bun.DB, filterTag string, from, to time.Time, limit uint) ([]*Event, error) {
 	model := []*Event{}
 
-	// [bun]  22:06:40.037   SELECT                  163µs  SELECT "event_to_tag"."even
-	// t_id", "tag"."id", "tag"."name" FROM "tags" AS "tag" JOIN "events_tags" AS "even
-	// t_to_tag" ON ("event_to_tag"."event_id") IN (416913968599042, 416913968599041, 4
-	// 16913968599040) WHERE ("tag"."id" = "event_to_tag"."tag_id") AND (tag.id IS NOT
-	// NULL) AND (tag.name = 'tag1') ORDER BY tag.name ASC
 	q := db.NewSelect().Model(&model).
 		Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
-			if filterTag != "" {
-				q = q.Where("tag.name = ?", filterTag)
-			}
-
-			return q.OrderExpr("tag.name ASC")
+			return q.Order("tag.name ASC")
 		}).
 		Order("unix_timestamp DESC").
 		Limit(int(limit))
+
+	if filterTag != "" {
+		q = q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
+			Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
+			Where("tags.name = ?", filterTag)
+	}
 
 	if !from.IsZero() {
 		q = q.Where("unix_timestamp > ?", from.Unix())

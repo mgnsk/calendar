@@ -3,7 +3,6 @@ package model_test
 import (
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mgnsk/calendar/internal/model"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -115,16 +114,30 @@ var _ = Describe("listing events", func() {
 
 			By("creating multiple events", func() {
 				Expect(model.InsertEvent(ctx, db, time.Now(), "Event1", "", tags[0]))
-				Expect(model.InsertEvent(ctx, db, time.Now(), "Event2", "", tags[1]))
-				Expect(model.InsertEvent(ctx, db, time.Now(), "Event3", "", tags...))
+				Expect(model.InsertEvent(ctx, db, time.Now().Add(time.Hour), "Event2", "", tags[1]))
+				Expect(model.InsertEvent(ctx, db, time.Now().Add(2*time.Hour), "Event3", "", tags...))
 			})
 		})
 
-		FSpecify("matching events are returned", func(ctx SpecContext) {
+		Specify("matching events are returned", func(ctx SpecContext) {
 			events, err := model.ListEvents(ctx, db, "tag1", time.Time{}, time.Time{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			spew.Dump(events)
+			Expect(events).To(ConsistOf(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Title": Equal("Event3"),
+					"Tags": ConsistOf(
+						HaveField("Name", "tag1"),
+						HaveField("Name", "tag2"),
+					),
+				})),
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Title": Equal("Event1"),
+					"Tags": ConsistOf(
+						HaveField("Name", "tag1"),
+					),
+				})),
+			))
 		})
 	})
 })
