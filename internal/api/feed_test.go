@@ -1,22 +1,18 @@
 package api_test
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/api"
-	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
-	"github.com/mgnsk/calendar/internal/pkg/snowflake"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
+	. "github.com/mgnsk/calendar/internal/pkg/testing"
 	"github.com/mmcdole/gofeed"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	"golang.org/x/net/context"
 )
 
 var _ = Describe("RSS feed output", func() {
@@ -27,7 +23,11 @@ var _ = Describe("RSS feed output", func() {
 	)
 
 	BeforeEach(func(ctx SpecContext) {
-		insertEvents(ctx)
+		By("inserting events", func() {
+			Expect(model.InsertEvent(ctx, db, event1)).To(Succeed())
+			Expect(model.InsertEvent(ctx, db, event2)).To(Succeed())
+			Expect(model.InsertEvent(ctx, db, event3)).To(Succeed())
+		})
 
 		e := echo.New()
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -35,14 +35,13 @@ var _ = Describe("RSS feed output", func() {
 		c = e.NewContext(req, rec)
 
 		h = api.NewFeedHandler(db, api.FeedConfig{
-			Title:       "My Test Feed",
-			Description: "Feed of awesome events",
-			Link:        "https://example.testing",
+			Title: "My Test Feed",
+			Link:  "https://example.testing",
 		})
 	})
 
-	DescribeTable("feeds",
-		func(handle echo.HandlerFunc, contentType string) {
+	DescribeTable("feed types",
+		func(handle echo.HandlerFunc, feedType api.FeedType, contentType string) {
 			Expect(handle(c)).To(Succeed())
 
 			r := rec.Result()
@@ -51,112 +50,59 @@ var _ = Describe("RSS feed output", func() {
 				HaveKeyWithValue(echo.HeaderContentType, HaveExactElements(
 					Equal(contentType),
 				)),
+				HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
+					Equal(`attachment; filename="feed.xml"`),
+				)),
 			))
 
-			assertFeed(r.Body)
+			fp := gofeed.NewParser()
+			feed := Must(fp.Parse(r.Body))
+
+			Expect(feed).To(PointTo(MatchFields(IgnoreExtras, Fields{
+				"FeedType": Equal(string(feedType)),
+				"Title":    Equal("My Test Feed"),
+				"Link":     Equal("https://example.testing"),
+				"Items": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Title":           Equal(event3.Title),
+						"Description":     Equal(event3.GetDescription()),
+						"PublishedParsed": PointTo(BeTemporally("~", event3.StartAt.Time(), time.Second)),
+						"GUID":            Equal(event3.ID.String()),
+						"Link":            Equal(event3.URL),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Title":           Equal(event2.Title),
+						"Description":     Equal(event2.GetDescription()),
+						"PublishedParsed": PointTo(BeTemporally("~", event2.StartAt.Time(), time.Second)),
+						"GUID":            Equal(event2.ID.String()),
+						"Link":            Equal(event2.URL),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Title":           Equal(event1.Title),
+						"Description":     Equal(event1.GetDescription()),
+						"PublishedParsed": PointTo(BeTemporally("~", event1.StartAt.Time(), time.Second)),
+						"GUID":            Equal(event1.ID.String()),
+						"Link":            Equal(event1.URL),
+					})),
+				),
+			})))
 		},
+
 		Entry(
 			"RSS feed",
 			func(c echo.Context) error {
 				return h.CreateFeedHandler(api.RSS)(c)
 			},
+			api.RSS,
 			"application/rss+xml; charset=utf-8",
 		),
+
 		Entry("Atom feed",
 			func(c echo.Context) error {
 				return h.CreateFeedHandler(api.Atom)(c)
 			},
+			api.Atom,
 			"application/atom+xml; charset=utf-8",
 		),
 	)
 })
-
-func insertEvents(ctx context.Context) {
-	By("inserting events", func() {
-		events := []*domain.Event{
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(baseTime.Add(3 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 1",
-				Description: "Desc 1",
-				URL:         "",
-				Tags:        []string{"tag1"},
-			},
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(baseTime.Add(2 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 2",
-				Description: "Desc 2",
-				URL:         "",
-				Tags:        []string{"tag1", "tag2"},
-			},
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(baseTime.Add(1 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 3",
-				Description: "Desc 3",
-				URL:         "",
-				Tags:        []string{"tag3"},
-			},
-		}
-
-		for _, ev := range events {
-			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
-		}
-	})
-}
-
-func assertFeed(r io.Reader) {
-	fp := gofeed.NewParser()
-	feed, err := fp.Parse(r)
-	Expect(err).NotTo(HaveOccurred())
-
-	Expect(feed).To(PointTo(MatchFields(IgnoreExtras, Fields{
-		"Title":       Equal("My Test Feed"),
-		"Description": Equal("Feed of awesome events"),
-		"Link":        Equal("https://example.testing"),
-		"Items": HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 3"),
-				"Description": Equal(`Desc 3
-
-tags: tag3
-starts at: 2025-01-29T20:55:00+02:00`),
-				"PublishedParsed": PointTo(BeTemporally("~", baseTime.Add(time.Hour), time.Second)),
-				"GUID":            Not(BeEmpty()),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-				"Description": Equal(`Desc 2
-
-tags: tag1, tag2
-starts at: 2025-01-29T21:55:00+02:00`),
-				"PublishedParsed": PointTo(BeTemporally("~", baseTime.Add(2*time.Hour), time.Second)),
-				"GUID":            Not(BeEmpty()),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-				"Description": Equal(`Desc 1
-
-tags: tag1
-starts at: 2025-01-29T22:55:00+02:00`),
-				"PublishedParsed": PointTo(BeTemporally("~", baseTime.Add(3*time.Hour), time.Second)),
-				"GUID":            Not(BeEmpty()),
-			})),
-		),
-	})))
-}
-
-// baseTime for events.
-var baseTime time.Time
-
-func init() {
-	loc, err := time.LoadLocation("Europe/Tallinn")
-	if err != nil {
-		panic(err)
-	}
-	baseTime = time.Date(2025, 1, 29, 19, 55, 00, 00, loc)
-}

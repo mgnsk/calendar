@@ -6,6 +6,7 @@ import (
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
+	. "github.com/mgnsk/calendar/internal/pkg/testing"
 	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,8 +38,7 @@ var _ = Describe("inserting events", func() {
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result, err := model.ListEvents(ctx, db, "asc")
-			Expect(err).NotTo(HaveOccurred())
+			result := Must(model.ListEvents(ctx, db, "asc"))
 
 			Expect(result).To(HaveExactElements(
 				SatisfyAll(
@@ -98,8 +98,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result, err := model.ListEvents(ctx, db, "asc")
-		Expect(err).NotTo(HaveOccurred())
+		result := Must(model.ListEvents(ctx, db, "asc"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 3"),
@@ -109,8 +108,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result, err := model.ListEvents(ctx, db, "desc")
-		Expect(err).NotTo(HaveOccurred())
+		result := Must(model.ListEvents(ctx, db, "desc"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 1"),
@@ -120,8 +118,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be filtered by tags", func(ctx SpecContext) {
-		result, err := model.ListEvents(ctx, db, "asc", "tag1")
-		Expect(err).NotTo(HaveOccurred())
+		result := Must(model.ListEvents(ctx, db, "asc", "tag1"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 2"),
