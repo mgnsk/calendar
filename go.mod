@@ -3,11 +3,13 @@ module github.com/mgnsk/calendar
 go 1.23.5
 
 require (
+	github.com/arran4/golang-ical v0.3.2
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/gorilla/feeds v1.2.0
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
+	github.com/samber/lo v1.49.1
 	github.com/uptrace/bun v1.2.9
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.9
 	github.com/uptrace/bun/extra/bundebug v1.2.9
