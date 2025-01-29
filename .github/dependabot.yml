@@ -1,0 +1,14 @@
+# See GitHub's documentation for more information on this file:
+# https://docs.github.com/en/code-security/supply-chain-security/keeping-your-dependencies-updated-automatically/configuration-options-for-dependency-updates
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/go"
+    schedule:
+      interval: "weekly"
+    groups:
+      modules:
+        dependency-type: production
+        applies-to: version-updates
+    commit-message:
+      prefix: "deps"
