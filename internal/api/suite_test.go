@@ -23,7 +23,7 @@ var _ = BeforeEach(func() {
 
 	Expect(internal.MigrateUp(db.DB)).To(Succeed())
 
-	model.Initialize(db)
+	model.RegisterModels(db)
 })
 
 func TestSuite(t *testing.T) {
