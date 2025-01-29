@@ -35,7 +35,7 @@ func (c *Builder) WithDebugLogging() *Builder {
 func (c *Builder) Connect() *bun.DB {
 	sqldb, err := sql.Open("sqlite", c.dsn)
 	if err != nil {
-		panic(fmt.Errorf("error opening DB: %s", err))
+		panic(fmt.Errorf("error opening DB: %s", NormalizeError(err)))
 	}
 
 	sqldb.SetMaxIdleConns(1)
@@ -48,7 +48,7 @@ func (c *Builder) Connect() *bun.DB {
 	}
 
 	if err := db.Ping(); err != nil {
-		panic(fmt.Errorf("error connecting to DB: %s", err))
+		panic(fmt.Errorf("error connecting to DB: %s", NormalizeError(err)))
 	}
 
 	return db
