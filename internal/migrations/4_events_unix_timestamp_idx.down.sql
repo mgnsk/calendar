@@ -1,1 +1,1 @@
-DROP INDEX events_unix_timestamp_idx;
+DROP INDEX events_timestamp_idx;

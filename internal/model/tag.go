@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
@@ -10,19 +11,19 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// Tag is a database model for a tag.
+// Tag is the tag database model.
 type Tag struct {
-	ID   int64  `bun:"id,pk"`
-	Name string `bun:"name"`
+	ID   snowflake.ID `bun:"id,pk"`
+	Name string       `bun:"name"`
 
 	bun.BaseModel `bun:"tags"`
 }
 
 // InsertTag inserts a tag into the database. If the tag exists, it is ignored.
-func InsertTag(ctx context.Context, db *bun.DB, name string) error {
+func InsertTag(ctx context.Context, db bun.IDB, name string) error {
 	if err := sqlite.WithErrorChecking(
 		db.NewInsert().Model(&Tag{
-			ID:   snowflake.Generate().Int64(),
+			ID:   snowflake.Generate(),
 			Name: name,
 		}).Ignore().Exec(ctx),
 	); err != nil {
@@ -36,12 +37,29 @@ func InsertTag(ctx context.Context, db *bun.DB, name string) error {
 	return nil
 }
 
+// GetTag returns a tag from database.
+func GetTag(ctx context.Context, db bun.IDB, name string) (*Tag, error) {
+	model := &Tag{}
+
+	if err := db.NewSelect().Model(model).
+		Where("name = ?", name).
+		Scan(ctx); err != nil {
+		return nil, err
+	}
+
+	return model, nil
+}
+
 // ListTags lists tags.
-func ListTags(ctx context.Context, db *bun.DB) ([]*Tag, error) {
+func ListTags(ctx context.Context, db bun.IDB, filterName string) ([]*Tag, error) {
 	model := []*Tag{}
 
 	q := db.NewSelect().Model(&model).
 		Order("name ASC")
+
+	if filterName != "" {
+		q = q.Where("name LIKE ?", fmt.Sprintf("%%%s%%", filterName))
+	}
 
 	if err := q.Scan(ctx); err != nil {
 		return nil, err
