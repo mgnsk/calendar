@@ -75,7 +75,7 @@ func ListEvents(ctx context.Context, db *bun.DB, filterTag string, from, to time
 		Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
 			return q.Order("tag.name ASC")
 		}).
-		Order("unix_timestamp DESC").
+		Order("unix_timestamp ASC").
 		Limit(int(limit))
 
 	if filterTag != "" {

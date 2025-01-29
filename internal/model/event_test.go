@@ -21,7 +21,7 @@ var _ = Describe("inserting events", func() {
 			events, err := model.ListEvents(ctx, db, "", time.Time{}, time.Time{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(events).To(ConsistOf(
+			Expect(events).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Tags": BeNil(),
 				})),
@@ -55,8 +55,8 @@ var _ = Describe("inserting events", func() {
 			events, err := model.ListEvents(ctx, db, "", time.Time{}, time.Time{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(events).To(ConsistOf(
-				HaveField("Tags", ConsistOf(
+			Expect(events).To(HaveExactElements(
+				HaveField("Tags", HaveExactElements(
 					HaveField("Name", "tag1"),
 					HaveField("Name", "tag2"),
 				)),
@@ -66,32 +66,32 @@ var _ = Describe("inserting events", func() {
 })
 
 var _ = Describe("listing events", func() {
-	Specify("events are ordered by future events first", func(ctx SpecContext) {
+	Specify("events are ordered in timestamp order", func(ctx SpecContext) {
 		ts := time.Now()
 
 		By("inserting events", func() {
-			Expect(model.InsertEvent(ctx, db, ts.Add(time.Hour), "Event Title ÕÄÖÜ 2", "Content 2")).To(Succeed())
 			Expect(model.InsertEvent(ctx, db, ts.Add(2*time.Hour), "Event Title ÕÄÖÜ 1", "Content 1")).To(Succeed())
+			Expect(model.InsertEvent(ctx, db, ts.Add(time.Hour), "Event Title ÕÄÖÜ 2", "Content 2")).To(Succeed())
 		})
 
 		events, err := model.ListEvents(ctx, db, "", time.Time{}, time.Time{}, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(events).To(ConsistOf(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"ID":               Not(BeZero()),
-				"UnixTimestamp":    Equal(ts.Add(2 * time.Hour).Unix()),
-				"RFC3339Timestamp": Equal(ts.Add(2 * time.Hour).Format(time.RFC3339)),
-				"Title":            Equal("Event Title ÕÄÖÜ 1"),
-				"Content":          Equal("Content 1"),
-				"Tags":             BeNil(),
-			})),
+		Expect(events).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"ID":               Not(BeZero()),
 				"UnixTimestamp":    Equal(ts.Add(time.Hour).Unix()),
 				"RFC3339Timestamp": Equal(ts.Add(time.Hour).Format(time.RFC3339)),
 				"Title":            Equal("Event Title ÕÄÖÜ 2"),
 				"Content":          Equal("Content 2"),
+				"Tags":             BeNil(),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"ID":               Not(BeZero()),
+				"UnixTimestamp":    Equal(ts.Add(2 * time.Hour).Unix()),
+				"RFC3339Timestamp": Equal(ts.Add(2 * time.Hour).Format(time.RFC3339)),
+				"Title":            Equal("Event Title ÕÄÖÜ 1"),
+				"Content":          Equal("Content 1"),
 				"Tags":             BeNil(),
 			})),
 		))
@@ -123,18 +123,18 @@ var _ = Describe("listing events", func() {
 			events, err := model.ListEvents(ctx, db, "tag1", time.Time{}, time.Time{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(events).To(ConsistOf(
+			Expect(events).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Title": Equal("Event3"),
-					"Tags": ConsistOf(
+					"Title": Equal("Event1"),
+					"Tags": HaveExactElements(
 						HaveField("Name", "tag1"),
-						HaveField("Name", "tag2"),
 					),
 				})),
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Title": Equal("Event1"),
-					"Tags": ConsistOf(
+					"Title": Equal("Event3"),
+					"Tags": HaveExactElements(
 						HaveField("Name", "tag1"),
+						HaveField("Name", "tag2"),
 					),
 				})),
 			))
