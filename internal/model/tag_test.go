@@ -2,6 +2,7 @@ package model_test
 
 import (
 	"github.com/mgnsk/calendar/internal/model"
+	. "github.com/mgnsk/calendar/internal/pkg/testing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -12,8 +13,7 @@ var _ = Describe("inserting tags", func() {
 		It("is inserted", func(ctx SpecContext) {
 			Expect(model.InsertTag(ctx, db, "tag1")).To(Succeed())
 
-			tag, err := model.GetTag(ctx, db, "tag1")
-			Expect(err).NotTo(HaveOccurred())
+			tag := Must(model.GetTag(ctx, db, "tag1"))
 
 			Expect(tag).To(PointTo(MatchFields(IgnoreExtras, Fields{
 				"ID":   Not(BeZero()),
@@ -30,8 +30,7 @@ var _ = Describe("inserting tags", func() {
 		It("is ignored", func(ctx SpecContext) {
 			Expect(model.InsertTag(ctx, db, "tag1")).To(Succeed())
 
-			tag, err := model.GetTag(ctx, db, "tag1")
-			Expect(err).NotTo(HaveOccurred())
+			tag := Must(model.GetTag(ctx, db, "tag1"))
 
 			Expect(tag).To(PointTo(MatchFields(IgnoreExtras, Fields{
 				"ID":   Not(BeZero()),
@@ -39,8 +38,7 @@ var _ = Describe("inserting tags", func() {
 			})))
 
 			By("asserting that a single tag exists", func() {
-				tags, err := model.ListTags(ctx, db, "")
-				Expect(err).NotTo(HaveOccurred())
+				tags := Must(model.ListTags(ctx, db, ""))
 				Expect(tags).To(HaveLen(1))
 			})
 		})
@@ -55,8 +53,7 @@ var _ = Describe("listing tags", func() {
 	})
 
 	Specify("tags can be filtered", func(ctx SpecContext) {
-		tags, err := model.ListTags(ctx, db, "tag")
-		Expect(err).NotTo(HaveOccurred())
+		tags := Must(model.ListTags(ctx, db, "tag"))
 
 		Expect(tags).To(HaveExactElements(
 			HaveField("Name", "tag1"),
