@@ -59,44 +59,42 @@ var _ = Describe("inserting events", func() {
 })
 
 var _ = Describe("listing events", func() {
-	var (
-		events []*domain.Event
-	)
-
 	JustBeforeEach(func(ctx SpecContext) {
-		events = []*domain.Event{
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 1",
-				Description: "Desc 1",
-				URL:         "",
-				Tags:        []string{"tag1"},
-			},
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 2",
-				Description: "Desc 2",
-				URL:         "",
-				Tags:        []string{"tag1", "tag2"},
-			},
-			{
-				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
-				Title:       "Event 3",
-				Description: "Desc 3",
-				URL:         "",
-				Tags:        []string{"tag3"},
-			},
-		}
+		By("inserting events", func() {
+			events := []*domain.Event{
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
+					EndAt:       timestamp.Timestamp{},
+					Title:       "Event 1",
+					Description: "Desc 1",
+					URL:         "",
+					Tags:        []string{"tag1"},
+				},
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
+					EndAt:       timestamp.Timestamp{},
+					Title:       "Event 2",
+					Description: "Desc 2",
+					URL:         "",
+					Tags:        []string{"tag1", "tag2"},
+				},
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
+					EndAt:       timestamp.Timestamp{},
+					Title:       "Event 3",
+					Description: "Desc 3",
+					URL:         "",
+					Tags:        []string{"tag3"},
+				},
+			}
 
-		for _, ev := range events {
-			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
-		}
+			for _, ev := range events {
+				Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+			}
+		})
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
