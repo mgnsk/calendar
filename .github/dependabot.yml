@@ -3,7 +3,7 @@
 version: 2
 updates:
   - package-ecosystem: "gomod"
-    directory: "/go"
+    directory: "/"
     schedule:
       interval: "weekly"
     groups:
