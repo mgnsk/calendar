@@ -63,36 +63,46 @@ func main() {
 	dsn := filepath.Join(dir, "calendar.sqlite")
 	db := sqlite.NewDB(dsn).Connect()
 
+	if err := internal.MigrateUp(db.DB); err != nil {
+		log.Fatal(err)
+	}
+
 	model.RegisterModels(db)
 
 	// if err := insertTestData(db); err != nil {
 	// 	log.Fatal(err)
 	// }
 
-	if err := internal.MigrateUp(db.DB); err != nil {
-		log.Fatal(err)
-	}
-
 	e := echo.New()
 	e.Use(
 		slogecho.New(slog.Default()), // Log everything.
 		middleware.Recover(),         // Recover from all panics to always have your server up
+		middleware.StaticWithConfig(middleware.StaticConfig{ // Serve assets from the embed filesystem.
+			Filesystem: http.FS(internal.DistFS),
+		}),
 	)
 
-	// TODO
-	baseURL, err := url.Parse("https://example.testing")
-	if err != nil {
-		log.Fatal(err)
+	{
+		// TODO
+		baseURL, err := url.Parse("https://example.testing")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// TODO
+		feedConfig := api.FeedConfig{
+			Title:   "My Feed",
+			BaseURL: baseURL,
+		}
+
+		h := api.NewFeedHandler(db, feedConfig)
+		h.Register(e)
 	}
 
-	// TODO
-	feedConfig := api.FeedConfig{
-		Title:   "My Feed",
-		BaseURL: baseURL,
+	{
+		h := api.NewHTMLHandler(db)
+		h.Register(e)
 	}
-
-	h := api.NewFeedHandler(db, feedConfig)
-	h.Register(e)
 
 	e.Server.ReadHeaderTimeout = time.Minute
 	e.Server.WriteTimeout = time.Minute
@@ -119,15 +129,11 @@ func main() {
 }
 
 func insertTestData(db *bun.DB) error {
-	loc, err := time.LoadLocation("Europe/Tallinn")
-	if err != nil {
-		panic(err)
-	}
-	baseTime := time.Date(2025, 1, 29, 19, 55, 00, 00, loc)
+	baseTime := time.Now()
 
 	event1 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime.Add(3 * time.Hour)),
+		StartAt:     timestamp.New(baseTime.Add(-48 * time.Hour)),
 		EndAt:       timestamp.Timestamp{},
 		Title:       "Event 1",
 		Description: "Desc 1",
@@ -137,7 +143,7 @@ func insertTestData(db *bun.DB) error {
 
 	event2 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime.Add(2 * time.Hour)),
+		StartAt:     timestamp.New(baseTime.Add(-12 * time.Hour)),
 		EndAt:       timestamp.Timestamp{},
 		Title:       "Event 2",
 		Description: "Desc 2",
@@ -147,7 +153,7 @@ func insertTestData(db *bun.DB) error {
 
 	event3 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime.Add(1 * time.Hour)),
+		StartAt:     timestamp.New(baseTime),
 		EndAt:       timestamp.New(baseTime.Add(2 * time.Hour)),
 		Title:       "Event 3",
 		Description: "Desc 3",

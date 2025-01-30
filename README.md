@@ -1,13 +1,19 @@
 ## Simple calendar app
 
-### Building and running locally
+### Building and running with docker
 
-You need the [Go](https://go.dev/) compiler.
+- `$ docker compose build`
+- `$ docker compose up`
 
-- `$ make` - build the binary.
-- `$ ./calendar --addr=:8080 --database-dir=/tmp/calendar` - run the service.
+### Local development
 
-Open your browser at http://localhost:8080
+Dependencies:
+
+- [Go](https://go.dev/)
+- [Node.js](https://nodejs.org/en)
+
+- `$ make setup`
+- `$ make dev`
 
 ### General info
 

@@ -16,6 +16,8 @@ require (
 	github.com/uptrace/bun v1.2.9
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.9
 	github.com/uptrace/bun/extra/bundebug v1.2.9
+	github.com/yuin/goldmark v1.7.8
+	maragu.dev/gomponents v1.0.0
 	modernc.org/sqlite v1.34.5
 )
 
