@@ -1,13 +1,20 @@
 ## Simple calendar app
 
+### Development dependencies
+
+- [Go](https://go.dev/)
+- [Node.js](https://nodejs.org/en)
+
 ### Building and running locally
 
-You need the [Go](https://go.dev/) compiler.
+- `$ make setup`
+- `$ make build`
+- `$ ./calendar --addr=:8080 --database-dir=/tmp/calendar`
 
-- `$ make` - build the binary.
-- `$ ./calendar --addr=:8080 --database-dir=/tmp/calendar` - run the service.
+### Local development
 
-Open your browser at http://localhost:8080
+- `$ make setup`
+- `$ make dev`
 
 ### General info
 

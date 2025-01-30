@@ -1,2 +1,4 @@
 calendar
 vendor/
+tmp/
+node_modules/

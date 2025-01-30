@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
@@ -45,7 +46,7 @@ func (h *FeedHandler) HandleAtom(c echo.Context) error {
 
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, "asc")
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, "asc")
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 }
 
 func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, "asc")
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, "asc")
 	if err != nil {
 		return err
 	}

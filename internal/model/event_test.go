@@ -38,7 +38,7 @@ var _ = Describe("inserting events", func() {
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result := Must(model.ListEvents(ctx, db, "asc"))
+			result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc"))
 
 			Expect(result).To(HaveExactElements(
 				SatisfyAll(
@@ -98,7 +98,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, "asc"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 3"),
@@ -108,7 +108,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, "desc"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "desc"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 1"),
@@ -117,8 +117,22 @@ var _ = Describe("listing events", func() {
 		))
 	})
 
+	Specify("events can be filtered by start time", func(ctx SpecContext) {
+		result := Must(model.ListEvents(
+			ctx,
+			db,
+			time.Now().Add(1*time.Hour).Add(30*time.Minute),
+			time.Now().Add(2*time.Hour).Add(30*time.Minute),
+			"asc",
+		))
+
+		Expect(result).To(HaveExactElements(
+			HaveField("Title", "Event 2"),
+		))
+	})
+
 	Specify("events can be filtered by tags", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, "asc", "tag1"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc", "tag1"))
 
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 2"),

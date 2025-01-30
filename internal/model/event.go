@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
@@ -38,8 +39,8 @@ type eventToTag struct {
 
 // InsertEvent inserts an event to the database.
 func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
-	return db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if err := sqlite.WithErrorChecking(tx.NewInsert().Model(&Event{
+	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
+		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&Event{
 			ID:             ev.ID,
 			StartAtUnix:    ev.StartAt.Time().Unix(),
 			EndAtUnix:      ev.EndAt.Time().Unix(),
@@ -59,7 +60,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 
 		// Ensure tags exist.
 		for _, name := range ev.Tags {
-			if err := InsertTag(ctx, tx, name); err != nil {
+			if err := InsertTag(ctx, db, name); err != nil {
 				return err
 			}
 		}
@@ -67,7 +68,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 		// Get tags.
 		tags := make([]*Tag, 0, len(ev.Tags))
 		for _, name := range ev.Tags {
-			tag, err := GetTag(ctx, tx, name)
+			tag, err := GetTag(ctx, db, name)
 			if err != nil {
 				return err
 			}
@@ -76,7 +77,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 
 		// Insert relations.
 		for _, tag := range tags {
-			if err := sqlite.WithErrorChecking(tx.NewInsert().Model(&eventToTag{
+			if err := sqlite.WithErrorChecking(db.NewInsert().Model(&eventToTag{
 				TagID:   tag.ID,
 				EventID: ev.ID,
 			}).Exec(ctx)); err != nil {
@@ -89,7 +90,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 }
 
 // ListEvents lists events.
-func ListEvents(ctx context.Context, db *bun.DB, order string, filterTags ...string) ([]*domain.Event, error) {
+func ListEvents(ctx context.Context, db *bun.DB, startFrom, startUntil time.Time, order string, filterTags ...string) ([]*domain.Event, error) {
 	model := []*Event{}
 
 	q := db.NewSelect().Model(&model).
@@ -104,6 +105,14 @@ func ListEvents(ctx context.Context, db *bun.DB, order string, filterTags ...str
 		q = q.Order("start_at_unix DESC")
 	default:
 		panic(fmt.Sprintf("invalid order %s, expected asc or desc", order))
+	}
+
+	if !startFrom.IsZero() {
+		q = q.Where("start_at_unix > ?", startFrom.Unix())
+	}
+
+	if !startUntil.IsZero() {
+		q = q.Where("start_at_unix < ?", startUntil.Unix())
 	}
 
 	if len(filterTags) > 0 {

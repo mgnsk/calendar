@@ -12,11 +12,11 @@ import (
 )
 
 //go:embed migrations/*.sql
-var fs embed.FS
+var migrationsFS embed.FS
 
 // MigrateUp runs the up migrations for database.
 func MigrateUp(db *sql.DB) error {
-	sourceInstance, err := iofs.New(fs, "migrations")
+	sourceInstance, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
 		return err
 	}
