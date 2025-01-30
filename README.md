@@ -12,6 +12,8 @@ Dependencies:
 - [Go](https://go.dev/)
 - [Node.js](https://nodejs.org/en)
 
+Setup tools and run development environment:
+
 - `$ make setup`
 - `$ make dev`
 
