@@ -1,17 +1,16 @@
 ## Simple calendar app
 
-### Development dependencies
+### Building and running with docker
+
+- `$ docker compose build`
+- `$ docker compose up`
+
+### Local development
+
+Dependencies:
 
 - [Go](https://go.dev/)
 - [Node.js](https://nodejs.org/en)
-
-### Building and running locally
-
-- `$ make setup`
-- `$ make build`
-- `$ ./calendar --addr=:8080 --database-dir=/tmp/calendar`
-
-### Local development
 
 - `$ make setup`
 - `$ make dev`

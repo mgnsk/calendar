@@ -1,4 +1,16 @@
-FROM golang:1.23-bookworm AS deps
+FROM node:23-bookworm AS assets
+
+WORKDIR /build
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY tailwind.config.js tailwind.css ./
+COPY internal/html ./internal/html
+RUN npx tailwindcss -i tailwind.css -o ./internal/dist/app.css --minify
+
+
+FROM golang:1.23-bookworm AS build
 
 WORKDIR /build
 
@@ -6,12 +18,11 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-
-FROM deps AS build
-
 COPY . .
+COPY --from=assets /build/internal/dist /build/internal/dist
 
-RUN make
+ENV CGO_ENABLED=0
+RUN go build -trimpath -tags timetzdata -o calendar ./cmd/calendar
 
 
 FROM gcr.io/distroless/base-debian12
