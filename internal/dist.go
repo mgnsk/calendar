@@ -8,7 +8,7 @@ import (
 
 // DistFS contains the bundled assets for web page.
 //
-//go:embed dist/app.css
+//go:embed dist/*
 var DistFS embed.FS
 
 // Checksums contains checksums for all files in DistFS.
