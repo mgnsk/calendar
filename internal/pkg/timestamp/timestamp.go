@@ -11,8 +11,8 @@ func New(ts time.Time) Timestamp {
 	return Timestamp{ts}
 }
 
-// Timestamp is an RFC3339 timestamp value for use in SQLite's string column.
-// It's marshaled zero value is an empty string.
+// Timestamp is an nullable RFC3339 timestamp value for use in SQLite's string column.
+// It's marshaled zero value is nil.
 type Timestamp struct {
 	value time.Time
 }
@@ -64,7 +64,7 @@ func (t *Timestamp) Scan(src interface{}) error {
 // Value implements sql.Valuer interface.
 func (t Timestamp) Value() (driver.Value, error) {
 	if t.value.IsZero() {
-		return "", nil
+		return nil, nil
 	}
 
 	return t.value.Format(time.RFC3339), nil

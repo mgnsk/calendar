@@ -13,26 +13,25 @@ import (
 )
 
 // EventList returns a list of events.
-func EventList(events []*domain.Event) Node {
+func EventList(events []*domain.Event, pastEventsTransparent bool) Node {
 	return Map(events, func(ev *domain.Event) Node {
-		return EventCard(ev)
+		return EventCard(ev, pastEventsTransparent)
 	})
 }
 
 // EventCard returns an event card.
-func EventCard(ev *domain.Event) Node {
+func EventCard(ev *domain.Event, pastEventTransparent bool) Node {
 	return Div(
 		Classes{
 			// Less opacity for events that have already started.
-			"opacity-50":      ev.StartAt.Time().Before(time.Now()),
-			"max-w-md":        true,
-			"mx-auto":         true,
-			"bg-white":        true,
-			"rounded-xl":      true,
-			"shadow-md":       true,
-			"overflow-hidden": true,
-			"md:max-w-2xl":    true,
-			"m-5":             true,
+			"opacity-50":         pastEventTransparent && ev.StartAt.Time().Before(time.Now()),
+			"bg-white":           true,
+			"rounded-xl":         true,
+			"shadow-md":          true,
+			"overflow-hidden":    true,
+			"my-5":               true,
+			"hover:bg-amber-600": true,
+			"hover:bg-opacity-5": true,
 		},
 		Div(Class("p-8 flex items-center"),
 			Div(Class("pr-4"),
@@ -64,6 +63,7 @@ func EventDescription(ev *domain.Event) Node {
 		panic(fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err))
 	}
 
+	// TODO: syntax error here
 	return P(Class("mt-2 text-gray-700"), Raw(buf.String()))
 }
 

@@ -21,11 +21,14 @@ func NormalizeError(err error) error {
 	}
 
 	if se := new(sqlite.Error); errors.As(err, &se) {
-		switch se.Code() {
+		switch code := se.Code(); code {
 		case
 			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,
 			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
 			return &wreck.AlreadyExists{Err: err}
+
+		default:
+			return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[code], code, err)
 		}
 	}
 
