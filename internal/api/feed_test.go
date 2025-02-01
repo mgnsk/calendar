@@ -32,9 +32,9 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, api.FeedConfig{
-			Title:   "My Test Feed",
-			BaseURL: Must(url.Parse("https://example.testing")),
+		h := api.NewFeedHandler(db, api.Config{
+			PageTitle: "My Test Feed",
+			BaseURL:   Must(url.Parse("https://example.testing")),
 		})
 		h.Register(e)
 
@@ -125,9 +125,9 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, api.FeedConfig{
-			Title:   "My Test Feed",
-			BaseURL: Must(url.Parse("https://example.testing")),
+		h := api.NewFeedHandler(db, api.Config{
+			PageTitle: "My Test Feed",
+			BaseURL:   Must(url.Parse("https://example.testing")),
 		})
 		h.Register(e)
 

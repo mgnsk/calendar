@@ -15,10 +15,11 @@ services:
     image: ghcr.io/mgnsk/calendar:edge
     build:
       context: .
-    command: /calendar --addr=:8080 --database-dir=/database
+    command: /calendar
     container_name: calendar
     restart: unless-stopped
     ports:
       - "8080:8080/tcp"
+    env_file: ".env"
     volumes:
       - calendar-database:/database

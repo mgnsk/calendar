@@ -12,15 +12,75 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-// EventList returns a list of events.
-func EventList(events []*domain.Event, pastEventsTransparent bool) Node {
+// CurrentEventsPage displays current events page.
+func CurrentEventsPage(mainTitle string, user *domain.User, events []*domain.Event) Node {
+	return eventsPage(mainTitle, currentEventsTitle, user, true, events)
+}
+
+// PastEventsPage displays past events page.
+func PastEventsPage(mainTitle string, user *domain.User, events []*domain.Event) Node {
+	return eventsPage(mainTitle, pastEventsTitle, user, false, events)
+}
+
+const (
+	currentEventsTitle = "Current Events"
+	pastEventsTitle    = "Past Events"
+)
+
+func eventsPage(mainTitle, sectionTitle string, user *domain.User, pastEventsTransparent bool, events []*domain.Event) Node {
+	return page(mainTitle, sectionTitle, user,
+		eventNav([]eventNavLink{
+			{
+				Text:   currentEventsTitle,
+				URL:    "/",
+				Active: sectionTitle == currentEventsTitle,
+			},
+			{
+				Text:   pastEventsTitle,
+				URL:    "/past",
+				Active: sectionTitle == pastEventsTitle,
+			},
+		}),
+		eventList(events, pastEventsTransparent),
+	)
+}
+
+type eventNavLink struct {
+	Text   string
+	URL    string
+	Active bool
+}
+
+func eventNav(links []eventNavLink) Node {
+	return Ul(Class("flex border-b"),
+		Map(links, func(link eventNavLink) Node {
+			if link.Active {
+				return Li(Class("-mb-px mr-1"),
+					A(Aria("current", "page"), Class("bg-white inline-block border-l border-t border-r rounded-t py-2 px-4 text-amber-600 font-semibold"),
+						Text(link.Text),
+						Href(link.URL),
+					),
+				)
+			}
+
+			return Li(Class("mr-1"),
+				A(Class("bg-white inline-block py-2 px-4 text-gray-400 hover:text-amber-600 font-semibold"),
+					Text(link.Text),
+					Href(link.URL),
+				),
+			)
+		}),
+	)
+}
+
+// eventList returns a list of events.
+func eventList(events []*domain.Event, pastEventsTransparent bool) Node {
 	return Map(events, func(ev *domain.Event) Node {
-		return EventCard(ev, pastEventsTransparent)
+		return eventCard(ev, pastEventsTransparent)
 	})
 }
 
-// EventCard returns an event card.
-func EventCard(ev *domain.Event, pastEventTransparent bool) Node {
+func eventCard(ev *domain.Event, pastEventTransparent bool) Node {
 	return Div(
 		Classes{
 			// Less opacity for events that have already started.
@@ -35,28 +95,26 @@ func EventCard(ev *domain.Event, pastEventTransparent bool) Node {
 		},
 		Div(Class("p-8 flex items-center"),
 			Div(Class("pr-4"),
-				EventDay(ev),
+				eventDay(ev),
 			),
 			Div(
-				EventTitle(ev),
-				EventMonthYear(ev),
-				EventTime(ev),
-				If(len(ev.Tags) > 0, EventTags(ev)),
-				EventDescription(ev),
+				eventTitle(ev),
+				eventMonthYear(ev),
+				eventTime(ev),
+				If(len(ev.Tags) > 0, eventTags(ev)),
+				eventDesc(ev),
 			),
 		),
 	)
 }
 
-// EventTitle renders event title.
-func EventTitle(ev *domain.Event) Node {
+func eventTitle(ev *domain.Event) Node {
 	return H1(Class("tracking-wide text-2xl font-semibold"),
 		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Text(ev.Title)),
 	)
 }
 
-// EventDescription renders event description.
-func EventDescription(ev *domain.Event) Node {
+func eventDesc(ev *domain.Event) Node {
 	var buf strings.Builder
 	if err := goldmark.Convert([]byte(ev.Description), &buf); err != nil {
 		// TODO: event must be validated.
@@ -67,8 +125,7 @@ func EventDescription(ev *domain.Event) Node {
 	return P(Class("mt-2 text-gray-700"), Raw(buf.String()))
 }
 
-// EventDay renders event day.
-func EventDay(ev *domain.Event) Node {
+func eventDay(ev *domain.Event) Node {
 	day := ev.StartAt.Time().Day()
 
 	return P(Class("text-4xl font-bold"),
@@ -76,15 +133,13 @@ func EventDay(ev *domain.Event) Node {
 	)
 }
 
-// EventMonthYear renders event month and year.
-func EventMonthYear(ev *domain.Event) Node {
+func eventMonthYear(ev *domain.Event) Node {
 	return H2(Class("mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
 		Text(ev.StartAt.Time().Format("January, 2006")),
 	)
 }
 
-// EventTime renders event start and end time.
-func EventTime(ev *domain.Event) Node {
+func eventTime(ev *domain.Event) Node {
 	return P(Class("mt-2 text-gray-500 text-sm"), Text(func() string {
 		start := ev.StartAt.Time().Format("15:04")
 
@@ -97,10 +152,9 @@ func EventTime(ev *domain.Event) Node {
 	}()))
 }
 
-// EventTags renders event tags.
-func EventTags(ev *domain.Event) Node {
+func eventTags(ev *domain.Event) Node {
 	return P(Class("mt-1 text-gray-500 text-sm"),
-		MapIndexed(ev.Tags, func(i int, tag string) Node {
+		mapIndexed(ev.Tags, func(i int, tag string) Node {
 			link := A(Class("hover:underline"), Href("#"), Text(tag))
 
 			if i > 0 {
@@ -115,8 +169,7 @@ func EventTags(ev *domain.Event) Node {
 	)
 }
 
-// MapIndexed maps a slice of anything to a [Group] (which is just a slice of [Node]-s).
-func MapIndexed[T any](ts []T, cb func(int, T) Node) Group {
+func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {
 	var nodes []Node
 	for i, t := range ts {
 		nodes = append(nodes, cb(i, t))

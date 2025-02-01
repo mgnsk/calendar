@@ -17,15 +17,6 @@ Setup tools and run development environment:
 - `$ make setup`
 - `$ make dev`
 
-### General info
-
-The service binds itself to `:8080` by default. To change it, specify the `--addr` flag.
-
-The service minimally needs a persistent volume to store the SQLite database.
-Just mount the directory and specify via the `--database-dir` flag.
-
-It automatically runs needed database migrations on startup.
-
 ### Docker Compose deployment
 
 The Docker image is published at https://github.com/mgnsk/calendar/pkgs/container/calendar
@@ -35,8 +26,14 @@ Choose whichever system you're familiar with.
 
 You need a Docker installation with the [Compose plugin](https://docs.docker.com/compose/install/linux/).
 
-Copy `docker-compose.yml` and `configuration.example.yml` to `/etc/docker/compose/calendar/`.
-Edit the configuration and rename to `configuration.yml`.
+Copy `docker-compose.example.yml` to `/etc/docker/compose/calendar/docker-compose.yml`
+and `.env` to `/etc/docker/compose/calendar/.env`.
+
+Edit the environment variables. Make sure to set a new 32-byte SESSION_SECRET.
+
+You may also set the environment variables directly in `docker-compose.yml`.
+In this case, the `.env` file is not needed. Remove the `env_file` setting from the compose file.
+
 Copy `docker-compose@.service` to `/etc/systemd/system/`.
 
 Enable the service: `$ systemctl enable --now docker-compose@calendar`.
@@ -49,6 +46,5 @@ To update the service:
 - `$ docker compose pull`
 - `$ systemctl restart docker-compose@calendar`
 
-TODO: implement and describe the configuration file
 TODO: automatic update
 TODO: describe HTTPS reverse proxy (most probably Caddy) and domain name config.
