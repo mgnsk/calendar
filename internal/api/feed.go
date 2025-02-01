@@ -24,7 +24,7 @@ const (
 // FeedHandler handles feed output.
 type FeedHandler struct {
 	db     *bun.DB
-	config FeedConfig
+	config Config
 }
 
 // Register the handler.
@@ -53,7 +53,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(h.config.Title)
+	cal.SetDescription(h.config.PageTitle)
 	cal.SetUrl(h.config.BaseURL.JoinPath(ICalPath).String())
 
 	for _, ev := range events {
@@ -86,7 +86,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
 	}
 
 	feed := &feeds.Feed{
-		Title: h.config.Title,
+		Title: h.config.PageTitle,
 		Link:  &feeds.Link{Rel: "self", Href: h.config.BaseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}
@@ -122,7 +122,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, config FeedConfig) *FeedHandler {
+func NewFeedHandler(db *bun.DB, config Config) *FeedHandler {
 	return &FeedHandler{
 		db:     db,
 		config: config,

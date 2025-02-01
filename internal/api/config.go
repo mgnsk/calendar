@@ -2,8 +2,9 @@ package api
 
 import "net/url"
 
-// FeedConfig is common feed configuration.
-type FeedConfig struct {
-	Title   string
-	BaseURL *url.URL
+// Config is common feed and web app configuration.
+type Config struct {
+	PageTitle     string
+	BaseURL       *url.URL
+	SessionSecret []byte
 }

@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"math/rand/v2"
-
 	_ "embed"
-	"flag"
 	"log"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,7 +23,6 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
 	"github.com/mgnsk/calendar/internal/pkg/timestamp"
-
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
@@ -33,37 +30,21 @@ import (
 func main() {
 	log.SetFlags(0) // no time prefix
 
-	var (
-		addr        string
-		databaseDir string
-	)
-
-	flag.StringVar(&addr, "addr", ":8080", "listen address")
-	flag.StringVar(&databaseDir, "database-dir", "", "database directory")
-	flag.Parse()
-
-	if addr == "" {
-		log.Println("addr must not be empty")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	if databaseDir == "" {
-		log.Println("database-dir must not be empty")
-		flag.Usage()
-		os.Exit(1)
-	}
-
-	dir, err := filepath.Abs(databaseDir)
+	cfg, err := LoadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	databaseDir, err := filepath.Abs(cfg.DatabaseDir)
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	dsn := filepath.Join(dir, "calendar.sqlite")
+	if err := os.MkdirAll(databaseDir, 0755); err != nil {
+		log.Fatal(err)
+	}
+
+	dsn := filepath.Join(databaseDir, "calendar.sqlite")
 	db := sqlite.NewDB(dsn).Connect()
 
 	if err := internal.MigrateUp(db.DB); err != nil {
@@ -73,6 +54,9 @@ func main() {
 	model.RegisterModels(db)
 
 	insertTestData(db)
+	if err := ensureAdminExists(db); err != nil {
+		log.Fatalf("unable to create admin user: %s", err.Error())
+	}
 
 	e := echo.New()
 	e.Use(
@@ -83,25 +67,24 @@ func main() {
 		}),
 	)
 
+	baseURL, err := url.Parse(cfg.BaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	apiConfig := api.Config{
+		PageTitle:     cfg.PageTitle,
+		BaseURL:       baseURL,
+		SessionSecret: []byte(cfg.SessionSecret),
+	}
+
 	{
-		// TODO
-		baseURL, err := url.Parse("https://example.testing")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// TODO
-		feedConfig := api.FeedConfig{
-			Title:   "My Feed",
-			BaseURL: baseURL,
-		}
-
-		h := api.NewFeedHandler(db, feedConfig)
+		h := api.NewFeedHandler(db, apiConfig)
 		h.Register(e)
 	}
 
 	{
-		h := api.NewHTMLHandler(db)
+		h := api.NewHTMLHandler(db, apiConfig)
 		h.Register(e)
 	}
 
@@ -110,7 +93,7 @@ func main() {
 
 	// Start server
 	go func() {
-		if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+		if err := e.Start(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
 			e.Logger.Fatal(err)
 		}
 	}()
@@ -127,6 +110,32 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
+}
+
+// ensureAdminExists inserts an admin:admin user when no users are present in the database.
+func ensureAdminExists(db *bun.DB) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	users, err := model.ListUsers(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	if len(users) > 0 {
+		return nil
+	}
+
+	slog.Info("Inserting admin:admin user")
+
+	user := &domain.User{
+		ID:       snowflake.Generate(),
+		Username: "admin",
+		Role:     domain.Admin,
+	}
+	user.SetPassword("admin")
+
+	return model.InsertUser(ctx, db, user)
 }
 
 func insertTestData(db *bun.DB) {
