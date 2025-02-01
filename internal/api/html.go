@@ -12,6 +12,7 @@ import (
 // Paths for web endpoints.
 const (
 	HomePath = "/"
+	PastPath = "/past"
 )
 
 // HTMLHandler handles web pages.
@@ -19,9 +20,20 @@ type HTMLHandler struct {
 	db *bun.DB
 }
 
+// HTMLMiddleware sets headers for HTML responses.
+func HTMLMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+
+		return next(c)
+	}
+}
+
 // Register the handler.
 func (h *HTMLHandler) Register(e *echo.Echo) {
-	e.GET(HomePath, h.Home)
+	g := e.Group("", HTMLMiddleware)
+	g.GET(HomePath, h.Home)
+	g.GET(PastPath, h.PastEvents)
 }
 
 // Home handles the home page.
@@ -32,10 +44,24 @@ func (h *HTMLHandler) Home(c echo.Context) error {
 		return err
 	}
 
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	node := html.EventListPage(events)
+	node := html.CurrentEventsPage(events)
+
+	return node.Render(c.Response())
+}
+
+// PastEvents handles past events page.
+func (h *HTMLHandler) PastEvents(c echo.Context) error {
+	// Lists events that have already started, in descending order.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), "desc")
+	if err != nil {
+		return err
+	}
+
+	c.Response().WriteHeader(200)
+
+	node := html.PastEventsPage(events)
 
 	return node.Render(c.Response())
 }

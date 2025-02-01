@@ -83,7 +83,7 @@ var _ = Describe("listing events", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					EndAt:       timestamp.New(time.Now().Add(2 * time.Hour)),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
@@ -117,7 +117,7 @@ var _ = Describe("listing events", func() {
 		))
 	})
 
-	Specify("events can be filtered by start time", func(ctx SpecContext) {
+	Specify("events can be filtered by time", func(ctx SpecContext) {
 		result := Must(model.ListEvents(
 			ctx,
 			db,
@@ -137,6 +137,21 @@ var _ = Describe("listing events", func() {
 		Expect(result).To(HaveExactElements(
 			HaveField("Title", "Event 2"),
 			HaveField("Title", "Event 1"),
+		))
+	})
+
+	Specify("events can be filtered by time and tags", func(ctx SpecContext) {
+		result := Must(model.ListEvents(
+			ctx,
+			db,
+			time.Now().Add(1*time.Hour).Add(30*time.Minute),
+			time.Now().Add(2*time.Hour).Add(30*time.Minute),
+			"asc",
+			"tag1",
+		))
+
+		Expect(result).To(HaveExactElements(
+			HaveField("Title", "Event 2"),
 		))
 	})
 })

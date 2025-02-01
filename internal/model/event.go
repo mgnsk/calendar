@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 type Event struct {
 	ID             snowflake.ID        `bun:"id,pk"`
 	StartAtUnix    int64               `bun:"start_at_unix"`
-	EndAtUnix      int64               `bun:"end_at_unix"`
+	EndAtUnix      sql.NullInt64       `bun:"end_at_unix"`
 	StartAtRFC3339 timestamp.Timestamp `bun:"start_at_rfc3339"`
 	EndAtRFC3339   timestamp.Timestamp `bun:"end_at_rfc3339"`
 	Title          string              `bun:"title"`
@@ -41,9 +42,12 @@ type eventToTag struct {
 func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&Event{
-			ID:             ev.ID,
-			StartAtUnix:    ev.StartAt.Time().Unix(),
-			EndAtUnix:      ev.EndAt.Time().Unix(),
+			ID:          ev.ID,
+			StartAtUnix: ev.StartAt.Time().Unix(),
+			EndAtUnix: sql.NullInt64{
+				Int64: ev.EndAt.Time().Unix(),
+				Valid: !ev.EndAt.Time().IsZero(),
+			},
 			StartAtRFC3339: ev.StartAt,
 			EndAtRFC3339:   ev.EndAt,
 			Title:          ev.Title,
@@ -92,19 +96,19 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 
 	switch order {
 	case "asc":
-		q = q.Order("start_at_unix ASC")
+		q = q.Order("event.start_at_unix ASC", "event.id ASC")
 	case "desc":
-		q = q.Order("start_at_unix DESC")
+		q = q.Order("event.start_at_unix DESC", "event.id ASC")
 	default:
 		panic(fmt.Sprintf("invalid order %s, expected asc or desc", order))
 	}
 
 	if !startFrom.IsZero() {
-		q = q.Where("start_at_unix > ?", startFrom.Unix())
+		q = q.Where("event.start_at_unix >= ?", startFrom.Unix())
 	}
 
 	if !startUntil.IsZero() {
-		q = q.Where("start_at_unix < ?", startUntil.Unix())
+		q = q.Where("event.start_at_unix <= ?", startUntil.Unix())
 	}
 
 	if len(filterTags) > 0 {

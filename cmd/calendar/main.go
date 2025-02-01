@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"math/rand/v2"
+
 	_ "embed"
 	"flag"
 	"log"
@@ -23,6 +25,7 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
 	"github.com/mgnsk/calendar/internal/pkg/timestamp"
+
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
@@ -69,9 +72,7 @@ func main() {
 
 	model.RegisterModels(db)
 
-	// if err := insertTestData(db); err != nil {
-	// 	log.Fatal(err)
-	// }
+	insertTestData(db)
 
 	e := echo.New()
 	e.Use(
@@ -128,12 +129,20 @@ func main() {
 	}
 }
 
-func insertTestData(db *bun.DB) error {
-	baseTime := time.Now()
+func insertTestData(db *bun.DB) {
+	getRandBaseTime := func() time.Time {
+		baseTime := time.Now()
+
+		hours := rand.N(30 * 24 * time.Hour)
+
+		baseTime = baseTime.Add(hours)
+
+		return baseTime
+	}
 
 	event1 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime.Add(-48 * time.Hour)),
+		StartAt:     timestamp.New(getRandBaseTime().Add(-48 * time.Hour)),
 		EndAt:       timestamp.Timestamp{},
 		Title:       "Event 1",
 		Description: "Desc 1",
@@ -143,7 +152,7 @@ func insertTestData(db *bun.DB) error {
 
 	event2 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime.Add(-12 * time.Hour)),
+		StartAt:     timestamp.New(getRandBaseTime().Add(-12 * time.Hour)),
 		EndAt:       timestamp.Timestamp{},
 		Title:       "Event 2",
 		Description: "Desc 2",
@@ -151,10 +160,11 @@ func insertTestData(db *bun.DB) error {
 		Tags:        []string{"tag1", "tag2"},
 	}
 
+	ts := getRandBaseTime()
 	event3 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(baseTime),
-		EndAt:       timestamp.New(baseTime.Add(2 * time.Hour)),
+		StartAt:     timestamp.New(ts),
+		EndAt:       timestamp.New(ts.Add(2 * time.Hour)),
 		Title:       "Event 3",
 		Description: "Desc 3",
 		URL:         "https://event3.testing",
@@ -163,9 +173,7 @@ func insertTestData(db *bun.DB) error {
 
 	for _, ev := range []*domain.Event{event1, event2, event3} {
 		if err := model.InsertEvent(context.Background(), db, ev); err != nil {
-			return err
+			panic(err)
 		}
 	}
-
-	return nil
 }
