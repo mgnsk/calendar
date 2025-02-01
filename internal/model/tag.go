@@ -8,6 +8,7 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
+	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
 
@@ -20,13 +21,15 @@ type Tag struct {
 }
 
 // InsertTag inserts a tag into the database. If the tag exists, it is ignored.
-func InsertTag(ctx context.Context, db bun.IDB, name string) error {
-	if err := sqlite.WithErrorChecking(
-		db.NewInsert().Model(&Tag{
+func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
+	model := lo.Map(names, func(name string, _ int) Tag {
+		return Tag{
 			ID:   snowflake.Generate(),
 			Name: name,
-		}).Ignore().Exec(ctx),
-	); err != nil {
+		}
+	})
+
+	if err := sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx)); err != nil {
 		if e := new(wreck.PreconditionFailed); errors.As(err, &e) {
 			return nil
 		}
@@ -44,7 +47,7 @@ func GetTag(ctx context.Context, db bun.IDB, name string) (*Tag, error) {
 	if err := db.NewSelect().Model(model).
 		Where("name = ?", name).
 		Scan(ctx); err != nil {
-		return nil, err
+		return nil, sqlite.NormalizeError(err)
 	}
 
 	return model, nil
@@ -62,7 +65,7 @@ func ListTags(ctx context.Context, db bun.IDB, filterName string) ([]*Tag, error
 	}
 
 	if err := q.Scan(ctx); err != nil {
-		return nil, err
+		return nil, sqlite.NormalizeError(err)
 	}
 
 	return model, nil

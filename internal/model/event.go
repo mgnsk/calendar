@@ -59,33 +59,25 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 		}
 
 		// Ensure tags exist.
-		for _, name := range ev.Tags {
-			if err := InsertTag(ctx, db, name); err != nil {
-				return err
-			}
+		if err := InsertTags(ctx, db, ev.Tags...); err != nil {
+			return err
 		}
 
-		// Get tags.
-		tags := make([]*Tag, 0, len(ev.Tags))
+		// Create tag relations.
+		relations := make([]eventToTag, 0, len(ev.Tags))
 		for _, name := range ev.Tags {
 			tag, err := GetTag(ctx, db, name)
 			if err != nil {
 				return err
 			}
-			tags = append(tags, tag)
-		}
 
-		// Insert relations.
-		for _, tag := range tags {
-			if err := sqlite.WithErrorChecking(db.NewInsert().Model(&eventToTag{
+			relations = append(relations, eventToTag{
 				TagID:   tag.ID,
 				EventID: ev.ID,
-			}).Exec(ctx)); err != nil {
-				return err
-			}
+			})
 		}
 
-		return nil
+		return sqlite.WithErrorChecking(db.NewInsert().Model(&relations).Exec(ctx))
 	})
 }
 
