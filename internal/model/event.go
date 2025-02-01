@@ -82,7 +82,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 }
 
 // ListEvents lists events.
-func ListEvents(ctx context.Context, db *bun.DB, startFrom, startUntil time.Time, order string, filterTags ...string) ([]*domain.Event, error) {
+func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time, order string, filterTags ...string) ([]*domain.Event, error) {
 	model := []*Event{}
 
 	q := db.NewSelect().Model(&model).
