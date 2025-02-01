@@ -2,8 +2,9 @@
 name: Run go test
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches-ignore:
+      - main
 
 jobs:
   test:
