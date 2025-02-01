@@ -21,7 +21,7 @@ var _ = Describe("inserting events", func() {
 
 		JustBeforeEach(func(ctx SpecContext) {
 			By("inserting one existing tag", func() {
-				Expect(model.InsertTag(ctx, db, "tag1")).To(Succeed())
+				Expect(model.InsertTags(ctx, db, "tag1")).To(Succeed())
 			})
 
 			ev = &domain.Event{

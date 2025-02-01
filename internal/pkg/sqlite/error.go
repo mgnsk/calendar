@@ -7,15 +7,8 @@ import (
 
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
-
-// DriverError is a database driver error.
-type DriverError interface {
-	Code() int
-	error
-}
-
-var _ DriverError = &sqlite.Error{}
 
 // NormalizeError wraps the error with additional information if present.
 func NormalizeError(err error) error {
@@ -23,9 +16,17 @@ func NormalizeError(err error) error {
 		return nil
 	}
 
-	var se DriverError
-	if errors.As(err, &se) {
-		return fmt.Errorf("sqlite error %v (%s): %w", se.Code(), sqlite.ErrorCodeString[se.Code()], err)
+	if errors.Is(err, sql.ErrNoRows) {
+		return &wreck.NotFound{Err: err}
+	}
+
+	if se := new(sqlite.Error); errors.As(err, &se) {
+		switch se.Code() {
+		case
+			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,
+			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
+			return &wreck.AlreadyExists{Err: err}
+		}
 	}
 
 	return err
@@ -41,7 +42,7 @@ func WithErrorChecking(res sql.Result, err error) error {
 		return fmt.Errorf("error checking affected row count: %w", err)
 	} else if c == 0 {
 		return &wreck.PreconditionFailed{
-			Cause: fmt.Errorf("no rows were affected"),
+			Err: fmt.Errorf("no rows were affected"),
 		}
 	}
 
