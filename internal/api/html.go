@@ -16,16 +16,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// Paths for web endpoints.
-const (
-	HomePath           = "/"
-	PastPath           = "/past"
-	LoginPath          = "/login"
-	LogoutPath         = "/logout"
-	UsersPath          = "/users"
-	ChangePasswordPath = "/change-password"
-)
-
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
 	db     *bun.DB
@@ -49,16 +39,19 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 		session.Middleware(sessions.NewCookieStore(h.config.SessionSecret)),
 	)
 
-	g.GET(HomePath, h.Home)
-	g.GET(PastPath, h.PastEvents)
+	g.GET("/", h.Home)
+	g.GET("/past", h.PastEvents)
 
-	g.GET(LoginPath, h.Login, NoCacheMiddleware)
-	g.POST(LoginPath, h.Login, NoCacheMiddleware)
+	g.GET("/login", h.Login, NoCacheMiddleware)
+	g.POST("/login", h.Login, NoCacheMiddleware)
 
-	g.GET(LogoutPath, h.Logout, NoCacheMiddleware)
+	g.GET("/logout", h.Logout, NoCacheMiddleware)
 
-	g.GET(UsersPath, h.Users, NoCacheMiddleware)
-	g.POST(UsersPath, h.Users, NoCacheMiddleware)
+	g.GET("/users", h.Users, NoCacheMiddleware)
+	g.POST("/users", h.Users, NoCacheMiddleware)
+
+	g.GET("/change-password", h.ChangePassword, NoCacheMiddleware)
+	g.POST("/change-password", h.ChangePassword, NoCacheMiddleware)
 }
 
 // Home handles the home page.
@@ -101,6 +94,11 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 
 // Users handles managing users.
 func (h *HTMLHandler) Users(c echo.Context) error {
+	panic("not implemented")
+}
+
+// ChangePassword handles changing user's password.
+func (h *HTMLHandler) ChangePassword(c echo.Context) error {
 	panic("not implemented")
 }
 
