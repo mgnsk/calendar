@@ -52,7 +52,7 @@ var _ = Describe("RSS feed output", func() {
 					Equal(contentType),
 				)),
 				HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
-					Equal(`attachment; filename="feed.xml"`),
+					Equal(`attachment; filename="feed.rss"`),
 				)),
 			))
 
@@ -62,13 +62,14 @@ var _ = Describe("RSS feed output", func() {
 			fields := Fields{
 				"FeedType": Equal(string(feedType)),
 				"Title":    Equal("My Test Feed"),
+				"Link":     Equal("https://example.testing/feed"),
 				"Items": HaveExactElements(
 					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Title":           Equal(event3.Title),
-						"Description":     Equal(event3.GetDescription()),
-						"PublishedParsed": PointTo(BeTemporally("~", event3.StartAt.Time(), time.Second)),
-						"GUID":            Equal(event3.ID.String()),
-						"Link":            Equal(event3.URL),
+						"Title":           Equal(event1.Title),
+						"Description":     Equal(event1.GetDescription()),
+						"PublishedParsed": PointTo(BeTemporally("~", event1.StartAt.Time(), time.Second)),
+						"GUID":            Equal(event1.ID.String()),
+						"Link":            Equal(event1.URL),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Title":           Equal(event2.Title),
@@ -78,20 +79,13 @@ var _ = Describe("RSS feed output", func() {
 						"Link":            Equal(event2.URL),
 					})),
 					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Title":           Equal(event1.Title),
-						"Description":     Equal(event1.GetDescription()),
-						"PublishedParsed": PointTo(BeTemporally("~", event1.StartAt.Time(), time.Second)),
-						"GUID":            Equal(event1.ID.String()),
-						"Link":            Equal(event1.URL),
+						"Title":           Equal(event3.Title),
+						"Description":     Equal(event3.GetDescription()),
+						"PublishedParsed": PointTo(BeTemporally("~", event3.StartAt.Time(), time.Second)),
+						"GUID":            Equal(event3.ID.String()),
+						"Link":            Equal(event3.URL),
 					})),
 				),
-			}
-
-			switch feedType {
-			case "rss":
-				fields["Link"] = Equal("https://example.testing/feed")
-			case "atom":
-				fields["FeedLink"] = Equal("https://example.testing/feed/atom")
 			}
 
 			Expect(feed).To(PointTo(MatchFields(IgnoreExtras, fields)))
@@ -102,12 +96,6 @@ var _ = Describe("RSS feed output", func() {
 			"rss",
 			"/feed",
 			"application/rss+xml; charset=utf-8",
-		),
-
-		Entry("Atom feed",
-			"atom",
-			"/feed/atom",
-			"application/atom+xml; charset=utf-8",
 		),
 	)
 })
@@ -167,7 +155,7 @@ var _ = Describe("iCal feed output", func() {
 
 		var matchers []any
 
-		for _, target := range []*domain.Event{event3, event2, event1} {
+		for _, target := range []*domain.Event{event1, event2, event3} {
 			matchers = append(matchers, MakeMatcher(func(ev *ics.VEvent) (bool, error) {
 				Expect(Must(ev.GetLastModifiedAt())).To(BeTemporally("~", time.Now(), time.Second))
 				Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt.Time(), time.Second))

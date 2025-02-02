@@ -69,3 +69,21 @@ func (t Timestamp) Value() (driver.Value, error) {
 
 	return t.value.Format(time.RFC3339), nil
 }
+
+// GetDaySuffix returns the ordinal suffix for day.
+func GetDaySuffix(n int) string {
+	if n >= 11 && n <= 13 {
+		return "th"
+	}
+
+	switch n % 10 {
+	case 1:
+		return "st"
+	case 2:
+		return "nd"
+	case 3:
+		return "rd"
+	default:
+		return "th"
+	}
+}

@@ -1,14 +1,17 @@
 package html
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aybabtme/uniplot/histogram"
 	"github.com/mgnsk/calendar/internal/domain"
+	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
 	. "maragu.dev/gomponents"
@@ -18,12 +21,30 @@ import (
 )
 
 // EventListPartial renders the event list partial.
-func EventListPartial(events []*domain.Event, path string) Node {
-	return Div(ID("event-list"),
+func EventListPartial(offset int64, events []*domain.Event, path string) Node {
+	if len(events) == 0 {
+		return Div(Class("px-3 py-4 text-center"),
+			P(Text("no events found")),
+		)
+	}
+
+	return Group{
 		Map(events, func(ev *domain.Event) Node {
 			return eventCard(ev, path)
 		}),
-	)
+		Div(ID("load-more"),
+			hx.Post(""),
+			hx.Include("[name='search'], [name='offset']"), // CSS query to include data from inputs.
+			hx.Vals(string(must(json.Marshal(map[string]string{
+				"last_id": events[len(events)-1].ID.String(),
+			})))),
+			hx.Trigger("revealed"),
+			hx.Target("#load-more"),
+			hx.Swap("outerHTML"),
+			hx.Indicator("#loading-spinner"),
+			Input(Type("hidden"), Name("offset"), Value(strconv.FormatInt(offset, 10))),
+		),
+	}
 }
 
 // EventsPageParams is the params for events page.
@@ -34,6 +55,7 @@ type EventsPageParams struct {
 	Path         string
 	FilterTag    string
 	User         *domain.User
+	Offset       int64
 	Events       []*domain.Event
 }
 
@@ -41,15 +63,20 @@ type EventsPageParams struct {
 func EventsPage(p EventsPageParams) Node {
 	sectionTitleSuffix := ""
 	if p.FilterTag != "" {
-		sectionTitleSuffix = fmt.Sprintf(" tagged %s (%d)", p.FilterTag, len(p.Events))
+		sectionTitleSuffix = fmt.Sprintf(" tagged %s", p.FilterTag)
 	}
 
 	var navLinks []eventNavLink
 
 	navLinks = append(navLinks,
 		eventNavLink{
-			Text: "Current",
+			Text: "Latest",
 			URL: func() string {
+				if p.Path == "/tag/:tagName" && p.FilterTag != "" {
+					// Current active tab takes back to default.
+					return "/"
+				}
+
 				if p.FilterTag != "" {
 					return fmt.Sprintf("/tag/%s", url.QueryEscape(p.FilterTag))
 				}
@@ -58,8 +85,28 @@ func EventsPage(p EventsPageParams) Node {
 			Active: p.Path == "/" || p.Path == "/tag/:tagName",
 		},
 		eventNavLink{
+			Text: "Upcoming",
+			URL: func() string {
+				if p.Path == "/upcoming/tag/:tagName" && p.FilterTag != "" {
+					// Current active tab takes back to default.
+					return "/upcoming"
+				}
+
+				if p.FilterTag != "" {
+					return fmt.Sprintf("/upcoming/tag/%s", url.QueryEscape(p.FilterTag))
+				}
+				return "/upcoming"
+			}(),
+			Active: p.Path == "/upcoming" || p.Path == "/upcoming/tag/:tagName",
+		},
+		eventNavLink{
 			Text: "Past",
 			URL: func() string {
+				if p.Path == "/past/tag/:tagName" {
+					// Current active tab takes back to default.
+					return "/past"
+				}
+
 				if p.FilterTag != "" {
 					return fmt.Sprintf("/past/tag/%s", url.QueryEscape(p.FilterTag))
 				}
@@ -74,17 +121,14 @@ func EventsPage(p EventsPageParams) Node {
 		},
 	)
 
-	// if p.Path == "/tag/:tagName" || p.Path == "/past/tag/:tagName" {
-	// 	navLinks = append(navLinks, eventNavLink{
-	// 		Text:   "All",
-	// 		URL:    "/",
-	// 		Active: false,
-	// 	})
-	// }
-
 	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.SubTitle, p.User,
 		eventNav(p.Path, navLinks),
-		EventListPartial(p.Events, p.Path),
+		Div(ID("event-list"),
+			EventListPartial(p.Offset, p.Events, p.Path),
+		),
+		Div(ID("loading-spinner"), Class("my-5 opacity-0 htmx-indicator m-10 mx-auto flex justify-center"),
+			spinner(8),
+		),
 	)
 }
 
@@ -102,8 +146,13 @@ func TagsPage(p TagsPageParams) Node {
 	return page(p.MainTitle, p.SectionTitle, "", p.User,
 		eventNav(p.Path, []eventNavLink{
 			{
-				Text:   "Current",
+				Text:   "Latest",
 				URL:    "/",
+				Active: false,
+			},
+			{
+				Text:   "Upcoming",
+				URL:    "/upcoming",
 				Active: false,
 			},
 			{
@@ -128,43 +177,52 @@ type eventNavLink struct {
 }
 
 func eventNav(path string, links []eventNavLink) Node {
-	return Ul(Class("flex border-b"),
-		Map(links, func(link eventNavLink) Node {
-			if link.Active {
-				return Li(Class("-mb-px mr-1 border-l border-t border-r rounded-t"),
-					A(Aria("current", "page"), Class("bg-white inline-block py-2 px-2 md:px-4 text-amber-600 font-semibold"),
+	return Div(Class("max-w-3xl mx-auto"),
+		Ul(Class("flex border-b"),
+			Map(links, func(link eventNavLink) Node {
+				if link.Active {
+					return Li(Class("-mb-px mr-1 border-l border-t border-r rounded-t"),
+						A(Aria("current", "page"), Class("bg-white inline-block py-2 px-2 md:px-4 text-amber-600 font-semibold"),
+							Text(link.Text),
+							Href(link.URL),
+						),
+					)
+				}
+
+				return Li(Class("mr-1"),
+					A(Class("bg-white inline-block py-2 px-2 md:px-4 text-gray-400 hover:text-amber-600 font-semibold"),
 						Text(link.Text),
 						Href(link.URL),
 					),
 				)
-			}
-
-			return Li(Class("mr-1"),
-				A(Class("bg-white inline-block py-2 px-2 md:px-4 text-gray-400 hover:text-amber-600 font-semibold"),
-					Text(link.Text),
-					Href(link.URL),
-				),
-			)
-		}),
-		If(path != "/tags",
-			Li(Class("ml-auto border-l border-t border-r rounded-t"),
-				Input(Classes{
-					// "border":          true,
-					// "border-gray-200": true,
-					"block":   true,
-					"w-full":  true,
-					"mx-auto": true,
-					"py-2":    true,
-					"px-3":    true,
-					"rounded": true,
-				},
-					Name("search"),
-					Type("text"),
-					Placeholder("Filter..."),
-					Required(),
-					hx.Post(""), // Post to current URL.
-					hx.Trigger("keyup changed delay:1s"),
-					hx.Target("#event-list"),
+			}),
+			If(path != "/tags",
+				Li(Class("ml-auto border-l border-t border-r rounded-t"),
+					Div(Class("relative"),
+						Input(Classes{
+							// "border":          true,
+							// "border-gray-200": true,
+							"block":   true,
+							"w-full":  true,
+							"mx-auto": true,
+							"py-2":    true,
+							"px-3":    true,
+							"rounded": true,
+						},
+							ID("search"),
+							Name("search"),
+							Type("text"),
+							Placeholder("Filter..."),
+							Required(),
+							hx.Post(""), // Post to current URL.
+							hx.Trigger("keyup delay:0.2s"),
+							hx.Target("#event-list"),
+							hx.Indicator("#search-spinner"),
+						),
+						Div(ID("search-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2 htmx-indicator"),
+							spinner(2),
+						),
+					),
 				),
 			),
 		),
@@ -205,6 +263,12 @@ func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string,
 }
 
 func tagsList(tags []*domain.Tag) Node {
+	if len(tags) == 0 {
+		return Div(Class("px-3 py-4 text-center"),
+			P(Text("no tags found")),
+		)
+	}
+
 	hist, sizes, colors := calcHistogram(8, tags)
 
 	getClassIndex := func(eventCount uint64) int {
@@ -216,19 +280,21 @@ func tagsList(tags []*domain.Tag) Node {
 		panic("no bucket found")
 	}
 
-	return Ul(Class("my-5 flex justify-center flex-wrap align-center gap-2 leading-8"),
-		Map(tags, func(tag *domain.Tag) Node {
-			classes := Classes{"hover:underline": true}
-			idx := getClassIndex(tag.EventCount)
-			classes[sizes[idx]] = true
-			classes[colors[idx]] = true
+	return Div(Class("max-w-3xl mx-auto my-5"),
+		Ul(Class("flex justify-center flex-wrap align-center gap-2 leading-8"),
+			Map(tags, func(tag *domain.Tag) Node {
+				classes := Classes{"hover:underline": true}
+				idx := getClassIndex(tag.EventCount)
+				classes[sizes[idx]] = true
+				classes[colors[idx]] = true
 
-			return Li(
-				A(classes,
-					Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
-				),
-			)
-		}),
+				return Li(
+					A(classes,
+						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
+					),
+				)
+			}),
+		),
 	)
 }
 
@@ -237,6 +303,9 @@ func eventCard(ev *domain.Event, path string) Node {
 
 	return Div(
 		Classes{
+			"max-w-3xl": true,
+			"mx-auto":   true,
+
 			// Less opacity for events that have already started.
 			"opacity-60":         inPast,
 			"grayscale":          inPast,
@@ -284,7 +353,7 @@ func eventDay(ev *domain.Event) Node {
 	day := ev.StartAt.Time().Day()
 
 	return P(Class("text-2xl md:text-4xl font-bold text-center"),
-		Textf("%d%s", day, getDaySuffix(day)),
+		Textf("%d%s", day, timestamp.GetDaySuffix(day)),
 	)
 }
 
@@ -320,10 +389,10 @@ func eventTags(ev *domain.Event, path string) Node {
 			switch path {
 			case "/", "/tag/:tagName":
 				href = fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))
+			case "/upcoming", "/upcoming/tag/:tagName":
+				href = fmt.Sprintf("/upcoming/tag/%s", url.QueryEscape(tag.Name))
 			case "/past", "/past/tag/:tagName":
 				href = fmt.Sprintf("/past/tag/%s", url.QueryEscape(tag.Name))
-			case "/new", "/new/tag/:tagName":
-				href = fmt.Sprintf("/new/tag/%s", url.QueryEscape(tag.Name))
 			}
 
 			link := A(Class("hover:underline"), Href(href), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)))
@@ -348,19 +417,9 @@ func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {
 	return nodes
 }
 
-func getDaySuffix(n int) string {
-	if n >= 11 && n <= 13 {
-		return "th"
+func must[V any](v V, err error) V {
+	if err != nil {
+		panic(err)
 	}
-
-	switch n % 10 {
-	case 1:
-		return "st"
-	case 2:
-		return "nd"
-	case 3:
-		return "rd"
-	default:
-		return "th"
-	}
+	return v
 }

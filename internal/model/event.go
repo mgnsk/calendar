@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -30,18 +31,9 @@ type Event struct {
 	Description    string              `bun:"description"`
 	URL            string              `bun:"url"`
 	Tags           []*Tag              `bun:"m2m:events_tags,join:Event=Tag"`
+	FTSData        string              `bun:"fts_data"`
 
 	bun.BaseModel `bun:"events"`
-}
-
-type eventFTS struct {
-	ID          snowflake.ID `bun:"id"`
-	Title       string       `bun:"title"`
-	Description string       `bun:"description"`
-	URL         string       `bun:"url"`
-	Tags        string       `bun:"tags"`
-
-	bun.BaseModel `bun:"events_fts"`
 }
 
 type eventToTag struct {
@@ -51,6 +43,13 @@ type eventToTag struct {
 	Event   *Event       `bun:"rel:belongs-to,join:event_id=id"`
 
 	bun.BaseModel `bun:"events_tags"`
+}
+
+type eventFTS struct {
+	ID   snowflake.ID `bun:"rowid"`
+	Data string       `bun:"fts_data"`
+
+	bun.BaseModel `bun:"events_fts_idx"`
 }
 
 // InsertEvent inserts an event to the database.
@@ -69,16 +68,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Description:    ev.Description,
 			URL:            ev.URL,
 			Tags:           nil,
-		}).Exec(ctx)); err != nil {
-			return err
-		}
-
-		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&eventFTS{
-			ID:          ev.ID,
-			Title:       ev.Title,
-			Description: ev.Description,
-			URL:         ev.URL,
-			Tags:        strings.Join(ev.Tags, " "),
+			FTSData:        ev.GetFTSData(),
 		}).Exec(ctx)); err != nil {
 			return err
 		}
@@ -121,65 +111,25 @@ type EventOrder *[]string
 var (
 	OrderStartAtAsc    = &[]string{"event.start_at_unix ASC", "event.id ASC"}
 	OrderStartAtDesc   = &[]string{"event.start_at_unix DESC", "event.id ASC"}
+	OrderCreatedAtAsc  = &[]string{"event.id ASC"}
 	OrderCreatedAtDesc = &[]string{"event.id DESC"}
 )
 
-// SearchEvents performs full text search on events.
-// TODO: https://www.sqlite.org/fts5.html#the_highlight_function
-// TODO: bm25 and columnsize
-// TODO: to keep search result order and custom filtering, we fetch results one by one.
-func SearchEvents(ctx context.Context, db bun.IDB, searchText string, startFrom, startUntil time.Time, filterTags ...string) ([]*domain.Event, error) {
-	searchText = strip(searchText)
-
-	if searchText == "" {
-		return nil, &wreck.NotFound{Err: fmt.Errorf("no results found")}
-	}
-
-	model := []*eventFTS{}
-
-	// if err := db.NewSelect().
-	// 	TableExpr("events_fts(?)", searchText).
-	// 	Order("rank").
-	// 	Scan(ctx, &model); err != nil {
-	// 	return nil, sqlite.NormalizeError(err)
-	// }
-
-	if err := db.NewSelect().Model(&model).
-		Where("events_fts MATCH ?", searchText).
-		Order("rank").
-		Scan(ctx); err != nil {
-		return nil, sqlite.NormalizeError(err)
-	}
-
-	if len(model) == 0 {
-		return nil, &wreck.NotFound{Err: fmt.Errorf("no results found")}
-	}
-
-	var results []*domain.Event
-
-	for _, ftsResult := range model {
-		ev, err := getEvent(ctx, db, ftsResult.ID, startFrom, startUntil, filterTags...)
-		if err != nil {
-			if e := new(wreck.NotFound); errors.As(err, &e) {
-				continue
-			}
-
-			return nil, err
-		}
-
-		results = append(results, ev)
-	}
-
-	if len(results) == 0 {
-		return nil, &wreck.NotFound{Err: fmt.Errorf("no results found")}
-	}
-
-	return results, nil
-}
-
 // ListEvents lists events.
 // TODO: verify if we need tag_id idx on events_tags table.
-func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time, order EventOrder, filterTags ...string) ([]*domain.Event, error) {
+// Note: cursor is ID cursor when sorting by created at
+// and offset when sorting by start time.
+func ListEvents(
+	ctx context.Context,
+	db bun.IDB,
+	startFrom,
+	startUntil time.Time,
+	searchText string,
+	order EventOrder,
+	cursor int64,
+	limit int,
+	filterTags ...string,
+) ([]*domain.Event, error) {
 	model := []*Event{}
 
 	q := db.NewSelect().Model(&model).
@@ -190,10 +140,32 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 	switch order {
 	case OrderStartAtAsc:
 		q = q.Order(*order...)
+		q = q.Limit(limit)
+		if cursor > 0 {
+			q = q.Offset(int(cursor))
+		}
+
 	case OrderStartAtDesc:
 		q = q.Order(*order...)
+		q = q.Limit(limit)
+		if cursor > 0 {
+			q = q.Offset(int(cursor))
+		}
+
+	case OrderCreatedAtAsc:
+		q = q.Order(*order...)
+		q = q.Limit(limit)
+		if cursor > 0 {
+			q = q.Where("id > ?", cursor)
+		}
+
 	case OrderCreatedAtDesc:
 		q = q.Order(*order...)
+		q = q.Limit(limit)
+		if cursor > 0 {
+			q = q.Where("id < ?", cursor)
+		}
+
 	default:
 		panic("invalid order")
 	}
@@ -216,6 +188,45 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 			Where("tags.name IN (?)", bun.In(filterTags))
 	}
 
+	var searchResults []*eventFTS
+
+	if searchText != "" {
+		searchText = cleanString(searchText)
+		if len(searchText) < 3 {
+			return nil, &wreck.NotFound{Err: fmt.Errorf("no search results found")}
+		}
+
+		// Try exact match first and only when non-quoted input.
+		if !strings.Contains(searchText, `"`) {
+			quoted := ensureQuoted(searchText)
+			results, err := searchEvents(ctx, db, quoted)
+			if err != nil {
+				return nil, err
+			}
+			searchResults = results
+		}
+
+		// Search again more generally.
+		if len(searchResults) == 0 {
+			searchText = prepareGeneralSearchString(searchText)
+			results, err := searchEvents(ctx, db, searchText)
+			if err != nil {
+				return nil, err
+			}
+			searchResults = results
+		}
+
+		if len(searchResults) == 0 {
+			return nil, &wreck.NotFound{Err: fmt.Errorf("no search results found")}
+		}
+	}
+
+	if len(searchResults) > 0 {
+		q = q.Where("event.id IN (?)", bun.In(lo.Map(searchResults, func(r *eventFTS, _ int) snowflake.ID {
+			return r.ID
+		})))
+	}
+
 	if err := q.Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}
@@ -225,38 +236,22 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 	}), nil
 }
 
-func getEvent(ctx context.Context, db bun.IDB, id snowflake.ID, startFrom, startUntil time.Time, filterTags ...string) (*domain.Event, error) {
-	model := &Event{}
+func searchEvents(ctx context.Context, db bun.IDB, text string) ([]*eventFTS, error) {
+	model := []*eventFTS{}
 
-	q := db.NewSelect().Model(model).
-		Where("event.id = ?", id).
-		Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
-			return q.Order("tag.name ASC")
-		})
+	if err := sqlite.NormalizeError(db.NewSelect().Model(&model).
+		Column("rowid").
+		Where("events_fts_idx MATCH ?", text).
+		Order("rank").
+		Scan(ctx)); err != nil {
+		if e := new(wreck.NotFound); errors.As(err, &e) {
+			return nil, nil
+		}
 
-	if !startFrom.IsZero() {
-		q = q.Where("event.start_at_unix >= ?", startFrom.Unix())
+		return nil, err
 	}
 
-	if !startUntil.IsZero() {
-		q = q.Where("event.start_at_unix <= ?", startUntil.Unix())
-	}
-
-	filterTags = slices.DeleteFunc(filterTags, func(tag string) bool {
-		return tag == ""
-	})
-
-	if len(filterTags) > 0 {
-		q = q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
-			Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
-			Where("tags.name IN (?)", bun.In(filterTags))
-	}
-
-	if err := q.Scan(ctx); err != nil {
-		return nil, sqlite.NormalizeError(err)
-	}
-
-	return eventToDomain(model), nil
+	return model, nil
 }
 
 func eventToDomain(ev *Event) *domain.Event {
@@ -280,17 +275,46 @@ func eventToDomain(ev *Event) *domain.Event {
 	}
 }
 
-func strip(str string) string {
+func ensureQuoted(s string) string {
+	if unquoted, err := strconv.Unquote(s); err == nil {
+		return strconv.Quote(unquoted)
+	}
+	return strconv.Quote(s)
+}
+
+func prepareGeneralSearchString(s string) string {
+	fields := splitString(s)
+	quoted := make([]string, 0, len(fields))
+
+	for _, field := range fields {
+		quoted = append(quoted, ensureQuoted(field))
+	}
+
+	s = strings.Join(quoted, " ")
+
+	return s
+}
+
+func cleanString(s string) string {
 	return strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) {
-			return r
+		if r == unicode.ReplacementChar {
+			return -1
 		}
-		if unicode.IsNumber(r) {
-			return r
+		if !unicode.IsPrint(r) {
+			return -1
 		}
-		if unicode.IsSpace(r) {
-			return r
+		return r
+	}, s)
+}
+
+// splitString splits a string by whitespace while
+// attempting to keep the most common bases of quote usage.
+func splitString(s string) []string {
+	quoted := false
+	return strings.FieldsFunc(s, func(r rune) bool {
+		if unicode.In(r, unicode.Quotation_Mark) {
+			quoted = !quoted
 		}
-		return -1
-	}, str)
+		return !quoted && unicode.IsSpace(r)
+	})
 }
