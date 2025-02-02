@@ -8,6 +8,7 @@ RUN npm ci
 COPY tailwind.config.js tailwind.css ./
 COPY internal/html ./internal/html
 RUN npx tailwindcss -i tailwind.css -o ./internal/dist/app.css --minify
+RUN cp ./node_modules/htmx.org/dist/htmx.min.js ./internal/dist/htmx.min.js
 
 
 FROM golang:1.23-bookworm AS build

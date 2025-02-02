@@ -38,17 +38,19 @@ func userNav(user *domain.User) Node {
 	)
 }
 
-func page(mainTitle, sectionTitle string, user *domain.User, children ...Node) Node {
+func page(mainTitle, sectionTitle, subTitle string, user *domain.User, children ...Node) Node {
 	return HTML5(HTML5Props{
 		Title:    fmt.Sprintf("%s - %s", mainTitle, sectionTitle),
 		Language: "en",
 		Head: []Node{
 			Link(Rel("stylesheet"), Href(fmt.Sprintf("/dist/app.css?crc=%d", internal.Checksums["dist/app.css"]))),
+			Script(Type("application/javascript"), Defer(), Src(fmt.Sprintf("/dist/htmx.min.js?crc=%d", internal.Checksums["dist/htmx.min.js"]))),
 		},
 		Body: []Node{
 			container(
 				userNav(user),
 				H1(Class("m-8 text-center text-xl md:text-4xl font-semibold"), Text(sectionTitle)),
+				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),
 				Group(children),
 			),
 		},

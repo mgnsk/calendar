@@ -23,6 +23,7 @@ require (
 	github.com/yuin/goldmark v1.7.8
 	golang.org/x/crypto v0.31.0
 	maragu.dev/gomponents v1.0.0
+	maragu.dev/gomponents-htmx v0.6.1
 	modernc.org/sqlite v1.34.5
 )
 

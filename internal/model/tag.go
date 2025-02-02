@@ -47,7 +47,7 @@ func ListTags(ctx context.Context, db bun.IDB) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
 	if err := db.NewSelect().Model(&model).
-		Order("tag.name ASC").
+		Order("name ASC").
 		Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}

@@ -13,6 +13,7 @@ setup:
 .PHONY: dev
 dev:
 	npx tailwindcss -i tailwind.css -o ./internal/dist/app.css
+	cp ./node_modules/htmx.org/dist/htmx.min.js ./internal/dist/htmx.min.js
 	npx concurrently -n frontend,go,browser -c blue,green,yellow \
 		"tailwindcss -i tailwind.css -o ./internal/dist/app.css --watch" \
 		"air -c .air.toml" \
