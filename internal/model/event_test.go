@@ -41,7 +41,7 @@ var _ = Describe("inserting events", func() {
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc))
+			result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtAsc, 0, 0))
 
 			Expect(result).To(HaveExactElements(
 				SatisfyAll(
@@ -105,7 +105,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtAsc, 0, 0))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -147,7 +147,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtDesc))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtDesc, 0, 0))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -189,7 +189,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in created at time order descending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderCreatedAtDesc))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderCreatedAtDesc, 0, 0))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -236,7 +236,10 @@ var _ = Describe("listing events", func() {
 			db,
 			time.Now().Add(1*time.Hour).Add(30*time.Minute),
 			time.Now().Add(2*time.Hour).Add(30*time.Minute),
+			"",
 			model.OrderStartAtAsc,
+			0,
+			0,
 		))
 
 		Expect(result).To(HaveExactElements(
@@ -257,7 +260,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be filtered by tags", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc, "tag1"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtAsc, 0, 0, "tag1"))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -286,7 +289,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("empty tag filter is skipped", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc, ""))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtAsc, 0, 0, ""))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -333,7 +336,10 @@ var _ = Describe("listing events", func() {
 			db,
 			time.Now().Add(1*time.Hour).Add(30*time.Minute),
 			time.Now().Add(2*time.Hour).Add(30*time.Minute),
+			"",
 			model.OrderStartAtAsc,
+			0,
+			0,
 			"tag1",
 		))
 
@@ -356,7 +362,14 @@ var _ = Describe("listing events", func() {
 })
 
 var _ = Describe("full text search", func() {
+	var (
+		startTime, endTime time.Time
+	)
+
 	JustBeforeEach(func(ctx SpecContext) {
+		startTime = Must(time.Parse(time.RFC3339, "2025-02-03T18:00:00+02:00"))
+		endTime = startTime.Add(time.Hour)
+
 		By("inserting events", func() {
 			events := []*domain.Event{
 				{
@@ -370,10 +383,10 @@ var _ = Describe("full text search", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
+					StartAt:     timestamp.New(startTime),
 					EndAt:       timestamp.Timestamp{},
 					Title:       "Event ÕÄÖÜ 😀",
-					Description: "Desc 2",
+					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
 					Tags:        []string{"tag1", "tag2"},
 				},
@@ -396,12 +409,15 @@ var _ = Describe("full text search", func() {
 
 	DescribeTable("incorrect queries",
 		func(ctx SpecContext, query string) {
-			_, err := model.SearchEvents(
+			_, err := model.ListEvents(
 				ctx,
 				db,
-				query,
 				time.Now().Add(1*time.Hour).Add(30*time.Minute),
 				time.Now().Add(2*time.Hour).Add(30*time.Minute),
+				query,
+				model.OrderStartAtAsc,
+				0,
+				0,
 				"tag1",
 			)
 
@@ -409,24 +425,32 @@ var _ = Describe("full text search", func() {
 			Expect(errors.As(err, new(*wreck.NotFound))).
 				To(BeTrue(), fmt.Sprintf("expected not found, got %v", err))
 		},
-		Entry("emoji", "😀"),
-		Entry("invalid utf8", "😀"[:len("😀")-1]),
+		Entry("emoji", `😀`),
+		Entry("invalid utf8", `😀`[:len(`😀`)-1]),
+		Entry("backslash", `aou\`),
+		Entry("wildcard in beginning", `*aou`),
+		Entry("wildcard in the end", `aou*`), // Note: we quote searches, making this otherwise valid query invalid.
+		Entry("no multiple exact match", `"Desc 2" "unknown@email.testing"`),
 	)
 
 	DescribeTable("valid queries",
 		func(ctx SpecContext, query string) {
-			result := Must(model.SearchEvents(
+			result := Must(model.ListEvents(
 				ctx,
 				db,
+				startTime,
+				endTime,
 				query,
-				time.Now().Add(1*time.Hour).Add(30*time.Minute),
-				time.Now().Add(2*time.Hour).Add(30*time.Minute),
+				model.OrderStartAtAsc,
+				0,
+				0,
 				"tag1",
 			))
 
 			Expect(result).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Title": Equal("Event ÕÄÖÜ 😀"),
+					"Title":       Equal("Event ÕÄÖÜ 😀"),
+					"Description": HavePrefix("Desc 2"),
 					"TagRelations": HaveExactElements(
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Name":       Equal("tag1"),
@@ -440,12 +464,20 @@ var _ = Describe("full text search", func() {
 				})),
 			))
 		},
-		Entry("backslash", `aou\`),
 		Entry("letters", `aou`),
-		Entry("asterisk in begining", `*aou`),
-		Entry("asterisk", `aou*`), // Note: we strip any special characters. The wildcard would otherwise be valid.
-		Entry("multi word", "Desc 3"),
-		Entry("spaces", "Desc \t \xA0  3"),
-		Entry("special characters", "äöü"),
+		Entry("multi word exact match", `Desc 2`),
+		Entry("spaces", "Desc \t \u00a0  3"),
+		Entry("invalid", "Desc \t \xa0  3"),
+		Entry("special characters", `äöü`),
+		Entry("partial word", `des`),
+		Entry("partial word no prefix", `esc`),
+		Entry("partial words", `des even`),
+		Entry("partial word", `even`),
+		Entry("exact match", `"Desc 2"`),
+		Entry("multiple exact match", `"Desc 2" "some@email.testing"`),
+		Entry("email", `some@email.testing`),
+		Entry("day", "3rd"),
+		Entry("day and month", "3 feb"),
+		Entry("day and partial month", "3 fe"),
 	)
 })

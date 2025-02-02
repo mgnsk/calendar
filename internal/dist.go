@@ -1,18 +1,23 @@
 package internal
 
 import (
-	"embed"
+	"fmt"
 	"hash/crc32"
 	"io/fs"
 )
 
-// DistFS contains the bundled assets for web page.
-//
-//go:embed dist/*
-var DistFS embed.FS
+// GetAssetLink returns an asset link with checksum or panics if not found.
+func GetAssetLink(path string) string {
+	sum, ok := checkSums[path]
+	if !ok {
+		panic(fmt.Sprintf("asset %s not found", path))
+	}
 
-// Checksums contains checksums for all files in DistFS.
-var Checksums = map[string]uint32{}
+	return fmt.Sprintf("/%s?crc=%d", path, sum)
+}
+
+// checkSums contains checksums for all files in DistFS.
+var checkSums = map[string]uint32{}
 
 func init() {
 	if err := fs.WalkDir(DistFS, ".", func(path string, d fs.DirEntry, err error) error {
@@ -29,7 +34,7 @@ func init() {
 			return err
 		}
 
-		Checksums[path] = crc32.ChecksumIEEE(b)
+		checkSums[path] = crc32.ChecksumIEEE(b)
 
 		return nil
 	}); err != nil {

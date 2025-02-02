@@ -45,3 +45,29 @@ func (e *Event) GetDescription() string {
 
 	return buf.String()
 }
+
+// GetFTSData returns the combined data for full text search.
+func (e *Event) GetFTSData() string {
+	words := []string{
+		e.Title,
+		e.Description,
+		e.URL,
+		strings.Join(e.Tags, " "),
+	}
+
+	day := e.StartAt.Time().Day()
+	words = append(words, fmt.Sprintf("%d%s", day, timestamp.GetDaySuffix(day)))
+
+	for _, format := range []string{
+		"_2 January, 2006",
+		"02.01.2006",
+		time.DateOnly,
+		"15:04",
+		time.Kitchen,
+		"3PM",
+	} {
+		words = append(words, e.StartAt.Time().Format(format))
+	}
+
+	return strings.Join(words, " ")
+}

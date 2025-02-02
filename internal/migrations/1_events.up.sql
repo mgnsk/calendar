@@ -7,5 +7,6 @@ CREATE TABLE `events` (
   `title` text NOT NULL,
   `description` text NOT NULL,
   `url` text NOT NULL,
+  `fts_data` text NOT NULL,
   PRIMARY KEY (`id`)
 );

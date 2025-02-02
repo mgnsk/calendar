@@ -23,7 +23,7 @@ COPY . .
 COPY --from=assets /build/internal/dist /build/internal/dist
 
 ENV CGO_ENABLED=0
-RUN go build -trimpath -tags timetzdata -o calendar ./cmd/calendar
+RUN go build -trimpath -tags timetzdata,strictdist -o calendar ./cmd/calendar
 
 
 FROM gcr.io/distroless/base-debian12

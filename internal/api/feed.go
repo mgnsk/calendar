@@ -1,7 +1,7 @@
 package api
 
 import (
-	"fmt"
+	"encoding/xml"
 	"net/http"
 	"time"
 
@@ -13,7 +13,6 @@ import (
 )
 
 // TODO: consider adding an ETag header so that proxies can cache the response.
-// TODO: consider excluding past events
 
 // FeedHandler handles feed output.
 type FeedHandler struct {
@@ -24,7 +23,6 @@ type FeedHandler struct {
 // Register the handler.
 func (h *FeedHandler) Register(e *echo.Echo) {
 	e.GET("/feed", h.HandleRSS)
-	e.GET("/feed/atom", h.HandleAtom)
 	e.GET("/ical", h.HandleICal)
 }
 
@@ -33,19 +31,16 @@ func (h *FeedHandler) HandleRSS(c echo.Context) error {
 	return h.handleRSSFeed(c, "rss")
 }
 
-// HandleAtom handles Atom feeds.
-func (h *FeedHandler) HandleAtom(c echo.Context) error {
-	return h.handleRSSFeed(c, "atom")
-}
-
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, model.OrderStartAtAsc)
+	// Upcoming events in created at ASC.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, "", model.OrderCreatedAtAsc, 0, 0)
 	if err != nil {
 		return err
 	}
 
 	cal := ics.NewCalendar()
+	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetDescription(h.config.PageTitle)
 	cal.SetUrl(h.config.BaseURL.JoinPath("/ical").String())
@@ -68,13 +63,17 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/calendar; charset=utf-8")
 	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="calendar.ics"`)
+	c.Response().Header().Set(echo.HeaderCacheControl, "max-age=3600")
+	c.Response().Header().Set("Expires", time.Now().UTC().Add(time.Hour).Format(http.TimeFormat))
+
 	c.Response().WriteHeader(http.StatusOK)
 
 	return cal.SerializeTo(c.Response())
 }
 
-func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, model.OrderStartAtAsc)
+func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
+	// Latest upcoming events in created at ASC.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, "", model.OrderCreatedAtAsc, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -97,22 +96,25 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
 		})
 	}
 
-	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.xml"`)
+	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.rss"`)
+	c.Response().Header().Set(echo.HeaderContentType, "application/rss+xml; charset=utf-8")
+	c.Response().Header().Set(echo.HeaderCacheControl, "max-age=3600")
+	c.Response().Header().Set("Expires", time.Now().UTC().Add(time.Hour).Format(http.TimeFormat))
+	c.Response().WriteHeader(http.StatusOK)
 
-	switch target {
-	case "rss":
-		c.Response().Header().Set(echo.HeaderContentType, "application/rss+xml; charset=utf-8")
-		c.Response().WriteHeader(http.StatusOK)
-		return feed.WriteRss(c.Response())
+	rss := (&feeds.Rss{Feed: feed}).RssFeed()
+	rss.Generator = "Calendar - github.com/mgnsk/calendar"
+	x := rss.FeedXml()
 
-	case "atom":
-		c.Response().Header().Set(echo.HeaderContentType, "application/atom+xml; charset=utf-8")
-		c.Response().WriteHeader(http.StatusOK)
-		return feed.WriteAtom(c.Response())
-
-	default:
-		panic(fmt.Sprintf("invalid feed type %v", target))
+	// write default xml header, without the newline
+	if _, err := c.Response().Write([]byte(xml.Header[:len(xml.Header)-1])); err != nil {
+		return err
 	}
+
+	e := xml.NewEncoder(c.Response())
+	e.Indent("", "  ")
+
+	return e.Encode(x)
 }
 
 // NewFeedHandler creates a new feed handler.

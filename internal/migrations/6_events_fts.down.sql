@@ -1,1 +1,1 @@
-DROP TABLE `events_fts`;
+DROP TABLE `events_fts_idx`;

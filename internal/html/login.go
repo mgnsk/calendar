@@ -9,10 +9,10 @@ import (
 // LoginPage render the login page.
 func LoginPage(mainTitle string, hasError bool, username, password string) Node {
 	return page(mainTitle, "Login", "", nil,
-		Form(Class("bg-blue text-center w-full sm:w-1/2 px-3 py-4 mx-auto rounded"), Action("/login"), Method("POST"),
+		Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"), Action("/login"), Method("POST"),
 			loginInput("username", "text", "Username", username, hasError),
 			loginInput("password", "password", "Password", password, hasError, "my-3"),
-			Button(Type("submit"), Class("bg-blue font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Login")),
+			Button(Type("submit"), Class("font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Login")),
 			If(hasError, P(Class("pt-5 text-red-500 text-sm italic"), Text("Invalid username or password"))),
 		),
 	)

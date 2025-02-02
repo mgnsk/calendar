@@ -6,6 +6,7 @@ require (
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0

@@ -36,11 +36,7 @@ var (
 )
 
 func init() {
-	loc, err := time.LoadLocation("Europe/Tallinn")
-	if err != nil {
-		panic(err)
-	}
-	baseTime := time.Date(2025, 1, 29, 19, 55, 00, 00, loc)
+	baseTime := time.Now().Add(time.Hour)
 
 	event1 = &domain.Event{
 		ID:          snowflake.Generate(),

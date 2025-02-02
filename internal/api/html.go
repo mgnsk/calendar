@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -18,6 +19,11 @@ import (
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
+
+// TODO: error handling, bad request, not found, etc
+
+// LimitPerPage specifies the maximum numbers of events per page.
+const LimitPerPage = 5
 
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
@@ -57,15 +63,18 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 		session.Middleware(sessions.NewCookieStore(h.config.SessionSecret)),
 	)
 
-	g.GET("/", h.CurrentEvents)
-	g.POST("/", h.CurrentEvents) // Fox htmx.
+	g.GET("/", h.LatestEvents)
+	g.POST("/", h.LatestEvents) // Fox htmx.
+	g.GET("/tag/:tagName", h.LatestEvents)
+	g.POST("/tag/:tagName", h.LatestEvents) // For htmx.
 
-	g.GET("/tag/:tagName", h.CurrentEvents)
-	g.POST("/tag/:tagName", h.CurrentEvents) // For htmx.
+	g.GET("/upcoming", h.Upcoming)
+	g.POST("/upcoming", h.Upcoming) // Fox htmx.
+	g.GET("/upcoming/tag/:tagName", h.Upcoming)
+	g.POST("/upcoming/tag/:tagName", h.Upcoming) // For htmx.
 
 	g.GET("/past", h.PastEvents)
 	g.POST("/past", h.PastEvents) // For htmx.
-
 	g.GET("/past/tag/:tagName", h.PastEvents)
 	g.POST("/past/tag/:tagName", h.PastEvents) // For htmx.
 
@@ -76,11 +85,8 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 
 	g.GET("/logout", h.Logout, NoCacheMiddleware)
 
-	g.GET("/users", h.Users, NoCacheMiddleware)
-	g.POST("/users", h.Users, NoCacheMiddleware)
-
-	g.GET("/change-password", h.ChangePassword, NoCacheMiddleware)
-	g.POST("/change-password", h.ChangePassword, NoCacheMiddleware)
+	g.GET("/manage", h.Manage, NoCacheMiddleware)
+	g.POST("/manage", h.Manage, NoCacheMiddleware)
 }
 
 func (h *HTMLHandler) getTagFilter(c echo.Context) (string, error) {
@@ -91,38 +97,33 @@ func (h *HTMLHandler) getTagFilter(c echo.Context) (string, error) {
 	return "", nil
 }
 
-// CurrentEvents handles the current events page.
-func (h *HTMLHandler) CurrentEvents(c echo.Context) error {
+// Upcoming handles the upcoming events page.
+func (h *HTMLHandler) Upcoming(c echo.Context) error {
 	filterTag, err := h.getTagFilter(c)
 	if err != nil {
 		return err
 	}
 
-	var events []*domain.Event
+	var offset int64
+	if v := c.FormValue("offset"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return err
+		}
+		offset = val + LimitPerPage
+	}
 
-	if search := c.FormValue("search"); search != "" {
-		result, err := model.SearchEvents(c.Request().Context(), h.db, search, time.Now().Add(-1*time.Hour), time.Time{}, filterTag)
-		if err != nil {
-			if e := new(wreck.NotFound); !errors.As(err, &e) {
-				return err
-			}
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderStartAtAsc, offset, LimitPerPage, filterTag)
+	if err != nil {
+		if e := new(wreck.NotFound); !errors.As(err, &e) {
+			return err
 		}
-		events = result
-	} else {
-		// Lists events that started in the past 1 hour, start time ascending.
-		result, err := model.ListEvents(c.Request().Context(), h.db, time.Now().Add(-1*time.Hour), time.Time{}, model.OrderStartAtAsc, filterTag)
-		if err != nil {
-			if e := new(wreck.NotFound); !errors.As(err, &e) {
-				return err
-			}
-		}
-		events = result
 	}
 
 	if hxhttp.IsRequest(c.Request().Header) {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(events, c.Path()).Render(c.Response())
+		return html.EventListPartial(offset, events, c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -135,10 +136,11 @@ func (h *HTMLHandler) CurrentEvents(c echo.Context) error {
 
 	return html.EventsPage(html.EventsPageParams{
 		MainTitle:    h.config.PageTitle,
-		SectionTitle: "Current and upcoming events",
+		SectionTitle: "Upcoming events",
 		Path:         c.Path(),
 		FilterTag:    filterTag,
 		User:         user,
+		Offset:       offset,
 		Events:       events,
 	}).Render(c.Response())
 }
@@ -150,31 +152,27 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 		return err
 	}
 
-	var events []*domain.Event
+	var offset int64
+	if v := c.FormValue("offset"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return err
+		}
+		offset = val + LimitPerPage
+	}
 
-	if search := c.FormValue("search"); search != "" {
-		result, err := model.SearchEvents(c.Request().Context(), h.db, search, time.Now().Add(-1*time.Hour), time.Time{}, filterTag)
-		if err != nil {
-			if e := new(wreck.NotFound); !errors.As(err, &e) {
-				return err
-			}
+	// Lists events that have already started, in descending order.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), c.FormValue("search"), model.OrderStartAtDesc, offset, LimitPerPage, filterTag)
+	if err != nil {
+		if e := new(wreck.NotFound); !errors.As(err, &e) {
+			return err
 		}
-		events = result
-	} else {
-		// Lists events that have already started, in descending order.
-		result, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), model.OrderStartAtDesc, filterTag)
-		if err != nil {
-			if e := new(wreck.NotFound); !errors.As(err, &e) {
-				return err
-			}
-		}
-		events = result
 	}
 
 	if hxhttp.IsRequest(c.Request().Header) {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(events, c.Path()).Render(c.Response())
+		return html.EventListPartial(offset, events, c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -191,6 +189,58 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 		Path:         c.Path(),
 		FilterTag:    filterTag,
 		User:         user,
+		Offset:       offset,
+		Events:       events,
+	}).Render(c.Response())
+}
+
+// LatestEvents returns latest events.
+func (h *HTMLHandler) LatestEvents(c echo.Context) error {
+	filterTag, err := h.getTagFilter(c)
+	if err != nil {
+		return err
+	}
+
+	var cursor int64
+
+	if lastID := c.FormValue("last_id"); lastID != "" {
+		lastID, err := strconv.ParseInt(lastID, 10, 64)
+		if err != nil {
+			return err
+		}
+		cursor = lastID
+	}
+
+	// Latest events sorted in newest created first.
+	// Past events are filtered out.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderCreatedAtDesc, cursor, LimitPerPage, filterTag)
+	if err != nil {
+		if e := new(wreck.NotFound); !errors.As(err, &e) {
+			return err
+		}
+	}
+
+	if hxhttp.IsRequest(c.Request().Header) {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+		c.Response().WriteHeader(200)
+		return html.EventListPartial(0, events, c.Path()).Render(c.Response())
+	}
+
+	user, err := h.loadUser(c)
+	if err != nil {
+		return err
+	}
+
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().WriteHeader(200)
+
+	return html.EventsPage(html.EventsPageParams{
+		MainTitle:    h.config.PageTitle,
+		SectionTitle: "Latest Events",
+		Path:         c.Path(),
+		FilterTag:    filterTag,
+		User:         user,
+		Offset:       0,
 		Events:       events,
 	}).Render(c.Response())
 }
@@ -219,13 +269,8 @@ func (h *HTMLHandler) Tags(c echo.Context) error {
 	}).Render(c.Response())
 }
 
-// Users handles managing users.
-func (h *HTMLHandler) Users(c echo.Context) error {
-	panic("not implemented")
-}
-
-// ChangePassword handles changing user's password.
-func (h *HTMLHandler) ChangePassword(c echo.Context) error {
+// Manage handles management.
+func (h *HTMLHandler) Manage(c echo.Context) error {
 	panic("not implemented")
 }
 
