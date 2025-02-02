@@ -142,7 +142,10 @@ func insertTestData(db *bun.DB) {
 	getRandBaseTime := func() time.Time {
 		baseTime := time.Now()
 
-		hours := rand.N(30 * 24 * time.Hour)
+		var hours time.Duration
+		if rand.Int()%2 == 0 {
+			hours = rand.N(30 * 24 * time.Hour)
+		}
 
 		baseTime = baseTime.Add(hours)
 
@@ -156,7 +159,7 @@ func insertTestData(db *bun.DB) {
 		Title:       "Event 1",
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
-		Tags:        []string{"tag1"},
+		Tags:        []string{"tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"},
 	}
 
 	event2 := &domain.Event{
@@ -166,7 +169,7 @@ func insertTestData(db *bun.DB) {
 		Title:       "Event 2",
 		Description: "Desc 2",
 		URL:         "https://event2.testing",
-		Tags:        []string{"tag1", "tag2"},
+		Tags:        []string{"tag1", "tag2", "tag8", "tag9", "tag10"},
 	}
 
 	ts := getRandBaseTime()
@@ -177,7 +180,7 @@ func insertTestData(db *bun.DB) {
 		Title:       "Event 3",
 		Description: "Desc 3",
 		URL:         "https://event3.testing",
-		Tags:        []string{"tag3"},
+		Tags:        []string{"tag3", "tag11", "tag12", "tag13", "Some Tag"},
 	}
 
 	for _, ev := range []*domain.Event{event1, event2, event3} {

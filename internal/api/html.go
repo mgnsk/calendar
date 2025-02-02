@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -39,8 +40,12 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 		session.Middleware(sessions.NewCookieStore(h.config.SessionSecret)),
 	)
 
-	g.GET("/", h.Home)
+	g.GET("/", h.CurrentEvents)
+	g.GET("/tag/:tagName", h.CurrentEvents)
 	g.GET("/past", h.PastEvents)
+	g.GET("/past/tag/:tagName", h.PastEvents)
+
+	g.GET("/tags", h.Tags)
 
 	g.GET("/login", h.Login, NoCacheMiddleware)
 	g.POST("/login", h.Login, NoCacheMiddleware)
@@ -54,10 +59,23 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 	g.POST("/change-password", h.ChangePassword, NoCacheMiddleware)
 }
 
-// Home handles the home page.
-func (h *HTMLHandler) Home(c echo.Context) error {
-	// Lists events that started in the past 24 hours, start time ascending.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now().Add(-24*time.Hour), time.Time{}, "asc")
+func (h *HTMLHandler) getTagFilter(c echo.Context) (string, error) {
+	if param := c.Param("tagName"); param != "" {
+		return url.QueryUnescape(param)
+	}
+
+	return "", nil
+}
+
+// CurrentEvents handles the current events page.
+func (h *HTMLHandler) CurrentEvents(c echo.Context) error {
+	filterTag, err := h.getTagFilter(c)
+	if err != nil {
+		return err
+	}
+
+	// Lists events that started in the past 1 hour, start time ascending.
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now().Add(-1*time.Hour), time.Time{}, "asc", filterTag)
 	if err != nil {
 		return err
 	}
@@ -70,13 +88,26 @@ func (h *HTMLHandler) Home(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	return html.CurrentEventsPage(h.config.PageTitle, user, events).Render(c.Response())
+	return html.EventsPage(html.EventsPageParams{
+		MainTitle:             h.config.PageTitle,
+		SectionTitle:          "Upcoming Events",
+		Path:                  c.Path(),
+		FilterTag:             filterTag,
+		User:                  user,
+		PastEventsTransparent: true,
+		Events:                events,
+	}).Render(c.Response())
 }
 
 // PastEvents handles past events page.
 func (h *HTMLHandler) PastEvents(c echo.Context) error {
+	filterTag, err := h.getTagFilter(c)
+	if err != nil {
+		return err
+	}
+
 	// Lists events that have already started, in descending order.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), "desc")
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), "desc", filterTag)
 	if err != nil {
 		return err
 	}
@@ -89,7 +120,38 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	return html.PastEventsPage(h.config.PageTitle, user, events).Render(c.Response())
+	return html.EventsPage(html.EventsPageParams{
+		MainTitle:             h.config.PageTitle,
+		SectionTitle:          "Past Events",
+		Path:                  c.Path(),
+		FilterTag:             filterTag,
+		User:                  user,
+		PastEventsTransparent: false,
+		Events:                events,
+	}).Render(c.Response())
+}
+
+// Tags handles tag list page.
+func (h *HTMLHandler) Tags(c echo.Context) error {
+	tags, err := model.ListTags(c.Request().Context(), h.db)
+	if err != nil {
+		return err
+	}
+
+	user, err := h.loadUser(c)
+	if err != nil {
+		return err
+	}
+
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().WriteHeader(200)
+
+	return html.TagsPage(html.TagsPageParams{
+		MainTitle:    h.config.PageTitle,
+		SectionTitle: "Tags",
+		User:         user,
+		Tags:         tags,
+	}).Render(c.Response())
 }
 
 // Users handles managing users.

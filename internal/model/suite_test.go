@@ -14,6 +14,7 @@ import (
 var db *bun.DB
 
 var _ = BeforeEach(func() {
+	// db = sqlite.NewDB(":memory:").WithDebugLogging().Connect()
 	db = sqlite.NewDB(":memory:").Connect()
 	DeferCleanup(db.Close)
 

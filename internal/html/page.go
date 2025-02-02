@@ -48,7 +48,7 @@ func page(mainTitle, sectionTitle string, user *domain.User, children ...Node) N
 		Body: []Node{
 			container(
 				userNav(user),
-				H1(Class("m-8 text-center text-4xl font-semibold"), Text(sectionTitle)),
+				H1(Class("m-8 text-center text-xl md:text-4xl font-semibold"), Text(sectionTitle)),
 				Group(children),
 			),
 		},

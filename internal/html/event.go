@@ -2,46 +2,111 @@ package html
 
 import (
 	"fmt"
+	"net/url"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/aybabtme/uniplot/histogram"
 	"github.com/mgnsk/calendar/internal/domain"
+	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
-// CurrentEventsPage displays current events page.
-func CurrentEventsPage(mainTitle string, user *domain.User, events []*domain.Event) Node {
-	return eventsPage(mainTitle, currentEventsTitle, user, true, events)
+// EventsPageParams is the params for events page.
+type EventsPageParams struct {
+	MainTitle             string
+	SectionTitle          string
+	Path                  string
+	FilterTag             string
+	User                  *domain.User
+	PastEventsTransparent bool
+	Events                []*domain.Event
 }
 
-// PastEventsPage displays past events page.
-func PastEventsPage(mainTitle string, user *domain.User, events []*domain.Event) Node {
-	return eventsPage(mainTitle, pastEventsTitle, user, false, events)
+// EventsPage display events page.
+func EventsPage(p EventsPageParams) Node {
+	sectionTitleSuffix := ""
+	if p.FilterTag != "" {
+		sectionTitleSuffix = fmt.Sprintf(" tagged %s (%d)", p.FilterTag, len(p.Events))
+	}
+
+	var navLinks []eventNavLink
+
+	navLinks = append(navLinks,
+		eventNavLink{
+			Text: "Upcoming",
+			URL: func() string {
+				if p.FilterTag != "" {
+					return fmt.Sprintf("/tag/%s", url.QueryEscape(p.FilterTag))
+				}
+				return "/"
+			}(),
+			Active: p.Path == "/" || p.Path == "/tag/:tagName",
+		},
+		eventNavLink{
+			Text: "Past",
+			URL: func() string {
+				if p.FilterTag != "" {
+					return fmt.Sprintf("/past/tag/%s", url.QueryEscape(p.FilterTag))
+				}
+				return "/past"
+			}(),
+			Active: p.Path == "/past" || p.Path == "/past/tag/:tagName",
+		},
+		eventNavLink{
+			Text:   "Tags",
+			URL:    "/tags",
+			Active: false,
+		},
+	)
+
+	// if p.Path == "/tag/:tagName" || p.Path == "/past/tag/:tagName" {
+	// 	navLinks = append(navLinks, eventNavLink{
+	// 		Text:   "All",
+	// 		URL:    "/",
+	// 		Active: false,
+	// 	})
+	// }
+
+	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.User,
+		eventNav(navLinks),
+		eventList(p.Events, p.Path, p.PastEventsTransparent),
+	)
 }
 
-const (
-	currentEventsTitle = "Current Events"
-	pastEventsTitle    = "Past Events"
-)
+// TagsPageParams is the params for tags page.
+type TagsPageParams struct {
+	MainTitle    string
+	SectionTitle string
+	User         *domain.User
+	Tags         []*domain.Tag
+}
 
-func eventsPage(mainTitle, sectionTitle string, user *domain.User, pastEventsTransparent bool, events []*domain.Event) Node {
-	return page(mainTitle, sectionTitle, user,
+// TagsPage displays tags list page.
+func TagsPage(p TagsPageParams) Node {
+	return page(p.MainTitle, p.SectionTitle, p.User,
 		eventNav([]eventNavLink{
 			{
-				Text:   currentEventsTitle,
+				Text:   "Upcoming",
 				URL:    "/",
-				Active: sectionTitle == currentEventsTitle,
+				Active: false,
 			},
 			{
-				Text:   pastEventsTitle,
+				Text:   "Past",
 				URL:    "/past",
-				Active: sectionTitle == pastEventsTitle,
+				Active: false,
+			},
+			{
+				Text:   "Tags",
+				URL:    "/tags",
+				Active: true,
 			},
 		}),
-		eventList(events, pastEventsTransparent),
+		tagsList(p.Tags),
 	)
 }
 
@@ -73,14 +138,74 @@ func eventNav(links []eventNavLink) Node {
 	)
 }
 
-// eventList returns a list of events.
-func eventList(events []*domain.Event, pastEventsTransparent bool) Node {
+func eventList(events []*domain.Event, path string, pastEventsTransparent bool) Node {
 	return Map(events, func(ev *domain.Event) Node {
-		return eventCard(ev, pastEventsTransparent)
+		return eventCard(ev, path, pastEventsTransparent)
 	})
 }
 
-func eventCard(ev *domain.Event, pastEventTransparent bool) Node {
+func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string, []string) {
+	counts := lo.Map(tags, func(tag *domain.Tag, _ int) float64 {
+		return float64(tag.EventCount)
+	})
+
+	sizes := []string{"text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl", "text-4xl", "text-5xl"}
+	colors := []string{"text-gray-400", "text-gray-500", "text-gray-600", "text-gray-700", "text-gray-800", "text-gray-900", "text-gray-950", "text-black"}
+
+	// When not too many tags or buckets, prefer the largest size classes.
+	if len(tags) < len(sizes) {
+		sizes = sizes[len(sizes)-len(tags):]
+		colors = colors[len(colors)-len(tags):]
+	} else if bins < len(sizes) {
+		sizes = sizes[len(sizes)-bins:]
+		colors = colors[len(colors)-bins:]
+	}
+
+	hist := histogram.Hist(len(sizes), counts)
+	numBuckets := len(hist.Buckets)
+
+	// Remove zero sized buckets.
+	hist.Buckets = slices.DeleteFunc(hist.Buckets, func(b histogram.Bucket) bool {
+		return b.Count == 0
+	})
+
+	if len(hist.Buckets) < numBuckets {
+		// Recalculate with new bucket count.
+		return calcHistogram(len(hist.Buckets), tags)
+	}
+
+	return hist, sizes, colors
+}
+
+func tagsList(tags []*domain.Tag) Node {
+	hist, sizes, colors := calcHistogram(8, tags)
+
+	getClassIndex := func(eventCount uint64) int {
+		for i, bucket := range hist.Buckets {
+			if eventCount >= uint64(bucket.Min) && eventCount <= uint64(bucket.Max) {
+				return i
+			}
+		}
+		panic("no bucket found")
+	}
+
+	return Ul(Class("my-5 flex justify-center flex-wrap align-center gap-2 leading-8"),
+		Map(tags, func(tag *domain.Tag) Node {
+			classes := Classes{"hover:underline": true}
+			idx := getClassIndex(tag.EventCount)
+			classes[sizes[idx]] = true
+			classes[colors[idx]] = true
+
+			return Li(
+				A(classes,
+					Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
+				),
+			)
+		}),
+	)
+}
+
+func eventCard(ev *domain.Event, path string, pastEventTransparent bool) Node {
 	return Div(
 		Classes{
 			// Less opacity for events that have already started.
@@ -101,7 +226,7 @@ func eventCard(ev *domain.Event, pastEventTransparent bool) Node {
 				eventTitle(ev),
 				eventMonthYear(ev),
 				eventTime(ev),
-				If(len(ev.Tags) > 0, eventTags(ev)),
+				If(len(ev.Tags) > 0, eventTags(ev, path)),
 				eventDesc(ev),
 			),
 		),
@@ -109,7 +234,7 @@ func eventCard(ev *domain.Event, pastEventTransparent bool) Node {
 }
 
 func eventTitle(ev *domain.Event) Node {
-	return H1(Class("tracking-wide text-2xl font-semibold"),
+	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
 		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Text(ev.Title)),
 	)
 }
@@ -128,7 +253,7 @@ func eventDesc(ev *domain.Event) Node {
 func eventDay(ev *domain.Event) Node {
 	day := ev.StartAt.Time().Day()
 
-	return P(Class("text-4xl font-bold"),
+	return P(Class("text-2xl md:text-4xl font-bold"),
 		Textf("%d%s", day, getDaySuffix(day)),
 	)
 }
@@ -152,10 +277,19 @@ func eventTime(ev *domain.Event) Node {
 	}()))
 }
 
-func eventTags(ev *domain.Event) Node {
+func eventTags(ev *domain.Event, path string) Node {
 	return P(Class("mt-1 text-gray-500 text-sm"),
-		mapIndexed(ev.Tags, func(i int, tag string) Node {
-			link := A(Class("hover:underline"), Href("#"), Text(tag))
+		mapIndexed(ev.TagRelations, func(i int, tag *domain.Tag) Node {
+			href := ""
+
+			switch path {
+			case "/", "/tag/:tagName":
+				href = fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))
+			case "/past", "/past/tag/:tagName":
+				href = fmt.Sprintf("/past/tag/%s", url.QueryEscape(tag.Name))
+			}
+
+			link := A(Class("hover:underline"), Href(href), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)))
 
 			if i > 0 {
 				return Group{
