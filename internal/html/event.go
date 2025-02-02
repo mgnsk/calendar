@@ -3,6 +3,7 @@ package html
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -143,33 +144,57 @@ func eventList(events []*domain.Event, path string, pastEventsTransparent bool) 
 	})
 }
 
-func tagsList(tags []*domain.Tag) Node {
+func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string, []string) {
 	counts := lo.Map(tags, func(tag *domain.Tag, _ int) float64 {
 		return float64(tag.EventCount)
 	})
 
-	sizeClasses := []string{ /* "text-xs", */ "text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl", "text-4xl", "text-5xl"}
+	sizes := []string{"text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl", "text-4xl", "text-5xl"}
+	colors := []string{"text-gray-400", "text-gray-500", "text-gray-600", "text-gray-700", "text-gray-800", "text-gray-900", "text-gray-950", "text-black"}
 
-	if len(tags) < len(sizeClasses) {
-		// When not too many tags, prefer the largest size classes.
-		sizeClasses = sizeClasses[len(sizeClasses)-len(tags):]
+	// When not too many tags or buckets, prefer the largest size classes.
+	if len(tags) < len(sizes) {
+		sizes = sizes[len(sizes)-len(tags):]
+		colors = colors[len(colors)-len(tags):]
+	} else if bins < len(sizes) {
+		sizes = sizes[len(sizes)-bins:]
+		colors = colors[len(colors)-bins:]
 	}
 
-	hist := histogram.Hist(len(sizeClasses), counts)
+	hist := histogram.Hist(len(sizes), counts)
+	numBuckets := len(hist.Buckets)
 
-	getClass := func(eventCount uint64) string {
+	// Remove zero sized buckets.
+	hist.Buckets = slices.DeleteFunc(hist.Buckets, func(b histogram.Bucket) bool {
+		return b.Count == 0
+	})
+
+	if len(hist.Buckets) < numBuckets {
+		// Recalculate with new bucket count.
+		return calcHistogram(len(hist.Buckets), tags)
+	}
+
+	return hist, sizes, colors
+}
+
+func tagsList(tags []*domain.Tag) Node {
+	hist, sizes, colors := calcHistogram(8, tags)
+
+	getClassIndex := func(eventCount uint64) int {
 		for i, bucket := range hist.Buckets {
 			if eventCount >= uint64(bucket.Min) && eventCount <= uint64(bucket.Max) {
-				return sizeClasses[i]
+				return i
 			}
 		}
 		panic("no bucket found")
 	}
 
-	return Ul(Class("my-5 flex justify-center flex-wrap max-w-xl align-center gap-2 leading-8"),
+	return Ul(Class("my-5 flex justify-center flex-wrap align-center gap-2 leading-8"),
 		Map(tags, func(tag *domain.Tag) Node {
 			classes := Classes{"hover:underline": true}
-			classes[getClass(tag.EventCount)] = true
+			idx := getClassIndex(tag.EventCount)
+			classes[sizes[idx]] = true
+			classes[colors[idx]] = true
 
 			return Li(
 				A(classes,
