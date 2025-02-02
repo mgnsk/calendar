@@ -89,9 +89,9 @@ var _ = Describe("RSS feed output", func() {
 
 			switch feedType {
 			case "rss":
-				fields["Link"] = Equal("https://example.testing" + api.RSSPath)
+				fields["Link"] = Equal("https://example.testing/feed")
 			case "atom":
-				fields["FeedLink"] = Equal("https://example.testing" + api.AtomPath)
+				fields["FeedLink"] = Equal("https://example.testing/feed/atom")
 			}
 
 			Expect(feed).To(PointTo(MatchFields(IgnoreExtras, fields)))
@@ -100,13 +100,13 @@ var _ = Describe("RSS feed output", func() {
 		Entry(
 			"RSS feed",
 			"rss",
-			api.RSSPath,
+			"/feed",
 			"application/rss+xml; charset=utf-8",
 		),
 
 		Entry("Atom feed",
 			"atom",
-			api.AtomPath,
+			"/feed/atom",
 			"application/atom+xml; charset=utf-8",
 		),
 	)
@@ -136,7 +136,7 @@ var _ = Describe("iCal feed output", func() {
 	})
 
 	Specify("iCal feed", func() {
-		r := Must(server.Client().Get(server.URL + api.ICalPath))
+		r := Must(server.Client().Get(server.URL + "/ical"))
 
 		Expect(r.StatusCode).To(Equal(http.StatusOK))
 		Expect(r.Header).To(SatisfyAll(
@@ -161,7 +161,7 @@ var _ = Describe("iCal feed output", func() {
 			})),
 			HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 				"IANAToken": Equal("URL"),
-				"Value":     Equal("https://example.testing" + api.ICalPath),
+				"Value":     Equal("https://example.testing/ical"),
 			})),
 		))
 

@@ -13,13 +13,7 @@ import (
 )
 
 // TODO: consider adding an ETag header so that proxies can cache the response.
-
-// Paths for endpoints.
-const (
-	RSSPath  = "/feed"
-	AtomPath = "/feed/atom"
-	ICalPath = "/ical"
-)
+// TODO: consider excluding past events
 
 // FeedHandler handles feed output.
 type FeedHandler struct {
@@ -29,9 +23,9 @@ type FeedHandler struct {
 
 // Register the handler.
 func (h *FeedHandler) Register(e *echo.Echo) {
-	e.GET(RSSPath, h.HandleRSS)
-	e.GET(AtomPath, h.HandleAtom)
-	e.GET(ICalPath, h.HandleICal)
+	e.GET("/feed", h.HandleRSS)
+	e.GET("/feed/atom", h.HandleAtom)
+	e.GET("/ical", h.HandleICal)
 }
 
 // HandleRSS handles RSS feeds.
@@ -46,7 +40,7 @@ func (h *FeedHandler) HandleAtom(c echo.Context) error {
 
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, "asc")
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, model.OrderStartAtAsc)
 	if err != nil {
 		return err
 	}
@@ -54,7 +48,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetDescription(h.config.PageTitle)
-	cal.SetUrl(h.config.BaseURL.JoinPath(ICalPath).String())
+	cal.SetUrl(h.config.BaseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
@@ -80,7 +74,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 }
 
 func (h *FeedHandler) handleRSSFeed(c echo.Context, target string) error {
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, "asc")
+	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Time{}, model.OrderStartAtAsc)
 	if err != nil {
 		return err
 	}

@@ -12,19 +12,29 @@ import (
 	"github.com/samber/lo"
 	"github.com/yuin/goldmark"
 	. "maragu.dev/gomponents"
+	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
 
+// EventListPartial renders the event list partial.
+func EventListPartial(events []*domain.Event, path string) Node {
+	return Div(ID("event-list"),
+		Map(events, func(ev *domain.Event) Node {
+			return eventCard(ev, path)
+		}),
+	)
+}
+
 // EventsPageParams is the params for events page.
 type EventsPageParams struct {
-	MainTitle             string
-	SectionTitle          string
-	Path                  string
-	FilterTag             string
-	User                  *domain.User
-	PastEventsTransparent bool
-	Events                []*domain.Event
+	MainTitle    string
+	SectionTitle string
+	SubTitle     string
+	Path         string
+	FilterTag    string
+	User         *domain.User
+	Events       []*domain.Event
 }
 
 // EventsPage display events page.
@@ -38,7 +48,7 @@ func EventsPage(p EventsPageParams) Node {
 
 	navLinks = append(navLinks,
 		eventNavLink{
-			Text: "Upcoming",
+			Text: "Current",
 			URL: func() string {
 				if p.FilterTag != "" {
 					return fmt.Sprintf("/tag/%s", url.QueryEscape(p.FilterTag))
@@ -72,9 +82,9 @@ func EventsPage(p EventsPageParams) Node {
 	// 	})
 	// }
 
-	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.User,
-		eventNav(navLinks),
-		eventList(p.Events, p.Path, p.PastEventsTransparent),
+	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.SubTitle, p.User,
+		eventNav(p.Path, navLinks),
+		EventListPartial(p.Events, p.Path),
 	)
 }
 
@@ -82,16 +92,17 @@ func EventsPage(p EventsPageParams) Node {
 type TagsPageParams struct {
 	MainTitle    string
 	SectionTitle string
+	Path         string
 	User         *domain.User
 	Tags         []*domain.Tag
 }
 
 // TagsPage displays tags list page.
 func TagsPage(p TagsPageParams) Node {
-	return page(p.MainTitle, p.SectionTitle, p.User,
-		eventNav([]eventNavLink{
+	return page(p.MainTitle, p.SectionTitle, "", p.User,
+		eventNav(p.Path, []eventNavLink{
 			{
-				Text:   "Upcoming",
+				Text:   "Current",
 				URL:    "/",
 				Active: false,
 			},
@@ -116,12 +127,12 @@ type eventNavLink struct {
 	Active bool
 }
 
-func eventNav(links []eventNavLink) Node {
+func eventNav(path string, links []eventNavLink) Node {
 	return Ul(Class("flex border-b"),
 		Map(links, func(link eventNavLink) Node {
 			if link.Active {
-				return Li(Class("-mb-px mr-1"),
-					A(Aria("current", "page"), Class("bg-white inline-block border-l border-t border-r rounded-t py-2 px-4 text-amber-600 font-semibold"),
+				return Li(Class("-mb-px mr-1 border-l border-t border-r rounded-t"),
+					A(Aria("current", "page"), Class("bg-white inline-block py-2 px-2 md:px-4 text-amber-600 font-semibold"),
 						Text(link.Text),
 						Href(link.URL),
 					),
@@ -129,19 +140,35 @@ func eventNav(links []eventNavLink) Node {
 			}
 
 			return Li(Class("mr-1"),
-				A(Class("bg-white inline-block py-2 px-4 text-gray-400 hover:text-amber-600 font-semibold"),
+				A(Class("bg-white inline-block py-2 px-2 md:px-4 text-gray-400 hover:text-amber-600 font-semibold"),
 					Text(link.Text),
 					Href(link.URL),
 				),
 			)
 		}),
+		If(path != "/tags",
+			Li(Class("ml-auto border-l border-t border-r rounded-t"),
+				Input(Classes{
+					// "border":          true,
+					// "border-gray-200": true,
+					"block":   true,
+					"w-full":  true,
+					"mx-auto": true,
+					"py-2":    true,
+					"px-3":    true,
+					"rounded": true,
+				},
+					Name("search"),
+					Type("text"),
+					Placeholder("Filter..."),
+					Required(),
+					hx.Post(""), // Post to current URL.
+					hx.Trigger("keyup changed delay:1s"),
+					hx.Target("#event-list"),
+				),
+			),
+		),
 	)
-}
-
-func eventList(events []*domain.Event, path string, pastEventsTransparent bool) Node {
-	return Map(events, func(ev *domain.Event) Node {
-		return eventCard(ev, path, pastEventsTransparent)
-	})
 }
 
 func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string, []string) {
@@ -205,11 +232,14 @@ func tagsList(tags []*domain.Tag) Node {
 	)
 }
 
-func eventCard(ev *domain.Event, path string, pastEventTransparent bool) Node {
+func eventCard(ev *domain.Event, path string) Node {
+	inPast := ev.StartAt.Time().Before(time.Now())
+
 	return Div(
 		Classes{
 			// Less opacity for events that have already started.
-			"opacity-50":         pastEventTransparent && ev.StartAt.Time().Before(time.Now()),
+			"opacity-60":         inPast,
+			"grayscale":          inPast,
 			"bg-white":           true,
 			"rounded-xl":         true,
 			"shadow-md":          true,
@@ -218,11 +248,11 @@ func eventCard(ev *domain.Event, path string, pastEventTransparent bool) Node {
 			"hover:bg-amber-600": true,
 			"hover:bg-opacity-5": true,
 		},
-		Div(Class("p-8 flex items-center"),
-			Div(Class("pr-4"),
+		Div(Class("py-4 md:py-8 px-3 md:px-6 items-center grid grid-cols-7"),
+			Div(Class("pr-4 col-span-1 hidden sm:inline-block"),
 				eventDay(ev),
 			),
-			Div(
+			Div(Class("col-span-6"),
 				eventTitle(ev),
 				eventMonthYear(ev),
 				eventTime(ev),
@@ -253,15 +283,20 @@ func eventDesc(ev *domain.Event) Node {
 func eventDay(ev *domain.Event) Node {
 	day := ev.StartAt.Time().Day()
 
-	return P(Class("text-2xl md:text-4xl font-bold"),
+	return P(Class("text-2xl md:text-4xl font-bold text-center"),
 		Textf("%d%s", day, getDaySuffix(day)),
 	)
 }
 
 func eventMonthYear(ev *domain.Event) Node {
-	return H2(Class("mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
-		Text(ev.StartAt.Time().Format("January, 2006")),
-	)
+	return Group{
+		H2(Class("block sm:hidden mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
+			Text(ev.StartAt.Time().Format("_2 January, 2006")),
+		),
+		H2(Class("hidden sm:block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
+			Text(ev.StartAt.Time().Format("January, 2006")),
+		),
+	}
 }
 
 func eventTime(ev *domain.Event) Node {
@@ -287,6 +322,8 @@ func eventTags(ev *domain.Event, path string) Node {
 				href = fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))
 			case "/past", "/past/tag/:tagName":
 				href = fmt.Sprintf("/past/tag/%s", url.QueryEscape(tag.Name))
+			case "/new", "/new/tag/:tagName":
+				href = fmt.Sprintf("/new/tag/%s", url.QueryEscape(tag.Name))
 			}
 
 			link := A(Class("hover:underline"), Href(href), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)))

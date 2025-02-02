@@ -1,6 +1,8 @@
 package model_test
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mgnsk/calendar/internal/domain"
@@ -8,6 +10,7 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
 	"github.com/mgnsk/calendar/internal/pkg/timestamp"
+	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -38,7 +41,7 @@ var _ = Describe("inserting events", func() {
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc"))
+			result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc))
 
 			Expect(result).To(HaveExactElements(
 				SatisfyAll(
@@ -102,7 +105,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -144,7 +147,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "desc"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtDesc))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -185,13 +188,55 @@ var _ = Describe("listing events", func() {
 		))
 	})
 
+	Specify("events can be listed in created at time order descending", func(ctx SpecContext) {
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderCreatedAtDesc))
+
+		Expect(result).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 3"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag3"),
+						"EventCount": Equal(uint64(1)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+		))
+	})
+
 	Specify("events can be filtered by time", func(ctx SpecContext) {
 		result := Must(model.ListEvents(
 			ctx,
 			db,
 			time.Now().Add(1*time.Hour).Add(30*time.Minute),
 			time.Now().Add(2*time.Hour).Add(30*time.Minute),
-			"asc",
+			model.OrderStartAtAsc,
 		))
 
 		Expect(result).To(HaveExactElements(
@@ -212,7 +257,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be filtered by tags", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc", "tag1"))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc, "tag1"))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -241,7 +286,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("empty tag filter is skipped", func(ctx SpecContext) {
-		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc", ""))
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, model.OrderStartAtAsc, ""))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -288,7 +333,7 @@ var _ = Describe("listing events", func() {
 			db,
 			time.Now().Add(1*time.Hour).Add(30*time.Minute),
 			time.Now().Add(2*time.Hour).Add(30*time.Minute),
-			"asc",
+			model.OrderStartAtAsc,
 			"tag1",
 		))
 
@@ -308,4 +353,99 @@ var _ = Describe("listing events", func() {
 			})),
 		))
 	})
+})
+
+var _ = Describe("full text search", func() {
+	JustBeforeEach(func(ctx SpecContext) {
+		By("inserting events", func() {
+			events := []*domain.Event{
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
+					EndAt:       timestamp.Timestamp{},
+					Title:       "Event 1",
+					Description: "Desc 1",
+					URL:         "",
+					Tags:        []string{"tag1"},
+				},
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
+					EndAt:       timestamp.Timestamp{},
+					Title:       "Event ÕÄÖÜ 😀",
+					Description: "Desc 2",
+					URL:         "",
+					Tags:        []string{"tag1", "tag2"},
+				},
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
+					EndAt:       timestamp.New(time.Now().Add(2 * time.Hour)),
+					Title:       "Event 3",
+					Description: "Desc 3",
+					URL:         "",
+					Tags:        []string{"tag2", "tag3"},
+				},
+			}
+
+			for _, ev := range events {
+				Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+			}
+		})
+	})
+
+	DescribeTable("incorrect queries",
+		func(ctx SpecContext, query string) {
+			_, err := model.SearchEvents(
+				ctx,
+				db,
+				query,
+				time.Now().Add(1*time.Hour).Add(30*time.Minute),
+				time.Now().Add(2*time.Hour).Add(30*time.Minute),
+				"tag1",
+			)
+
+			Expect(err).To(HaveOccurred())
+			Expect(errors.As(err, new(*wreck.NotFound))).
+				To(BeTrue(), fmt.Sprintf("expected not found, got %v", err))
+		},
+		Entry("emoji", "😀"),
+		Entry("invalid utf8", "😀"[:len("😀")-1]),
+	)
+
+	DescribeTable("valid queries",
+		func(ctx SpecContext, query string) {
+			result := Must(model.SearchEvents(
+				ctx,
+				db,
+				query,
+				time.Now().Add(1*time.Hour).Add(30*time.Minute),
+				time.Now().Add(2*time.Hour).Add(30*time.Minute),
+				"tag1",
+			))
+
+			Expect(result).To(HaveExactElements(
+				PointTo(MatchFields(IgnoreExtras, Fields{
+					"Title": Equal("Event ÕÄÖÜ 😀"),
+					"TagRelations": HaveExactElements(
+						PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name":       Equal("tag1"),
+							"EventCount": Equal(uint64(2)),
+						})),
+						PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name":       Equal("tag2"),
+							"EventCount": Equal(uint64(2)),
+						})),
+					),
+				})),
+			))
+		},
+		Entry("backslash", `aou\`),
+		Entry("letters", `aou`),
+		Entry("asterisk in begining", `*aou`),
+		Entry("asterisk", `aou*`), // Note: we strip any special characters. The wildcard would otherwise be valid.
+		Entry("multi word", "Desc 3"),
+		Entry("spaces", "Desc \t \xA0  3"),
+		Entry("special characters", "äöü"),
+	)
 })

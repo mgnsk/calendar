@@ -10,11 +10,13 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/internal"
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"github.com/uptrace/bun"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 // HTMLHandler handles web pages.
@@ -34,16 +36,38 @@ func NoCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// AssetCacheMiddleware enables caching for responses.
+func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("Cache-Control", "max-age=31536000, immutable")
+
+		return next(c)
+	}
+}
+
 // Register the handler.
 func (h *HTMLHandler) Register(e *echo.Echo) {
+	// Serve assets from the embedded filesystem.
+	e.GET("/dist/*",
+		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
+		AssetCacheMiddleware,
+	)
+
 	g := e.Group("",
 		session.Middleware(sessions.NewCookieStore(h.config.SessionSecret)),
 	)
 
 	g.GET("/", h.CurrentEvents)
+	g.POST("/", h.CurrentEvents) // Fox htmx.
+
 	g.GET("/tag/:tagName", h.CurrentEvents)
+	g.POST("/tag/:tagName", h.CurrentEvents) // For htmx.
+
 	g.GET("/past", h.PastEvents)
+	g.POST("/past", h.PastEvents) // For htmx.
+
 	g.GET("/past/tag/:tagName", h.PastEvents)
+	g.POST("/past/tag/:tagName", h.PastEvents) // For htmx.
 
 	g.GET("/tags", h.Tags)
 
@@ -74,10 +98,31 @@ func (h *HTMLHandler) CurrentEvents(c echo.Context) error {
 		return err
 	}
 
-	// Lists events that started in the past 1 hour, start time ascending.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now().Add(-1*time.Hour), time.Time{}, "asc", filterTag)
-	if err != nil {
-		return err
+	var events []*domain.Event
+
+	if search := c.FormValue("search"); search != "" {
+		result, err := model.SearchEvents(c.Request().Context(), h.db, search, time.Now().Add(-1*time.Hour), time.Time{}, filterTag)
+		if err != nil {
+			if e := new(wreck.NotFound); !errors.As(err, &e) {
+				return err
+			}
+		}
+		events = result
+	} else {
+		// Lists events that started in the past 1 hour, start time ascending.
+		result, err := model.ListEvents(c.Request().Context(), h.db, time.Now().Add(-1*time.Hour), time.Time{}, model.OrderStartAtAsc, filterTag)
+		if err != nil {
+			if e := new(wreck.NotFound); !errors.As(err, &e) {
+				return err
+			}
+		}
+		events = result
+	}
+
+	if hxhttp.IsRequest(c.Request().Header) {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+		c.Response().WriteHeader(200)
+		return html.EventListPartial(events, c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -89,13 +134,12 @@ func (h *HTMLHandler) CurrentEvents(c echo.Context) error {
 	c.Response().WriteHeader(200)
 
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:             h.config.PageTitle,
-		SectionTitle:          "Upcoming Events",
-		Path:                  c.Path(),
-		FilterTag:             filterTag,
-		User:                  user,
-		PastEventsTransparent: true,
-		Events:                events,
+		MainTitle:    h.config.PageTitle,
+		SectionTitle: "Current and upcoming events",
+		Path:         c.Path(),
+		FilterTag:    filterTag,
+		User:         user,
+		Events:       events,
 	}).Render(c.Response())
 }
 
@@ -106,10 +150,31 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 		return err
 	}
 
-	// Lists events that have already started, in descending order.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), "desc", filterTag)
-	if err != nil {
-		return err
+	var events []*domain.Event
+
+	if search := c.FormValue("search"); search != "" {
+		result, err := model.SearchEvents(c.Request().Context(), h.db, search, time.Now().Add(-1*time.Hour), time.Time{}, filterTag)
+		if err != nil {
+			if e := new(wreck.NotFound); !errors.As(err, &e) {
+				return err
+			}
+		}
+		events = result
+	} else {
+		// Lists events that have already started, in descending order.
+		result, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), model.OrderStartAtDesc, filterTag)
+		if err != nil {
+			if e := new(wreck.NotFound); !errors.As(err, &e) {
+				return err
+			}
+		}
+		events = result
+	}
+
+	if hxhttp.IsRequest(c.Request().Header) {
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+		c.Response().WriteHeader(200)
+		return html.EventListPartial(events, c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -121,13 +186,12 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 	c.Response().WriteHeader(200)
 
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:             h.config.PageTitle,
-		SectionTitle:          "Past Events",
-		Path:                  c.Path(),
-		FilterTag:             filterTag,
-		User:                  user,
-		PastEventsTransparent: false,
-		Events:                events,
+		MainTitle:    h.config.PageTitle,
+		SectionTitle: "Past Events",
+		Path:         c.Path(),
+		FilterTag:    filterTag,
+		User:         user,
+		Events:       events,
 	}).Render(c.Response())
 }
 
@@ -149,6 +213,7 @@ func (h *HTMLHandler) Tags(c echo.Context) error {
 	return html.TagsPage(html.TagsPageParams{
 		MainTitle:    h.config.PageTitle,
 		SectionTitle: "Tags",
+		Path:         c.Path(),
 		User:         user,
 		Tags:         tags,
 	}).Render(c.Response())

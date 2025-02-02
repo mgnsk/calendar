@@ -62,9 +62,6 @@ func main() {
 	e.Use(
 		slogecho.New(slog.Default()), // Log everything.
 		middleware.Recover(),         // Recover from all panics to always have your server up
-		middleware.StaticWithConfig(middleware.StaticConfig{ // Serve assets from the embed filesystem.
-			Filesystem: http.FS(internal.DistFS),
-		}),
 	)
 
 	baseURL, err := url.Parse(cfg.BaseURL)
