@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/mgnsk/calendar/internal/domain"
@@ -69,23 +70,28 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 
 		// Create tag relations.
 		relations := make([]eventToTag, 0, len(ev.Tags))
-		for _, name := range ev.Tags {
-			tag, err := GetTag(ctx, db, name)
-			if err != nil {
-				return err
-			}
+		tagIDs, err := getTagIDs(ctx, db, ev.Tags...)
+		if err != nil {
+			return err
+		}
 
+		for _, tagID := range tagIDs {
 			relations = append(relations, eventToTag{
-				TagID:   tag.ID,
+				TagID:   tagID,
 				EventID: ev.ID,
 			})
 		}
 
-		return sqlite.WithErrorChecking(db.NewInsert().Model(&relations).Exec(ctx))
+		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&relations).Exec(ctx)); err != nil {
+			return err
+		}
+
+		return increaseEventCounts(ctx, db, ev.Tags...)
 	})
 }
 
 // ListEvents lists events.
+// TODO: verify if we need tag_id idx on events_tags table.
 func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time, order string, filterTags ...string) ([]*domain.Event, error) {
 	model := []*Event{}
 
@@ -111,6 +117,10 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 		q = q.Where("event.start_at_unix <= ?", startUntil.Unix())
 	}
 
+	filterTags = slices.DeleteFunc(filterTags, func(tag string) bool {
+		return tag == ""
+	})
+
 	if len(filterTags) > 0 {
 		q = q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
 			Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
@@ -131,6 +141,13 @@ func ListEvents(ctx context.Context, db bun.IDB, startFrom, startUntil time.Time
 			URL:         ev.URL,
 			Tags: lo.Map(ev.Tags, func(tag *Tag, _ int) string {
 				return tag.Name
+			}),
+			TagRelations: lo.Map(ev.Tags, func(tag *Tag, _ int) *domain.Tag {
+				return &domain.Tag{
+					ID:         tag.ID,
+					Name:       tag.Name,
+					EventCount: tag.EventCount,
+				}
 			}),
 		}
 	}), nil

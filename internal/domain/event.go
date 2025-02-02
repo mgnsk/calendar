@@ -11,13 +11,14 @@ import (
 
 // Event is the event domain model.
 type Event struct {
-	ID          snowflake.ID
-	StartAt     timestamp.Timestamp
-	EndAt       timestamp.Timestamp
-	Title       string
-	Description string
-	URL         string
-	Tags        []string
+	ID           snowflake.ID
+	StartAt      timestamp.Timestamp
+	EndAt        timestamp.Timestamp
+	Title        string
+	Description  string
+	URL          string
+	Tags         []string
+	TagRelations []*Tag
 }
 
 // GetCreatedAt returns the event created at time.

@@ -51,6 +51,10 @@ var _ = Describe("inserting events", func() {
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
 						"Tags":        HaveExactElements("tag1", "tag2"),
+						"TagRelations": HaveExactElements(
+							HaveField("EventCount", uint64(1)),
+							HaveField("EventCount", uint64(1)),
+						),
 					})),
 				),
 			))
@@ -87,7 +91,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
-					Tags:        []string{"tag3"},
+					Tags:        []string{"tag2", "tag3"},
 				},
 			}
 
@@ -101,9 +105,41 @@ var _ = Describe("listing events", func() {
 		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc"))
 
 		Expect(result).To(HaveExactElements(
-			HaveField("Title", "Event 3"),
-			HaveField("Title", "Event 2"),
-			HaveField("Title", "Event 1"),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 3"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag3"),
+						"EventCount": Equal(uint64(1)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
 		))
 	})
 
@@ -111,9 +147,41 @@ var _ = Describe("listing events", func() {
 		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "desc"))
 
 		Expect(result).To(HaveExactElements(
-			HaveField("Title", "Event 1"),
-			HaveField("Title", "Event 2"),
-			HaveField("Title", "Event 3"),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 3"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag3"),
+						"EventCount": Equal(uint64(1)),
+					})),
+				),
+			})),
 		))
 	})
 
@@ -127,7 +195,19 @@ var _ = Describe("listing events", func() {
 		))
 
 		Expect(result).To(HaveExactElements(
-			HaveField("Title", "Event 2"),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
 		))
 	})
 
@@ -135,8 +215,70 @@ var _ = Describe("listing events", func() {
 		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc", "tag1"))
 
 		Expect(result).To(HaveExactElements(
-			HaveField("Title", "Event 2"),
-			HaveField("Title", "Event 1"),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+		))
+	})
+
+	Specify("empty tag filter is skipped", func(ctx SpecContext) {
+		result := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "asc", ""))
+
+		Expect(result).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 3"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag3"),
+						"EventCount": Equal(uint64(1)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
 		))
 	})
 
@@ -151,7 +293,19 @@ var _ = Describe("listing events", func() {
 		))
 
 		Expect(result).To(HaveExactElements(
-			HaveField("Title", "Event 2"),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+				"TagRelations": HaveExactElements(
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag1"),
+						"EventCount": Equal(uint64(2)),
+					})),
+					PointTo(MatchFields(IgnoreExtras, Fields{
+						"Name":       Equal("tag2"),
+						"EventCount": Equal(uint64(2)),
+					})),
+				),
+			})),
 		))
 	})
 })
