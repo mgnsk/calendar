@@ -1,8 +1,7 @@
 package model_test
 
 import (
-	"errors"
-	"fmt"
+	"sync"
 	"time"
 
 	"github.com/mgnsk/calendar/internal/domain"
@@ -367,7 +366,7 @@ var _ = Describe("full text search", func() {
 	)
 
 	JustBeforeEach(func(ctx SpecContext) {
-		startTime = Must(time.Parse(time.RFC3339, "2025-02-03T18:00:00+02:00"))
+		startTime = Must(time.Parse(time.RFC3339, "2025-01-03T18:00:00+02:00"))
 		endTime = startTime.Add(time.Hour)
 
 		By("inserting events", func() {
@@ -422,8 +421,7 @@ var _ = Describe("full text search", func() {
 			)
 
 			Expect(err).To(HaveOccurred())
-			Expect(errors.As(err, new(*wreck.NotFound))).
-				To(BeTrue(), fmt.Sprintf("expected not found, got %v", err))
+			Expect(err).To(MatchError(wreck.NotFound))
 		},
 		Entry("emoji", `😀`),
 		Entry("invalid utf8", `😀`[:len(`😀`)-1]),
@@ -466,6 +464,7 @@ var _ = Describe("full text search", func() {
 		},
 		Entry("letters", `aou`),
 		Entry("multi word exact match", `Desc 2`),
+		Entry("exact match", `"Desc 2"`),
 		Entry("spaces", "Desc \t \u00a0  3"),
 		Entry("invalid", "Desc \t \xa0  3"),
 		Entry("special characters", `äöü`),
@@ -473,11 +472,43 @@ var _ = Describe("full text search", func() {
 		Entry("partial word no prefix", `esc`),
 		Entry("partial words", `des even`),
 		Entry("partial word", `even`),
-		Entry("exact match", `"Desc 2"`),
 		Entry("multiple exact match", `"Desc 2" "some@email.testing"`),
 		Entry("email", `some@email.testing`),
 		Entry("day", "3rd"),
-		Entry("day and month", "3 feb"),
-		Entry("day and partial month", "3 fe"),
+		Entry("day and month", "3 jan"),
+		Entry("month and day", "jan 3"),
+		Entry("day and partial month", "3 ja"),
 	)
+})
+
+var _ = Describe("concurrent insert", func() {
+	Specify("test", func(ctx SpecContext) {
+		concurrency := 100
+		wg := sync.WaitGroup{}
+
+		for range concurrency {
+			ev := &domain.Event{
+				ID:          snowflake.Generate(),
+				StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
+				EndAt:       timestamp.Timestamp{},
+				Title:       "Event Title ÕÄÖÜ 1",
+				Description: "Desc 1",
+				URL:         "",
+				Tags:        []string{"tag1", "tag2"},
+			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				defer GinkgoRecover()
+
+				Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+			}()
+		}
+
+		wg.Wait()
+
+		events := Must(model.ListEvents(ctx, db, time.Time{}, time.Time{}, "", model.OrderStartAtAsc, 0, 0))
+		Expect(events).To(HaveLen(100))
+	})
 })

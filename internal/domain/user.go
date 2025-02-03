@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
@@ -56,7 +57,10 @@ func (u *User) GetCreatedAt() time.Time {
 func (u *User) SetPassword(password string) error {
 	h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return &wreck.InvalidInput{Err: err}
+		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+			return wreck.InvalidValue.New("Password too long", err)
+		}
+		return err
 	}
 
 	u.Password = h
@@ -67,7 +71,10 @@ func (u *User) SetPassword(password string) error {
 // VerifyPassword verifies the user's password.
 func (u *User) VerifyPassword(password string) error {
 	if err := bcrypt.CompareHashAndPassword(u.Password, []byte(password)); err != nil {
-		return &wreck.InvalidInput{Err: err}
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return wreck.InvalidValue.New("Invalid credentials", err)
+		}
+		return err
 	}
 
 	return nil

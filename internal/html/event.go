@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -34,15 +33,15 @@ func EventListPartial(offset int64, events []*domain.Event, path string) Node {
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
-			hx.Include("[name='search'], [name='offset']"), // CSS query to include data from inputs.
+			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"last_id": events[len(events)-1].ID.String(),
+				"offset":  strconv.FormatInt(offset, 10),
 			})))),
 			hx.Trigger("revealed"),
 			hx.Target("#load-more"),
-			hx.Swap("outerHTML"),
+			hx.Swap("outerHTML"), // Swap the current element (#load-more) with new content.
 			hx.Indicator("#loading-spinner"),
-			Input(Type("hidden"), Name("offset"), Value(strconv.FormatInt(offset, 10))),
 		),
 	}
 }
@@ -181,7 +180,7 @@ func eventNav(path string, links []eventNavLink) Node {
 		Ul(Class("flex border-b"),
 			Map(links, func(link eventNavLink) Node {
 				if link.Active {
-					return Li(Class("-mb-px mr-1 border-l border-t border-r rounded-t"),
+					return Li(Class("flex items-baseline -mb-px mr-1 border-l border-t border-r rounded-t"),
 						A(Aria("current", "page"), Class("bg-white inline-block py-2 px-2 md:px-4 text-amber-600 font-semibold"),
 							Text(link.Text),
 							Href(link.URL),
@@ -189,7 +188,7 @@ func eventNav(path string, links []eventNavLink) Node {
 					)
 				}
 
-				return Li(Class("mr-1"),
+				return Li(Class("flex items-baseline mr-1"),
 					A(Class("bg-white inline-block py-2 px-2 md:px-4 text-gray-400 hover:text-amber-600 font-semibold"),
 						Text(link.Text),
 						Href(link.URL),
@@ -197,7 +196,7 @@ func eventNav(path string, links []eventNavLink) Node {
 				)
 			}),
 			If(path != "/tags",
-				Li(Class("ml-auto border-l border-t border-r rounded-t"),
+				Li(Class("flex items-baseline ml-auto border-l border-t border-r rounded-t"),
 					Div(Class("relative"),
 						Input(Classes{
 							// "border":          true,
@@ -247,17 +246,6 @@ func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string,
 	}
 
 	hist := histogram.Hist(len(sizes), counts)
-	numBuckets := len(hist.Buckets)
-
-	// Remove zero sized buckets.
-	hist.Buckets = slices.DeleteFunc(hist.Buckets, func(b histogram.Bucket) bool {
-		return b.Count == 0
-	})
-
-	if len(hist.Buckets) < numBuckets {
-		// Recalculate with new bucket count.
-		return calcHistogram(len(hist.Buckets), tags)
-	}
 
 	return hist, sizes, colors
 }
@@ -303,30 +291,37 @@ func eventCard(ev *domain.Event, path string) Node {
 
 	return Div(
 		Classes{
+			"relative":  true,
 			"max-w-3xl": true,
 			"mx-auto":   true,
 
 			// Less opacity for events that have already started.
-			"opacity-60":         inPast,
-			"grayscale":          inPast,
+			"opacity-60": inPast,
+			// "grayscale":          inPast,
 			"bg-white":           true,
 			"rounded-xl":         true,
 			"shadow-md":          true,
 			"overflow-hidden":    true,
 			"my-5":               true,
-			"hover:bg-amber-600": true,
+			"hover:bg-gray-300":  true,
 			"hover:bg-opacity-5": true,
 		},
 		Div(Class("py-4 md:py-8 px-3 md:px-6 items-center grid grid-cols-7"),
 			Div(Class("pr-4 col-span-1 hidden sm:inline-block"),
 				eventDay(ev),
 			),
-			Div(Class("col-span-6"),
+			Div(Class("col-span-6 sm:col-span-5"),
 				eventTitle(ev),
-				eventMonthYear(ev),
-				eventTime(ev),
+				eventDate(ev),
 				If(len(ev.Tags) > 0, eventTags(ev, path)),
 				eventDesc(ev),
+			),
+		),
+		Div(Class("h-full flex flex-col justify-around absolute right-0 top-0 py-4 sm:py-8 px-6 sm:px-10"),
+			A(Class("hover:text-amber-600"),
+				Href("#"),
+				Target("_blank"),
+				iconShare,
 			),
 		),
 	)
@@ -345,44 +340,30 @@ func eventDesc(ev *domain.Event) Node {
 		panic(fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err))
 	}
 
-	// TODO: syntax error here
-	return P(Class("mt-2 text-gray-700"), Raw(buf.String()))
+	return Div(Class("text-justify"),
+		// TODO: syntax error here
+		P(Class("mt-2 text-gray-700"), Raw(buf.String())),
+	)
 }
 
 func eventDay(ev *domain.Event) Node {
 	day := ev.StartAt.Time().Day()
 
 	return P(Class("text-2xl md:text-4xl font-bold text-center"),
-		Textf("%d%s", day, timestamp.GetDaySuffix(day)),
+		Text(timestamp.FormatDay(day)),
 	)
 }
 
-func eventMonthYear(ev *domain.Event) Node {
+func eventDate(ev *domain.Event) Node {
 	return Group{
-		H2(Class("block sm:hidden mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
-			Text(ev.StartAt.Time().Format("_2 January, 2006")),
-		),
-		H2(Class("hidden sm:block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
-			Text(ev.StartAt.Time().Format("January, 2006")),
+		H2(Class("block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
+			Text(ev.GetDateString()),
 		),
 	}
 }
 
-func eventTime(ev *domain.Event) Node {
-	return P(Class("mt-2 text-gray-500 text-sm"), Text(func() string {
-		start := ev.StartAt.Time().Format("15:04")
-
-		if !ev.EndAt.Time().IsZero() {
-			end := ev.EndAt.Time().Format("15:04")
-			return fmt.Sprintf("%s - %s", start, end)
-		}
-
-		return start
-	}()))
-}
-
 func eventTags(ev *domain.Event, path string) Node {
-	return P(Class("mt-1 text-gray-500 text-sm"),
+	return P(Class("mt-2 text-gray-500 text-sm"),
 		mapIndexed(ev.TagRelations, func(i int, tag *domain.Tag) Node {
 			href := ""
 
@@ -423,3 +404,7 @@ func must[V any](v V, err error) V {
 	}
 	return v
 }
+
+var iconShare = Raw(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+</svg>`)

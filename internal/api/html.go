@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,32 +24,12 @@ import (
 // TODO: error handling, bad request, not found, etc
 
 // LimitPerPage specifies the maximum numbers of events per page.
-const LimitPerPage = 5
+const LimitPerPage = 25
 
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
 	db     *bun.DB
 	config Config
-}
-
-// NoCacheMiddleware disables caching for responses.
-func NoCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set("Cache-Control", "no-cache, no-store, must-revalidate") // HTTP 1.1.
-		c.Response().Header().Set("Pragma", "no-cache")                                   // HTTP 1.0.
-		c.Response().Header().Set("Expires", "0")                                         // Proxies.
-
-		return next(c)
-	}
-}
-
-// AssetCacheMiddleware enables caching for responses.
-func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set("Cache-Control", "max-age=31536000, immutable")
-
-		return next(c)
-	}
 }
 
 // Register the handler.
@@ -80,21 +61,62 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 
 	g.GET("/tags", h.Tags)
 
-	g.GET("/login", h.Login, NoCacheMiddleware)
-	g.POST("/login", h.Login, NoCacheMiddleware)
+	g.GET("/setup", h.Setup, echo.WrapMiddleware(NoCache))
+	g.POST("/setup", h.Setup, echo.WrapMiddleware(NoCache))
 
-	g.GET("/logout", h.Logout, NoCacheMiddleware)
+	g.GET("/login", h.Login, echo.WrapMiddleware(NoCache))
+	g.POST("/login", h.Login, echo.WrapMiddleware(NoCache))
 
-	g.GET("/manage", h.Manage, NoCacheMiddleware)
-	g.POST("/manage", h.Manage, NoCacheMiddleware)
+	g.GET("/logout", h.Logout, echo.WrapMiddleware(NoCache))
+
+	g.GET("/manage", h.Manage, echo.WrapMiddleware(NoCache))
+	g.POST("/manage", h.Manage, echo.WrapMiddleware(NoCache))
 }
 
 func (h *HTMLHandler) getTagFilter(c echo.Context) (string, error) {
 	if param := c.Param("tagName"); param != "" {
-		return url.QueryUnescape(param)
+		v, err := url.QueryUnescape(param)
+		if err != nil {
+			return "", wreck.InvalidValue.New("Invalid tag filter", err)
+		}
+		return v, nil
 	}
 
 	return "", nil
+}
+
+func (h *HTMLHandler) getIntParam(key string, c echo.Context) (int64, error) {
+	if v := c.FormValue(key); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, wreck.InvalidValue.New(fmt.Sprintf("Invalid %s", key), err)
+		}
+		return val, nil
+	}
+
+	return 0, nil
+}
+
+func (h *HTMLHandler) getOffset(c echo.Context) (int64, error) {
+	var offset int64
+	if v := c.FormValue("offset"); v != "" {
+		val, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return 0, wreck.InvalidValue.New("Invalid offset", err)
+		}
+		offset = val + LimitPerPage
+		return offset, nil
+	}
+
+	return 0, nil
+}
+
+// Setup handles the setup page.
+func (h *HTMLHandler) Setup(c echo.Context) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	c.Response().WriteHeader(200)
+
+	return html.SetupPage(false, c.Get("settings").(*domain.Settings)).Render(c.Response())
 }
 
 // Upcoming handles the upcoming events page.
@@ -104,18 +126,14 @@ func (h *HTMLHandler) Upcoming(c echo.Context) error {
 		return err
 	}
 
-	var offset int64
-	if v := c.FormValue("offset"); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return err
-		}
-		offset = val + LimitPerPage
+	offset, err := h.getOffset(c)
+	if err != nil {
+		return err
 	}
 
 	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderStartAtAsc, offset, LimitPerPage, filterTag)
 	if err != nil {
-		if e := new(wreck.NotFound); !errors.As(err, &e) {
+		if !errors.Is(err, wreck.NotFound) {
 			return err
 		}
 	}
@@ -152,19 +170,15 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 		return err
 	}
 
-	var offset int64
-	if v := c.FormValue("offset"); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return err
-		}
-		offset = val + LimitPerPage
+	offset, err := h.getOffset(c)
+	if err != nil {
+		return err
 	}
 
 	// Lists events that have already started, in descending order.
 	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), c.FormValue("search"), model.OrderStartAtDesc, offset, LimitPerPage, filterTag)
 	if err != nil {
-		if e := new(wreck.NotFound); !errors.As(err, &e) {
+		if !errors.Is(err, wreck.NotFound) {
 			return err
 		}
 	}
@@ -201,21 +215,16 @@ func (h *HTMLHandler) LatestEvents(c echo.Context) error {
 		return err
 	}
 
-	var cursor int64
-
-	if lastID := c.FormValue("last_id"); lastID != "" {
-		lastID, err := strconv.ParseInt(lastID, 10, 64)
-		if err != nil {
-			return err
-		}
-		cursor = lastID
+	cursor, err := h.getIntParam("last_id", c)
+	if err != nil {
+		return err
 	}
 
 	// Latest events sorted in newest created first.
 	// Past events are filtered out.
 	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderCreatedAtDesc, cursor, LimitPerPage, filterTag)
 	if err != nil {
-		if e := new(wreck.NotFound); !errors.As(err, &e) {
+		if !errors.Is(err, wreck.NotFound) {
 			return err
 		}
 	}
@@ -300,13 +309,14 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 		}
 
 		{
-			// Grace timeout for login failures so we always fail in constant time.
+			// Grace timeout for login failures so we always fail in constant time
+			// regardless of whether user does not exist or invalid password provided.
 			ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
 			defer cancel()
 
 			user, err := model.GetUser(ctx, h.db, username)
 			if err != nil {
-				if e := new(wreck.NotFound); errors.As(err, &e) {
+				if errors.Is(err, wreck.NotFound) {
 					<-ctx.Done()
 
 					c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -384,7 +394,7 @@ func (h *HTMLHandler) loadUser(c echo.Context) (*domain.User, error) {
 
 	user, err := model.GetUser(c.Request().Context(), h.db, username)
 	if err != nil {
-		if e := new(wreck.NotFound); errors.As(err, &e) {
+		if errors.Is(err, wreck.NotFound) {
 			return nil, nil
 		}
 

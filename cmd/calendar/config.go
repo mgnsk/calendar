@@ -15,7 +15,7 @@ type Config struct {
 	ListenAddr  string
 	DatabaseDir string
 
-	BaseURL       string
+	BaseURL       *url.URL
 	PageTitle     string
 	SessionSecret string
 }
@@ -25,10 +25,12 @@ func LoadConfig() (*Config, error) {
 	c := &Config{
 		ListenAddr:    cmp.Or(os.Getenv("LISTEN_ADDR"), ":8080"),
 		DatabaseDir:   os.Getenv("DATABASE_DIR"),
-		BaseURL:       os.Getenv("BASE_URL"),
+		BaseURL:       nil,
 		PageTitle:     cmp.Or(os.Getenv("PAGE_TITLE"), "My Awesome Calendar"),
 		SessionSecret: os.Getenv("SESSION_SECRET"),
 	}
+
+	baseURL := os.Getenv("BASE_URL")
 
 	var errs []error
 
@@ -40,10 +42,11 @@ func LoadConfig() (*Config, error) {
 		errs = append(errs, fmt.Errorf("database_dir: is required"))
 	}
 
-	_, err := url.Parse(c.BaseURL)
+	u, err := url.Parse(baseURL)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("base_url: %w", err))
 	}
+	c.BaseURL = u
 
 	if c.PageTitle == "" {
 		errs = append(errs, fmt.Errorf("page_title: is required"))

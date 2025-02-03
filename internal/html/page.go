@@ -57,6 +57,19 @@ func page(mainTitle, sectionTitle, subTitle string, user *domain.User, children 
 				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),
 				Group(children),
 			),
+			Script(Type("application/javascript"), Src(internal.GetAssetLink("dist/mark.min.js"))),
+			Script(Type("application/javascript"), Raw(`
+				let eventList = document.getElementById("event-list");
+				let search = document.getElementById("search");
+
+				if (search && eventList) {
+					let mark = new Mark(eventList);
+					eventList.addEventListener("htmx:afterSettle", function(evt){
+						let s = search.value.replace(/['"]+/g, '');
+						mark.mark(s);
+					});
+				}
+			`)),
 		},
 	})
 }
@@ -76,4 +89,30 @@ func spinner(size int) Node {
        stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-900">
      </path>
 </svg>`, size, size)
+}
+
+func input(name, typ, placeholder string, value string, hasError bool, extraClasses ...string) Node {
+	classes := Classes{
+		"border":          true,
+		"border-gray-200": true,
+		"block":           true,
+		"w-full":          true,
+		"mx-auto":         true,
+		"py-2":            true,
+		"px-3":            true,
+		"rounded":         true,
+		"bg-red-100":      hasError,
+	}
+
+	for _, class := range extraClasses {
+		classes[class] = true
+	}
+
+	return Input(classes,
+		Name(name),
+		Type(typ),
+		Placeholder(placeholder),
+		Value(value),
+		Required(),
+	)
 }
