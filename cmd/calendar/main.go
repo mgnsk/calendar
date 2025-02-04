@@ -93,9 +93,9 @@ func run() error {
 		}()
 	}
 
-	// if err := ensureAdminExists(db); err != nil {
-	// 	return wreck.Internal.New("unable to create admin user", err)
-	// }
+	if err := ensureAdminExists(db); err != nil {
+		return wreck.Internal.New("unable to create admin user", err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	g, ctx := errgroup.WithContext(ctx)
@@ -126,7 +126,7 @@ func run() error {
 		middleware.Recover(), // Recover from all panics to always have your server up.
 		api.ErrorHandler(apiConfig),
 		api.TimeoutMiddleware(time.Minute),
-		api.LoadSettingsMiddleware(db),
+		// api.LoadSettingsMiddleware(db),
 	)
 
 	{
@@ -184,31 +184,31 @@ func run() error {
 	}
 }
 
-// // ensureAdminExists inserts an admin:admin user when no users are present in the database.
-// func ensureAdminExists(db *bun.DB) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer cancel()
-//
-// 	users, err := model.ListUsers(ctx, db)
-// 	if err != nil {
-// 		return err
-// 	}
-//
-// 	if len(users) > 0 {
-// 		return nil
-// 	}
-//
-// 	slog.Info("Inserting admin:admin user")
-//
-// 	user := &domain.User{
-// 		ID:       snowflake.Generate(),
-// 		Username: "admin",
-// 		Role:     domain.Admin,
-// 	}
-// 	user.SetPassword("admin")
-//
-// 	return model.InsertUser(ctx, db, user)
-// }
+// ensureAdminExists inserts an admin:admin user when no users are present in the database.
+func ensureAdminExists(db *bun.DB) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	users, err := model.ListUsers(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	if len(users) > 0 {
+		return nil
+	}
+
+	slog.Info("Inserting admin:admin user")
+
+	user := &domain.User{
+		ID:       snowflake.Generate(),
+		Username: "admin",
+		Role:     domain.Admin,
+	}
+	user.SetPassword("admin")
+
+	return model.InsertUser(ctx, db, user)
+}
 
 func insertTestData(db *bun.DB) {
 	getRandBaseTime := func() time.Time {

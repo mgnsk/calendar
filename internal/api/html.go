@@ -24,7 +24,7 @@ import (
 // TODO: error handling, bad request, not found, etc
 
 // LimitPerPage specifies the maximum numbers of events per page.
-const LimitPerPage = 25
+const LimitPerPage = 3
 
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
@@ -61,8 +61,8 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 
 	g.GET("/tags", h.Tags)
 
-	g.GET("/setup", h.Setup, echo.WrapMiddleware(NoCache))
-	g.POST("/setup", h.Setup, echo.WrapMiddleware(NoCache))
+	// g.GET("/setup", h.Setup, echo.WrapMiddleware(NoCache))
+	// g.POST("/setup", h.Setup, echo.WrapMiddleware(NoCache))
 
 	g.GET("/login", h.Login, echo.WrapMiddleware(NoCache))
 	g.POST("/login", h.Login, echo.WrapMiddleware(NoCache))
@@ -111,13 +111,13 @@ func (h *HTMLHandler) getOffset(c echo.Context) (int64, error) {
 	return 0, nil
 }
 
-// Setup handles the setup page.
-func (h *HTMLHandler) Setup(c echo.Context) error {
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-	c.Response().WriteHeader(200)
-
-	return html.SetupPage(false, c.Get("settings").(*domain.Settings)).Render(c.Response())
-}
+// // Setup handles the setup page.
+// func (h *HTMLHandler) Setup(c echo.Context) error {
+// 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+// 	c.Response().WriteHeader(200)
+//
+// 	return html.SetupPage(false, c.Get("settings").(*domain.Settings)).Render(c.Response())
+// }
 
 // Upcoming handles the upcoming events page.
 func (h *HTMLHandler) Upcoming(c echo.Context) error {

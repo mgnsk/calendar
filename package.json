@@ -1,6 +1,5 @@
 {
   "devDependencies": {
-    "@tailwindcss/cli": "^4.0.1",
     "concurrently": "^9.1.2",
     "htmx.org": "^1.9.12",
     "mark.js": "^8.11.1",
