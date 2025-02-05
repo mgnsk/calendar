@@ -6,7 +6,6 @@ require (
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
@@ -22,8 +21,8 @@ require (
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.9
 	github.com/uptrace/bun/extra/bundebug v1.2.9
 	github.com/yuin/goldmark v1.7.8
-	golang.org/x/crypto v0.31.0
-	golang.org/x/sync v0.10.0
+	golang.org/x/crypto v0.32.0
+	golang.org/x/sync v0.11.0
 	maragu.dev/gomponents v1.0.0
 	maragu.dev/gomponents-htmx v0.6.1
 	modernc.org/sqlite v1.34.5
