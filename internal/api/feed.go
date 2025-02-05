@@ -22,8 +22,12 @@ type FeedHandler struct {
 
 // Register the handler.
 func (h *FeedHandler) Register(e *echo.Echo) {
-	e.GET("/feed", h.HandleRSS)
-	e.GET("/ical", h.HandleICal)
+	g := e.Group("",
+		LoadSettingsMiddleware(h.db),
+	)
+
+	g.GET("/feed", h.HandleRSS)
+	g.GET("/ical", h.HandleICal)
 }
 
 // HandleRSS handles RSS feeds.

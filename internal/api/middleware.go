@@ -2,11 +2,13 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/model"
+	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"github.com/uptrace/bun"
 )
 
@@ -39,12 +41,20 @@ func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			settings, err := model.GetSettings(c.Request().Context(), db)
 			if err != nil {
-				return err
+				if !errors.Is(err, wreck.NotFound) {
+					return err
+				}
 			}
 
-			c.Set("settings", settings)
+			if settings != nil {
+				c.Set("settings", settings)
+			}
 
 			if c.Path() == "/setup" {
+				return next(c)
+			}
+
+			if settings != nil {
 				return next(c)
 			}
 

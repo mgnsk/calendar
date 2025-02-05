@@ -51,7 +51,6 @@ func UpdateSettings(ctx context.Context, db bun.IDB, s *domain.Settings) error {
 		Description:   s.Description,
 		BaseURL:       s.BaseURL.String(),
 		SessionSecret: s.SessionSecret,
-		BaseModel:     bun.BaseModel{},
 	}).Where("id = 1").Exec(ctx))
 }
 

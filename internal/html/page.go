@@ -91,7 +91,7 @@ func spinner(size int) Node {
 </svg>`, size, size)
 }
 
-func input(name, typ, placeholder string, value string, hasError bool, extraClasses ...string) Node {
+func input(name, typ, placeholder string, value string, err string, extraClasses ...string) Node {
 	classes := Classes{
 		"border":          true,
 		"border-gray-200": true,
@@ -101,18 +101,48 @@ func input(name, typ, placeholder string, value string, hasError bool, extraClas
 		"py-2":            true,
 		"px-3":            true,
 		"rounded":         true,
-		"bg-red-100":      hasError,
+		"bg-red-100":      err != "",
 	}
 
 	for _, class := range extraClasses {
 		classes[class] = true
 	}
 
-	return Input(classes,
-		Name(name),
-		Type(typ),
-		Placeholder(placeholder),
-		Value(value),
-		Required(),
-	)
+	return Group{
+		If(err != "", P(Class("pt-5 text-red-500 text-sm italic"), Text(err))),
+		Input(classes,
+			Name(name),
+			Type(typ),
+			Placeholder(placeholder),
+			Value(value),
+			Required(),
+		),
+	}
+}
+
+func textarea(name, value string, err string, extraClasses ...string) Node {
+	classes := Classes{
+		"border":          true,
+		"border-gray-200": true,
+		"block":           true,
+		"w-full":          true,
+		"mx-auto":         true,
+		"py-2":            true,
+		"px-3":            true,
+		"rounded":         true,
+		"bg-red-100":      err != "",
+	}
+
+	for _, class := range extraClasses {
+		classes[class] = true
+	}
+
+	return Group{
+		If(err != "", P(Class("pt-5 text-red-500 text-sm italic"), Text(err))),
+		Textarea(classes,
+			Name(name),
+			Text(value),
+			Rows("3"),
+		),
+	}
 }
