@@ -13,7 +13,7 @@ import (
 )
 
 // ErrorHandler handles setting response status code from error and renders an error page.
-func ErrorHandler(config Config) echo.MiddlewareFunc {
+func ErrorHandler() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			err := next(c)
@@ -40,7 +40,7 @@ func ErrorHandler(config Config) echo.MiddlewareFunc {
 			slogecho.AddCustomAttributes(c, slog.String("error", err.Error()))
 			c.Response().Status = code
 
-			return html.ErrorPage(config.PageTitle, code, msg).Render(c.Response())
+			return html.ErrorPage("Error", code, msg).Render(c.Response())
 		}
 	}
 }

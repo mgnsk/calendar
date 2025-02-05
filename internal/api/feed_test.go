@@ -3,7 +3,6 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
@@ -25,6 +24,10 @@ var _ = Describe("RSS feed output", func() {
 	)
 
 	BeforeEach(func(ctx SpecContext) {
+		By("creating settings", func() {
+			Expect(model.InsertOrIgnoreSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
+		})
+
 		By("inserting events", func() {
 			Expect(model.InsertEvent(ctx, db, event1)).To(Succeed())
 			Expect(model.InsertEvent(ctx, db, event2)).To(Succeed())
@@ -32,10 +35,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, api.Config{
-			PageTitle: "My Test Feed",
-			BaseURL:   Must(url.Parse("https://example.testing")),
-		})
+		h := api.NewFeedHandler(db)
 		h.Register(e)
 
 		server = httptest.NewServer(e)
@@ -61,8 +61,8 @@ var _ = Describe("RSS feed output", func() {
 
 			fields := Fields{
 				"FeedType": Equal(string(feedType)),
-				"Title":    Equal("My Test Feed"),
-				"Link":     Equal("https://example.testing/feed"),
+				"Title":    Equal("My Awesome Events"),
+				"Link":     Equal("https://my-awesome-events.testing/feed"),
 				"Items": HaveExactElements(
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Title":           Equal(event1.Title),
@@ -106,6 +106,10 @@ var _ = Describe("iCal feed output", func() {
 	)
 
 	BeforeEach(func(ctx SpecContext) {
+		By("creating settings", func() {
+			Expect(model.InsertOrIgnoreSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
+		})
+
 		By("inserting events", func() {
 			Expect(model.InsertEvent(ctx, db, event1)).To(Succeed())
 			Expect(model.InsertEvent(ctx, db, event2)).To(Succeed())
@@ -113,10 +117,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, api.Config{
-			PageTitle: "My Test Feed",
-			BaseURL:   Must(url.Parse("https://example.testing")),
-		})
+		h := api.NewFeedHandler(db)
 		h.Register(e)
 
 		server = httptest.NewServer(e)
@@ -145,11 +146,11 @@ var _ = Describe("iCal feed output", func() {
 			})),
 			HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 				"IANAToken": Equal("DESCRIPTION"),
-				"Value":     Equal("My Test Feed"),
+				"Value":     Equal("My Awesome Events"),
 			})),
 			HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 				"IANAToken": Equal("URL"),
-				"Value":     Equal("https://example.testing/ical"),
+				"Value":     Equal("https://my-awesome-events.testing/ical"),
 			})),
 		))
 

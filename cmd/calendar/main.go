@@ -94,12 +94,6 @@ func run() error {
 	// 	return nil
 	// })
 
-	apiConfig := api.Config{
-		PageTitle:     cfg.PageTitle,
-		BaseURL:       cfg.BaseURL,
-		SessionSecret: []byte(cfg.SessionSecret),
-	}
-
 	e := echo.New()
 	e.Use(
 		slogecho.NewWithConfig(slog.Default(), slogecho.Config{
@@ -111,17 +105,17 @@ func run() error {
 			WithRequestID: true,
 		}),
 		middleware.Recover(), // Recover from all panics to always have your server up.
-		api.ErrorHandler(apiConfig),
+		api.ErrorHandler(),
 		api.TimeoutMiddleware(time.Minute),
 	)
 
 	{
-		h := api.NewFeedHandler(db, apiConfig)
+		h := api.NewFeedHandler(db)
 		h.Register(e)
 	}
 
 	{
-		h := api.NewHTMLHandler(db, apiConfig)
+		h := api.NewHTMLHandler(db)
 		h.Register(e)
 	}
 

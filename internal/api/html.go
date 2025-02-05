@@ -29,8 +29,7 @@ const LimitPerPage = 3
 
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
-	db     *bun.DB
-	config Config
+	db *bun.DB
 }
 
 // Register the handler.
@@ -41,10 +40,23 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 		AssetCacheMiddleware,
 	)
 
-	g := e.Group("",
-		session.Middleware(sessions.NewCookieStore(h.config.SessionSecret)),
-		LoadSettingsMiddleware(h.db),
-	)
+	var mw []echo.MiddlewareFunc
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	settings, err := model.GetSettings(ctx, h.db)
+	if err != nil {
+		if !errors.Is(err, wreck.NotFound) {
+			panic(err)
+		}
+	} else {
+		mw = append(mw, session.Middleware(sessions.NewCookieStore(settings.SessionSecret)))
+	}
+
+	mw = append(mw, LoadSettingsMiddleware(h.db))
+
+	g := e.Group("", mw...)
 
 	g.GET("/", h.LatestEvents)
 	g.POST("/", h.LatestEvents) // Fox htmx.
@@ -248,8 +260,10 @@ func (h *HTMLHandler) Upcoming(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
+	s := c.Get("settings").(*domain.Settings)
+
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:    h.config.PageTitle,
+		MainTitle:    s.Title,
 		SectionTitle: "Upcoming events",
 		Path:         c.Path(),
 		FilterTag:    filterTag,
@@ -293,8 +307,10 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
+	s := c.Get("settings").(*domain.Settings)
+
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:    h.config.PageTitle,
+		MainTitle:    s.Title,
 		SectionTitle: "Past Events",
 		Path:         c.Path(),
 		FilterTag:    filterTag,
@@ -339,8 +355,10 @@ func (h *HTMLHandler) LatestEvents(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
+	s := c.Get("settings").(*domain.Settings)
+
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:    h.config.PageTitle,
+		MainTitle:    s.Title,
 		SectionTitle: "Latest Events",
 		Path:         c.Path(),
 		FilterTag:    filterTag,
@@ -365,8 +383,10 @@ func (h *HTMLHandler) Tags(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
+	s := c.Get("settings").(*domain.Settings)
+
 	return html.TagsPage(html.TagsPageParams{
-		MainTitle:    h.config.PageTitle,
+		MainTitle:    s.Title,
 		SectionTitle: "Tags",
 		Path:         c.Path(),
 		User:         user,
@@ -392,7 +412,9 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.LoginPage(h.config.PageTitle, nil, "", "").Render(c.Response())
+		s := c.Get("settings").(*domain.Settings)
+
+		return html.LoginPage(s.Title, nil, "", "").Render(c.Response())
 
 	case http.MethodPost:
 		username := c.FormValue("username")
@@ -406,7 +428,9 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.LoginPage(h.config.PageTitle, errs, username, password).Render(c.Response())
+			s := c.Get("settings").(*domain.Settings)
+
+			return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
 		}
 
 		{
@@ -428,7 +452,9 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 						"password": "Invalid username or password",
 					}
 
-					return html.LoginPage(h.config.PageTitle, errs, username, password).Render(c.Response())
+					s := c.Get("settings").(*domain.Settings)
+
+					return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
 				}
 
 				return err
@@ -445,7 +471,9 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 					"password": "Invalid username or password",
 				}
 
-				return html.LoginPage(h.config.PageTitle, errs, username, password).Render(c.Response())
+				s := c.Get("settings").(*domain.Settings)
+
+				return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
 			}
 		}
 
@@ -516,9 +544,8 @@ func (h *HTMLHandler) loadUser(c echo.Context) (*domain.User, error) {
 }
 
 // NewHTMLHandler creates a new HTML handler.
-func NewHTMLHandler(db *bun.DB, config Config) *HTMLHandler {
+func NewHTMLHandler(db *bun.DB) *HTMLHandler {
 	return &HTMLHandler{
-		db:     db,
-		config: config,
+		db: db,
 	}
 }
