@@ -17,7 +17,7 @@ func NormalizeError(err error) error {
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return &wreck.NotFound{Err: err}
+		return wreck.NotFound.New("Not found", err)
 	}
 
 	if se := new(sqlite.Error); errors.As(err, &se) {
@@ -25,7 +25,7 @@ func NormalizeError(err error) error {
 		case
 			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,
 			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
-			return &wreck.AlreadyExists{Err: err}
+			return wreck.AlreadyExists.New("Already exists", err)
 
 		default:
 			return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[code], code, err)
@@ -44,9 +44,7 @@ func WithErrorChecking(res sql.Result, err error) error {
 	if c, err := res.RowsAffected(); err != nil {
 		return fmt.Errorf("error checking affected row count: %w", err)
 	} else if c == 0 {
-		return &wreck.PreconditionFailed{
-			Err: fmt.Errorf("no rows were affected"),
-		}
+		return wreck.PreconditionFailed.New("Now rows affected", err)
 	}
 
 	return nil

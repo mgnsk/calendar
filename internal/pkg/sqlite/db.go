@@ -14,14 +14,14 @@ import (
 
 // Builder is an SQLite client builder.
 type Builder struct {
-	dsn   string
-	debug bool
+	filename string
+	debug    bool
 }
 
 // NewDB creates an SQLite client.
-func NewDB(dsn string) *Builder {
+func NewDB(filename string) *Builder {
 	return &Builder{
-		dsn: dsn,
+		filename: filename,
 	}
 }
 
@@ -33,7 +33,9 @@ func (c *Builder) WithDebugLogging() *Builder {
 
 // Connect to the database.
 func (c *Builder) Connect() *bun.DB {
-	sqldb, err := sql.Open("sqlite", c.dsn)
+	dsn := fmt.Sprintf("%s?_pragma=busy_timeout=10000&_pragma=journal_mode=WAL&_pragma=locking_mode=EXCLUSIVE", c.filename)
+
+	sqldb, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		panic(fmt.Errorf("error opening DB: %s", NormalizeError(err)))
 	}

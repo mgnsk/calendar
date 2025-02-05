@@ -26,6 +26,32 @@ func (e *Event) GetCreatedAt() time.Time {
 	return snowflake.ParseTime(e.ID.Int64())
 }
 
+func (e *Event) GetDateString() string {
+	start := e.StartAt.Time()
+	end := e.EndAt.Time()
+
+	var buf strings.Builder
+	buf.WriteString(start.Format("January _2, 2006 "))
+
+	if start.Minute() == 0 {
+		buf.WriteString(start.Format("3PM"))
+	} else {
+		buf.WriteString(start.Format("3:04PM"))
+	}
+
+	if !end.IsZero() {
+		buf.WriteString("-")
+		if end.Minute() == 0 {
+			buf.WriteString(end.Format("3PM"))
+		} else {
+			buf.WriteString(end.Format("3:04PM"))
+		}
+	}
+
+	return buf.String()
+
+}
+
 // GetDescription returns the event description with tags.
 // TODO: test this
 func (e *Event) GetDescription() string {
@@ -56,7 +82,7 @@ func (e *Event) GetFTSData() string {
 	}
 
 	day := e.StartAt.Time().Day()
-	words = append(words, fmt.Sprintf("%d%s", day, timestamp.GetDaySuffix(day)))
+	words = append(words, timestamp.FormatDay(day))
 
 	for _, format := range []string{
 		"_2 January, 2006",

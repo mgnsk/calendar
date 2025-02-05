@@ -1,67 +1,100 @@
 package wreck
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+)
 
-// PreconditionFailed is a precondition failed error.
-type PreconditionFailed struct {
-	Err error
-}
+// KeyHTTPCode is a HTTP code error key.
+const KeyHTTPCode = "http_code"
 
-func (e *PreconditionFailed) Unwrap() error {
-	return e.Err
-}
+// Base errors.
+var (
+	PreconditionFailed = NewBaseError("precondition_failed").With(KeyHTTPCode, http.StatusPreconditionFailed)
+	InvalidValue       = NewBaseError("invalid_param").With(KeyHTTPCode, http.StatusBadRequest)
+	AlreadyExists      = NewBaseError("already_exists").With(KeyHTTPCode, http.StatusConflict)
+	NotFound           = NewBaseError("not_found").With(KeyHTTPCode, http.StatusNotFound)
 
-func (e *PreconditionFailed) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("precondition failed: %s", e.Err.Error())
+	Internal = NewBaseError("internal").With(KeyHTTPCode, http.StatusInternalServerError)
+)
+
+// Value extracts a value from err's base error.
+func Value(err error, key string) any {
+	var werr *wreckError
+	if errors.As(err, &werr) {
+		return werr.base.values[key]
 	}
-	return "precondition failed"
+	return nil
 }
 
-// InvalidInput is an invalid input error.
-type InvalidInput struct {
-	Err error
+// BaseError is a base error.
+type BaseError interface {
+	error
+	With(key string, value any) BaseError
+	New(string, ...error) Error
 }
 
-func (e *InvalidInput) Unwrap() error {
-	return e.Err
+// Error is an error with a safe error message.
+type Error interface {
+	error
+	Message() string
 }
 
-func (e *InvalidInput) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("invalid input: %s", e.Err.Error())
+// NewBaseError creates a new base error.
+func NewBaseError(code string) BaseError {
+	return &baseError{
+		code:   code,
+		values: map[string]any{},
 	}
-	return "invalid input"
 }
 
-// AlreadyExists is an invalid input error.
-type AlreadyExists struct {
-	Err error
+type baseError struct {
+	code   string
+	values map[string]any
 }
 
-func (e *AlreadyExists) Unwrap() error {
-	return e.Err
+func (e *baseError) Error() string {
+	return e.code
 }
 
-func (e *AlreadyExists) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("already exists: %s", e.Err.Error())
+func (e *baseError) With(key string, value any) BaseError {
+	e.values[key] = value
+	return e
+}
+
+func (e *baseError) New(msg string, errs ...error) Error {
+	return &wreckError{
+		base: e,
+		msg:  msg,
+		err:  errors.Join(errs...),
 	}
-	return "already exists"
 }
 
-// NotFound is a not found error.
-type NotFound struct {
-	Err error
+type wreckError struct {
+	base *baseError
+	msg  string
+	err  error
 }
 
-func (e *NotFound) Unwrap() error {
-	return e.Err
-}
-
-func (e *NotFound) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("not found: %s", e.Err.Error())
+func (e *wreckError) Error() string {
+	if e.err != nil {
+		return fmt.Sprintf("%s: %s", e.msg, e.err.Error())
 	}
-	return "not found"
+	return e.msg
+}
+
+func (e *wreckError) Message() string {
+	return e.msg
+}
+
+func (e *wreckError) Unwrap() error {
+	return e.err
+}
+
+func (e *wreckError) Is(target error) bool {
+	if base, ok := target.(*baseError); ok {
+		return e.base == base
+	}
+	return false
 }

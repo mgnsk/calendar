@@ -1,8 +1,6 @@
 package model_test
 
 import (
-	"errors"
-
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
@@ -52,8 +50,7 @@ var _ = Describe("inserting users", func() {
 				Role:     domain.Admin,
 			})
 
-			var werr *wreck.AlreadyExists
-			Expect(errors.As(err, &werr)).To(BeTrue())
+			Expect(err).To(MatchError(wreck.AlreadyExists))
 		})
 	})
 })

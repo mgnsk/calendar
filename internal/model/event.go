@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -193,7 +192,7 @@ func ListEvents(
 	if searchText != "" {
 		searchText = cleanString(searchText)
 		if len(searchText) < 3 {
-			return nil, &wreck.NotFound{Err: fmt.Errorf("no search results found")}
+			return nil, wreck.NotFound.New("No search results were found")
 		}
 
 		// Try exact match first and only when non-quoted input.
@@ -217,7 +216,7 @@ func ListEvents(
 		}
 
 		if len(searchResults) == 0 {
-			return nil, &wreck.NotFound{Err: fmt.Errorf("no search results found")}
+			return nil, wreck.NotFound.New("No search results were found")
 		}
 	}
 
@@ -244,10 +243,9 @@ func searchEvents(ctx context.Context, db bun.IDB, text string) ([]*eventFTS, er
 		Where("events_fts_idx MATCH ?", text).
 		Order("rank").
 		Scan(ctx)); err != nil {
-		if e := new(wreck.NotFound); errors.As(err, &e) {
+		if errors.Is(err, wreck.NotFound) {
 			return nil, nil
 		}
-
 		return nil, err
 	}
 

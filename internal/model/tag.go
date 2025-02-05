@@ -32,10 +32,9 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 	})
 
 	if err := sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx)); err != nil {
-		if e := new(wreck.PreconditionFailed); errors.As(err, &e) {
+		if errors.Is(err, wreck.PreconditionFailed) {
 			return nil
 		}
-
 		return err
 	}
 

@@ -33,7 +33,7 @@ func MigrateUp(db *sql.DB) error {
 
 	if err := m.Up(); err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			slog.Info("Migrations already up to date")
+			slog.Info("migrations already up to date")
 			return nil
 		}
 

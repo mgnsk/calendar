@@ -8,6 +8,7 @@ import (
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/uptrace/bun"
 )
@@ -16,14 +17,17 @@ import (
 
 // FeedHandler handles feed output.
 type FeedHandler struct {
-	db     *bun.DB
-	config Config
+	db *bun.DB
 }
 
 // Register the handler.
 func (h *FeedHandler) Register(e *echo.Echo) {
-	e.GET("/feed", h.HandleRSS)
-	e.GET("/ical", h.HandleICal)
+	g := e.Group("",
+		LoadSettingsMiddleware(h.db),
+	)
+
+	g.GET("/feed", h.HandleRSS)
+	g.GET("/ical", h.HandleICal)
 }
 
 // HandleRSS handles RSS feeds.
@@ -39,11 +43,13 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 		return err
 	}
 
+	s := c.Get("settings").(*domain.Settings)
+
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(h.config.PageTitle)
-	cal.SetUrl(h.config.BaseURL.JoinPath("/ical").String())
+	cal.SetDescription(s.Title)
+	cal.SetUrl(s.BaseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
@@ -78,9 +84,11 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 		return err
 	}
 
+	s := c.Get("settings").(*domain.Settings)
+
 	feed := &feeds.Feed{
-		Title: h.config.PageTitle,
-		Link:  &feeds.Link{Rel: "self", Href: h.config.BaseURL.JoinPath(c.Path()).String()},
+		Title: s.Title,
+		Link:  &feeds.Link{Rel: "self", Href: s.BaseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}
 
@@ -118,9 +126,8 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, config Config) *FeedHandler {
+func NewFeedHandler(db *bun.DB) *FeedHandler {
 	return &FeedHandler{
-		db:     db,
-		config: config,
+		db: db,
 	}
 }
