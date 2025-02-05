@@ -42,19 +42,20 @@ func (h *HTMLHandler) Register(e *echo.Echo) {
 
 	var mw []echo.MiddlewareFunc
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	settings, err := model.GetSettings(ctx, h.db)
-	if err != nil {
-		if !errors.Is(err, wreck.NotFound) {
-			panic(err)
-		}
-	} else {
-		mw = append(mw, session.Middleware(sessions.NewCookieStore(settings.SessionSecret)))
-	}
-
 	mw = append(mw, LoadSettingsMiddleware(h.db))
+	mw = append(mw, func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			s := c.Get("settings")
+			if s == nil {
+				// No settings yet, don't configure sessions.
+				return next(c)
+			}
+
+			fn := session.Middleware(sessions.NewCookieStore(s.(*domain.Settings).SessionSecret))
+
+			return fn(next)(c)
+		}
+	})
 
 	g := e.Group("", mw...)
 
@@ -479,7 +480,7 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 
 		sess, err := session.Get("session", c)
 		if err != nil {
-			return err
+			c.Logger().Warn(err.Error())
 		}
 
 		sess.Options = &sessions.Options{
@@ -507,7 +508,7 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 func (*HTMLHandler) Logout(c echo.Context) error {
 	sess, err := session.Get("session", c)
 	if err != nil {
-		return err
+		c.Logger().Warn(err.Error())
 	}
 
 	sess.Values = nil
@@ -523,7 +524,8 @@ func (*HTMLHandler) Logout(c echo.Context) error {
 func (h *HTMLHandler) loadUser(c echo.Context) (*domain.User, error) {
 	sess, err := session.Get("session", c)
 	if err != nil {
-		return nil, err
+		c.Logger().Warn(err.Error())
+		return nil, nil
 	}
 
 	username, ok := sess.Values["username"].(string)
