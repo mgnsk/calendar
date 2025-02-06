@@ -46,7 +46,7 @@ func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 				return next(c)
 			}
 
-			return c.Redirect(http.StatusFound, "/setup")
+			return c.Redirect(http.StatusSeeOther, "/setup")
 		}
 	}
 }
