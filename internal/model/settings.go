@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"errors"
-	"net/url"
 
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
@@ -17,8 +16,6 @@ type Settings struct {
 	IsInitialized bool   `bun:"is_initialized"`
 	Title         string `bun:"title"`
 	Description   string `bun:"description"`
-	BaseURL       string `bun:"base_url"`
-	SessionSecret []byte `bun:"session_secret"`
 
 	bun.BaseModel `bun:"settings"`
 }
@@ -30,8 +27,6 @@ func InsertOrIgnoreSettings(ctx context.Context, db bun.IDB, s *domain.Settings)
 		IsInitialized: s.IsInitialized,
 		Title:         s.Title,
 		Description:   s.Description,
-		BaseURL:       s.BaseURL.String(),
-		SessionSecret: s.SessionSecret,
 	}).Exec(ctx)); err != nil {
 		if errors.Is(err, wreck.PreconditionFailed) {
 			return nil
@@ -49,8 +44,6 @@ func UpdateSettings(ctx context.Context, db bun.IDB, s *domain.Settings) error {
 		IsInitialized: s.IsInitialized,
 		Title:         s.Title,
 		Description:   s.Description,
-		BaseURL:       s.BaseURL.String(),
-		SessionSecret: s.SessionSecret,
 	}).Where("id = 1").Exec(ctx))
 }
 
@@ -64,16 +57,9 @@ func GetSettings(ctx context.Context, db bun.IDB) (*domain.Settings, error) {
 		return nil, sqlite.NormalizeError(err)
 	}
 
-	u, err := url.Parse(model.BaseURL)
-	if err != nil {
-		return nil, err
-	}
-
 	return &domain.Settings{
 		IsInitialized: model.IsInitialized,
 		Title:         model.Title,
 		Description:   model.Description,
-		BaseURL:       u,
-		SessionSecret: model.SessionSecret,
 	}, nil
 }

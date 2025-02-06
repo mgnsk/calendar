@@ -3,6 +3,7 @@ package api_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
@@ -35,7 +36,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db)
+		h := api.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
 		h.Register(e)
 
 		server = httptest.NewServer(e)
@@ -62,7 +63,7 @@ var _ = Describe("RSS feed output", func() {
 			fields := Fields{
 				"FeedType": Equal(string(feedType)),
 				"Title":    Equal("My Awesome Events"),
-				"Link":     Equal("https://my-awesome-events.testing/feed"),
+				"Link":     Equal("https://calendar.testing/feed"),
 				"Items": HaveExactElements(
 					PointTo(MatchFields(IgnoreExtras, Fields{
 						"Title":           Equal(event1.Title),
@@ -117,7 +118,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db)
+		h := api.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
 		h.Register(e)
 
 		server = httptest.NewServer(e)
@@ -150,7 +151,7 @@ var _ = Describe("iCal feed output", func() {
 			})),
 			HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 				"IANAToken": Equal("URL"),
-				"Value":     Equal("https://my-awesome-events.testing/ical"),
+				"Value":     Equal("https://calendar.testing/ical"),
 			})),
 		))
 

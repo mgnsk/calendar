@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alexedwards/scs/bunstore"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar/internal"
@@ -27,6 +28,7 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
+	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -61,8 +63,8 @@ func run() error {
 		return wreck.Internal.New("error creating database dir", err)
 	}
 
-	dsn := filepath.Join(databaseDir, "calendar.sqlite")
-	db := sqlite.NewDB(dsn).Connect()
+	filename := filepath.Join(databaseDir, "calendar.sqlite")
+	db := sqlite.NewDB(filename).Connect()
 	defer func() {
 		if err := db.Close(); err != nil {
 			slog.Error("error closing database connection", slog.String("error", err.Error()))
@@ -75,26 +77,53 @@ func run() error {
 
 	model.RegisterModels(db)
 
-	if *isDemo {
-		go func() {
-			n := 1000
-			for range n {
-				insertTestData(db)
-			}
-		}()
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	g, ctx := errgroup.WithContext(ctx)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-quit:
+			cancel()
+		}
+	}()
 
-	// g.Go(func() error {
-	// 	if err := sqlite.RunOptimizer(ctx, db.DB); err != nil {
-	// 		return wreck.Internal.New("error running sqlite optimizer", err)
-	// 	}
-	// 	return nil
-	// })
+	g.Go(func() error {
+		if err := sqlite.RunOptimizer(ctx, db.DB); err != nil {
+			return wreck.Internal.New("error running sqlite optimizer", err)
+		}
+		return nil
+	})
+
+	if *isDemo {
+		g.Go(func() error {
+			slog.Info("running in demo mode, inserting testdata")
+			n := 100
+			for range n {
+				if err := insertTestData(ctx, db); err != nil {
+					return err
+				}
+			}
+			slog.Info("finished inserting testdata")
+			return nil
+		})
+	}
+
+	// Initialize the session store.
+	store, err := bunstore.New(db)
+	if err != nil {
+		return wreck.Internal.New("error creating sqlite session store", err)
+	}
+
+	defer store.StopCleanup()
 
 	e := echo.New()
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		if err := api.HandleError(err, c); err != nil {
+			panic(err)
+		}
+	}
 	e.Use(
 		slogecho.NewWithConfig(slog.Default(), slogecho.Config{
 			DefaultLevel:     slog.LevelInfo,
@@ -106,26 +135,62 @@ func run() error {
 		}),
 		middleware.Recover(), // Recover from all panics to always have your server up.
 		api.ErrorHandler(),
-		api.TimeoutMiddleware(time.Minute),
+		middleware.RequestID(),
+		middleware.SecureWithConfig(middleware.SecureConfig{
+			XSSProtection:         "1; mode=block",
+			ContentTypeNosniff:    "nosniff",
+			XFrameOptions:         "SAMEORIGIN",
+			ContentSecurityPolicy: "default-src 'self'; worker-src 'self' blob:; script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'",
+			HSTSPreloadEnabled:    false,
+		}),
+		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
+		middleware.BodyLimit("1M"),
+		middleware.CSRFWithConfig(middleware.CSRFConfig{
+			TokenLength:    32,
+			TokenLookup:    "form:csrf",
+			ContextKey:     "csrf",
+			CookieName:     "_csrf",
+			CookieDomain:   "",
+			CookiePath:     "/",
+			CookieMaxAge:   86400,
+			CookieSecure:   true,
+			CookieHTTPOnly: true,
+			CookieSameSite: http.SameSiteStrictMode,
+		}),
+		middleware.ContextTimeout(time.Minute),
 	)
 
 	{
-		h := api.NewFeedHandler(db)
+		h := api.NewFeedHandler(db, cfg.BaseURL)
 		h.Register(e)
 	}
 
 	{
-		h := api.NewHTMLHandler(db)
+		h := api.NewHTMLHandler(db, store, cfg.BaseURL)
 		h.Register(e)
 	}
 
 	e.Server.ReadHeaderTimeout = time.Minute
+	e.Server.ReadTimeout = time.Minute
 	e.Server.WriteTimeout = time.Minute
+	e.Server.IdleTimeout = time.Minute
 
 	g.Go(func() error {
-		if err := e.Start(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
-			return wreck.Internal.New("error running server", err)
+		slog.Info(fmt.Sprintf("listening at %s", cfg.ListenAddr))
+
+		if cfg.Development {
+			if err := e.StartTLS(cfg.ListenAddr, "./certs/calendar.testing.crt", "./certs/calendar.testing.key"); err != nil && err != http.ErrServerClosed {
+				return wreck.Internal.New("error running server", err)
+			}
+		} else {
+			e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.DomainName)
+			// Cache certificates to avoid issues with rate limits (https://letsencrypt.org/docs/rate-limits)
+			e.AutoTLSManager.Cache = autocert.DirCache(cfg.CacheDir)
+			if err := e.StartAutoTLS(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
+				return wreck.Internal.New("error running server", err)
+			}
 		}
+
 		return nil
 	})
 
@@ -144,27 +209,10 @@ func run() error {
 		return nil
 	})
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	errs := make(chan error, 1)
-	go func() {
-		errs <- g.Wait()
-	}()
-
-	select {
-	case <-quit:
-		cancel()
-		err := <-errs
-		return err
-
-	case err := <-errs:
-		cancel()
-		return err
-	}
+	return g.Wait()
 }
 
-func insertTestData(db *bun.DB) {
+func insertTestData(ctx context.Context, db *bun.DB) error {
 	getRandBaseTime := func() time.Time {
 		baseTime := time.Now()
 
@@ -201,7 +249,12 @@ func insertTestData(db *bun.DB) {
 		EndAt:   timestamp.Timestamp{},
 		Title:   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat nec enim sed pretium.",
 		Description: `
+😀😀😀
+
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat nec enim sed pretium. Donec volutpat ornare convallis. Praesent cursus elementum felis, vel condimentum urna. Nullam feugiat, nunc eget vehicula aliquam, nunc neque molestie nunc, in rhoncus turpis ex blandit ante. Quisque rhoncus diam id vulputate suscipit. Etiam venenatis bibendum turpis mollis suscipit. Pellentesque nec tortor non nisi mollis euismod. Praesent felis lectus, eleifend nec orci in, fringilla tempor tortor.
+
+<b>HTML test</b>
+😀😀😀
 
 Ut consectetur nulla quam, a tristique nibh volutpat quis. Praesent consequat mi nec orci suscipit ullamcorper. Vestibulum vitae eleifend justo. Nulla sed bibendum elit. Proin ultrices justo nec massa commodo, ut fringilla eros eleifend. Sed ligula diam, auctor sit amet tempor sit amet, commodo a quam. Sed et neque convallis, condimentum velit vel, interdum diam. Nunc at purus eget augue elementum viverra. Donec interdum lectus libero, sed gravida urna venenatis at. Praesent odio nibh, facilisis eu massa et, bibendum iaculis elit. Vivamus faucibus, turpis eget molestie consectetur, elit dui condimentum magna, sit amet congue nibh odio sed sapien. Maecenas vel dictum justo. Cras malesuada congue velit, sagittis convallis leo interdum ut. Proin fermentum dolor vel lacinia egestas.
 
@@ -224,8 +277,10 @@ Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at fini
 	}
 
 	for _, ev := range []*domain.Event{event1, event2, event3} {
-		if err := model.InsertEvent(context.Background(), db, ev); err != nil {
-			panic(err)
+		if err := model.InsertEvent(ctx, db, ev); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }

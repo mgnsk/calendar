@@ -1,8 +1,6 @@
 package model_test
 
 import (
-	"net/url"
-
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
@@ -19,8 +17,6 @@ var _ = Describe("inserting settings", func() {
 				IsInitialized: false,
 				Title:         "Page Title",
 				Description:   "Description",
-				BaseURL:       Must(url.Parse("https://events.testing")),
-				SessionSecret: []byte("sess_secret"),
 			})).To(Succeed())
 
 			settings := Must(model.GetSettings(ctx, db))
@@ -28,8 +24,6 @@ var _ = Describe("inserting settings", func() {
 				"IsInitialized": BeFalse(),
 				"Title":         Equal("Page Title"),
 				"Description":   Equal("Description"),
-				"BaseURL":       HaveField("String()", "https://events.testing"),
-				"SessionSecret": Equal([]byte("sess_secret")),
 			})))
 		})
 	})
@@ -40,8 +34,6 @@ var _ = Describe("inserting settings", func() {
 				IsInitialized: true,
 				Title:         "Page Title",
 				Description:   "Description",
-				BaseURL:       Must(url.Parse("https://events.testing")),
-				SessionSecret: []byte("sess_secret"),
 			})).To(Succeed())
 		})
 
@@ -50,8 +42,6 @@ var _ = Describe("inserting settings", func() {
 				IsInitialized: false,
 				Title:         "Page Title 2",
 				Description:   "Description 2",
-				BaseURL:       Must(url.Parse("https://events2.testing")),
-				SessionSecret: []byte("sess_secret2"),
 			})).To(Succeed())
 
 			settings := Must(model.GetSettings(ctx, db))
@@ -59,8 +49,6 @@ var _ = Describe("inserting settings", func() {
 				"IsInitialized": BeTrue(),
 				"Title":         Equal("Page Title"),
 				"Description":   Equal("Description"),
-				"BaseURL":       HaveField("String()", "https://events.testing"),
-				"SessionSecret": Equal([]byte("sess_secret")),
 			})))
 		})
 	})
@@ -73,8 +61,6 @@ var _ = Describe("updating settings", func() {
 				IsInitialized: true,
 				Title:         "Page Title",
 				Description:   "Description",
-				BaseURL:       Must(url.Parse("https://events.testing")),
-				SessionSecret: []byte("sess_secret"),
 			})).To(MatchError(wreck.PreconditionFailed))
 		})
 	})
@@ -85,8 +71,6 @@ var _ = Describe("updating settings", func() {
 				IsInitialized: false,
 				Title:         "Page Title",
 				Description:   "Description",
-				BaseURL:       Must(url.Parse("https://events.testing")),
-				SessionSecret: []byte("sess_secret"),
 			})).To(Succeed())
 		})
 
@@ -95,8 +79,6 @@ var _ = Describe("updating settings", func() {
 				IsInitialized: true,
 				Title:         "Page Title 2",
 				Description:   "Description 2",
-				BaseURL:       Must(url.Parse("https://events2.testing")),
-				SessionSecret: []byte("sess_secret2"),
 			})).To(Succeed())
 
 			settings := Must(model.GetSettings(ctx, db))
@@ -104,8 +86,6 @@ var _ = Describe("updating settings", func() {
 				"IsInitialized": BeTrue(),
 				"Title":         Equal("Page Title 2"),
 				"Description":   Equal("Description 2"),
-				"BaseURL":       HaveField("String()", "https://events2.testing"),
-				"SessionSecret": Equal([]byte("sess_secret2")),
 			})))
 		})
 	})

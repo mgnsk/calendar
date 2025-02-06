@@ -1,10 +1,5 @@
 ## Simple calendar app
 
-### Building and running with docker
-
-- `$ docker compose build`
-- `$ docker compose up`
-
 ### Local development
 
 Dependencies:
@@ -12,10 +7,29 @@ Dependencies:
 - [Go](https://go.dev/)
 - [Node.js](https://nodejs.org/en)
 
-Setup tools and run development environment:
+Add the following to your `/etc/hosts` to access the calendar by domain name.
+
+```
+127.0.0.1 calendar.testing
+```
+
+Generate the root CA and certificate:
+
+```
+cd certs
+./gen.sh
+```
+
+During development, we use self-signed certificates. In production we use automatic TLS from Let's Encrypt.
+
+Import Calendar CA certificate at `certs/ca.crt` into your browser to avoid self-signed certificate warnings.
+
+Setup tools and run the development environment:
 
 - `$ make setup`
 - `$ make dev`
+
+Your browser should automatically open at `https://calendar.testing:8443`.
 
 ### Docker Compose deployment
 
@@ -26,19 +40,12 @@ Choose whichever system you're familiar with.
 
 You need a Docker installation with the [Compose plugin](https://docs.docker.com/compose/install/linux/).
 
-Copy `docker-compose.example.yml` to `/etc/docker/compose/calendar/docker-compose.yml`
-and `.env` to `/etc/docker/compose/calendar/.env`.
-
-Edit the environment variables. Make sure to set a new 32-byte SESSION_SECRET.
-
-You may also set the environment variables directly in `docker-compose.yml`.
-In this case, the `.env` file is not needed. Remove the `env_file` setting from the compose file.
+Copy `docker-compose.example.yml` to `/etc/docker/compose/calendar/docker-compose.yml`.
+Configure the environment variables.
 
 Copy `docker-compose@.service` to `/etc/systemd/system/`.
 
 Enable the service: `$ systemctl enable --now docker-compose@calendar`.
-
-Docker Compose automatically creates a database volume for the service. Do not delete the volume or all data will be lost!
 
 To update the service:
 
@@ -47,4 +54,3 @@ To update the service:
 - `$ systemctl restart docker-compose@calendar`
 
 TODO: automatic update
-TODO: describe HTTPS reverse proxy (most probably Caddy) and domain name config.
