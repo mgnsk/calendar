@@ -26,7 +26,7 @@ var _ = Describe("RSS feed output", func() {
 
 	BeforeEach(func(ctx SpecContext) {
 		By("creating settings", func() {
-			Expect(model.InsertOrIgnoreSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
+			Expect(model.InsertSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
 		})
 
 		By("inserting events", func() {
@@ -108,7 +108,7 @@ var _ = Describe("iCal feed output", func() {
 
 	BeforeEach(func(ctx SpecContext) {
 		By("creating settings", func() {
-			Expect(model.InsertOrIgnoreSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
+			Expect(model.InsertSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
 		})
 
 		By("inserting events", func() {
