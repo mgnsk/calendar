@@ -9,3 +9,5 @@ CREATE TABLE `events` (
   `url` text NOT NULL,
   `fts_data` text NOT NULL
 );
+
+CREATE INDEX events_timestamp_idx ON events (start_at_unix);
