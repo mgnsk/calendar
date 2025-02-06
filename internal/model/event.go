@@ -155,14 +155,14 @@ func ListEvents(
 		q = q.Order(*order...)
 		q = q.Limit(limit)
 		if cursor > 0 {
-			q = q.Where("id > ?", cursor)
+			q = q.Where("event.id > ?", cursor)
 		}
 
 	case OrderCreatedAtDesc:
 		q = q.Order(*order...)
 		q = q.Limit(limit)
 		if cursor > 0 {
-			q = q.Where("id < ?", cursor)
+			q = q.Where("event.id < ?", cursor)
 		}
 
 	default:

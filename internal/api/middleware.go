@@ -3,12 +3,14 @@ package api
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
+	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
 
@@ -18,20 +20,6 @@ func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Response().Header().Set("Cache-Control", "max-age=31536000, immutable")
 
 		return next(c)
-	}
-}
-
-// TimeoutMiddleware enables timeout for request contexts.
-func TimeoutMiddleware(timeout time.Duration) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			ctx, cancel := context.WithTimeout(c.Request().Context(), timeout)
-			defer cancel()
-
-			c.SetRequest(c.Request().WithContext(ctx))
-
-			return next(c)
-		}
 	}
 }
 
@@ -61,4 +49,44 @@ func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 			return c.Redirect(http.StatusFound, "/setup")
 		}
 	}
+}
+
+// ErrorHandler handles setting response status code from error and renders an error page.
+func ErrorHandler() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			err := next(c)
+			if err == nil {
+				return nil
+			}
+
+			return HandleError(err, c)
+		}
+	}
+}
+
+// HandleError is a custom function to handle errors.
+func HandleError(err error, c echo.Context) error {
+	var (
+		msg  string
+		code = http.StatusInternalServerError
+	)
+
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		code = http.StatusRequestTimeout
+	} else if werr := *new(wreck.Error); errors.As(err, &werr) {
+		msg = werr.Message()
+		if v := wreck.Value(werr, wreck.KeyHTTPCode); v != nil {
+			code = v.(int)
+		}
+	} else if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+	}
+
+	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
+
+	slogecho.AddCustomAttributes(c, slog.String("error", err.Error()))
+	c.Response().Status = code
+
+	return html.ErrorPage("Error", code, msg, reqID).Render(c.Response())
 }

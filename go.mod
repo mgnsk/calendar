@@ -3,15 +3,16 @@ module github.com/mgnsk/calendar
 go 1.23.5
 
 require (
+	github.com/alexedwards/scs/bunstore v0.0.0-20250205215704-2e2c681ccff8
+	github.com/alexedwards/scs/v2 v2.8.0
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/gorilla/feeds v1.2.0
-	github.com/gorilla/sessions v1.4.0
-	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo-contrib v0.17.2
 	github.com/labstack/echo/v4 v4.13.3
+	github.com/mgnsk/evcache/v4 v4.0.3
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
@@ -22,6 +23,7 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.2.9
 	github.com/yuin/goldmark v1.7.8
 	golang.org/x/crypto v0.32.0
+	golang.org/x/net v0.33.0
 	golang.org/x/sync v0.11.0
 	maragu.dev/gomponents v1.0.0
 	maragu.dev/gomponents-htmx v0.6.1
@@ -38,8 +40,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/context v1.1.2 // indirect
-	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -47,6 +47,7 @@ require (
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mgnsk/ringlist v0.0.0-20250117144119-717292b9f651 // indirect
 	github.com/mmcdole/goxpp v1.1.1-0.20240225020742-a0c311522b23 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -61,7 +62,6 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect

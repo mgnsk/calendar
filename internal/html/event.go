@@ -20,7 +20,7 @@ import (
 )
 
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, path string) Node {
+func EventListPartial(offset int64, events []*domain.Event, csrf, path string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -35,6 +35,7 @@ func EventListPartial(offset int64, events []*domain.Event, path string) Node {
 			hx.Post(""),
 			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
+				"csrf":    csrf,
 				"last_id": events[len(events)-1].ID.String(),
 				"offset":  strconv.FormatInt(offset, 10),
 			})))),
@@ -56,6 +57,7 @@ type EventsPageParams struct {
 	User         *domain.User
 	Offset       int64
 	Events       []*domain.Event
+	CSRF         string
 }
 
 // EventsPage display events page.
@@ -121,9 +123,9 @@ func EventsPage(p EventsPageParams) Node {
 	)
 
 	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.SubTitle, p.User,
-		eventNav(p.Path, navLinks),
+		eventNav(p.Path, navLinks, p.CSRF),
 		Div(ID("event-list"),
-			EventListPartial(p.Offset, p.Events, p.Path),
+			EventListPartial(p.Offset, p.Events, p.CSRF, p.Path),
 		),
 		Div(ID("loading-spinner"), Class("my-5 opacity-0 htmx-indicator m-10 mx-auto flex justify-center"),
 			spinner(8),
@@ -138,6 +140,7 @@ type TagsPageParams struct {
 	Path         string
 	User         *domain.User
 	Tags         []*domain.Tag
+	CSRF         string
 }
 
 // TagsPage displays tags list page.
@@ -164,7 +167,7 @@ func TagsPage(p TagsPageParams) Node {
 				URL:    "/tags",
 				Active: true,
 			},
-		}),
+		}, p.CSRF),
 		tagsList(p.Tags),
 	)
 }
@@ -175,7 +178,7 @@ type eventNavLink struct {
 	Active bool
 }
 
-func eventNav(path string, links []eventNavLink) Node {
+func eventNav(path string, links []eventNavLink, csrf string) Node {
 	return Div(Class("max-w-3xl mx-auto"),
 		Ul(Class("flex border-b"),
 			Map(links, func(link eventNavLink) Node {
@@ -217,6 +220,9 @@ func eventNav(path string, links []eventNavLink) Node {
 							hx.Trigger("keyup delay:0.2s"),
 							hx.Target("#event-list"),
 							hx.Indicator("#search-spinner"),
+							hx.Vals(string(must(json.Marshal(map[string]string{
+								"csrf": csrf,
+							})))),
 						),
 						Div(ID("search-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2 htmx-indicator"),
 							spinner(2),
@@ -342,7 +348,7 @@ func eventDesc(ev *domain.Event) Node {
 
 	return Div(Class("text-justify"),
 		// TODO: syntax error here
-		P(Class("mt-2 text-gray-700"), Raw(buf.String())),
+		Div(Class("mt-2 text-gray-700"), Raw(buf.String())),
 	)
 }
 

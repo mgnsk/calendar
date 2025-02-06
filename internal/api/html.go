@@ -9,8 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal"
 	"github.com/mgnsk/calendar/internal/domain"
@@ -22,70 +21,14 @@ import (
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
-// TODO: error handling, bad request, not found, etc
-
 // LimitPerPage specifies the maximum numbers of events per page.
 const LimitPerPage = 3
 
 // HTMLHandler handles web pages.
 type HTMLHandler struct {
-	db *bun.DB
-}
-
-// Register the handler.
-func (h *HTMLHandler) Register(e *echo.Echo) {
-	// Serve assets from the embedded filesystem.
-	e.GET("/dist/*",
-		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
-		AssetCacheMiddleware,
-	)
-
-	var mw []echo.MiddlewareFunc
-
-	mw = append(mw, LoadSettingsMiddleware(h.db))
-	mw = append(mw, func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			s := c.Get("settings")
-			if s == nil {
-				// No settings yet, don't configure sessions.
-				return next(c)
-			}
-
-			fn := session.Middleware(sessions.NewCookieStore(s.(*domain.Settings).SessionSecret))
-
-			return fn(next)(c)
-		}
-	})
-
-	g := e.Group("", mw...)
-
-	g.GET("/", h.LatestEvents)
-	g.POST("/", h.LatestEvents) // Fox htmx.
-	g.GET("/tag/:tagName", h.LatestEvents)
-	g.POST("/tag/:tagName", h.LatestEvents) // For htmx.
-
-	g.GET("/upcoming", h.Upcoming)
-	g.POST("/upcoming", h.Upcoming) // Fox htmx.
-	g.GET("/upcoming/tag/:tagName", h.Upcoming)
-	g.POST("/upcoming/tag/:tagName", h.Upcoming) // For htmx.
-
-	g.GET("/past", h.PastEvents)
-	g.POST("/past", h.PastEvents) // For htmx.
-	g.GET("/past/tag/:tagName", h.PastEvents)
-	g.POST("/past/tag/:tagName", h.PastEvents) // For htmx.
-
-	g.GET("/tags", h.Tags)
-
-	g.GET("/setup", h.Setup, echo.WrapMiddleware(NoCache))
-	g.POST("/setup", h.Setup, echo.WrapMiddleware(NoCache))
-
-	g.GET("/login", h.Login, echo.WrapMiddleware(NoCache))
-	g.POST("/login", h.Login, echo.WrapMiddleware(NoCache))
-
-	g.GET("/logout", h.Logout, echo.WrapMiddleware(NoCache))
-
-	g.GET("/manage", h.Manage, echo.WrapMiddleware(NoCache))
-	g.POST("/manage", h.Manage, echo.WrapMiddleware(NoCache))
+	db      *bun.DB
+	sm      *scs.SessionManager
+	baseURL *url.URL
 }
 
 func (h *HTMLHandler) getTagFilter(c echo.Context) (string, error) {
@@ -140,12 +83,11 @@ func (h *HTMLHandler) Setup(c echo.Context) error {
 		vals := url.Values{}
 		vals.Set("title", s.Title)
 		vals.Set("description", s.Description)
-		vals.Set("base_url", s.BaseURL.String())
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.SetupPage(vals, nil).Render(c.Response())
+		return html.SetupPage(vals, nil, c.Get("csrf").(string)).Render(c.Response())
 
 	case http.MethodPost:
 		// TODO: Implement some form validation framework
@@ -159,12 +101,6 @@ func (h *HTMLHandler) Setup(c echo.Context) error {
 		desc := c.FormValue("description")
 		if title == "" {
 			errs["description"] = "Description must be set"
-		}
-
-		baseURL := c.FormValue("base_url")
-		u, err := url.Parse(baseURL)
-		if err != nil {
-			errs["base_url"] = "Invalid URL"
 		}
 
 		username := c.FormValue("username")
@@ -195,14 +131,13 @@ func (h *HTMLHandler) Setup(c echo.Context) error {
 				return err
 			}
 
-			return html.SetupPage(form, errs).Render(c.Response())
+			return html.SetupPage(form, errs, c.Get("csrf").(string)).Render(c.Response())
 		}
 
 		s := domain.NewDefaultSettings()
 		s.IsInitialized = true
 		s.Title = title
 		s.Description = desc
-		s.BaseURL = u
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
 			if err := model.InsertOrIgnoreSettings(ctx, tx, s); err != nil {
@@ -221,7 +156,16 @@ func (h *HTMLHandler) Setup(c echo.Context) error {
 			return err
 		}
 
-		return c.Redirect(http.StatusFound, "/")
+		// TODO: currently the user must explicitly log in after setup
+		// // First renew the session token.
+		// if err := h.sm.RenewToken(c.Request().Context()); err != nil {
+		// 	return err
+		// }
+		//
+		// // Then make the privilege-level change.
+		// h.sm.Put(c.Request().Context(), "username", username)
+
+		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
 		panic("unhandled method")
@@ -250,7 +194,7 @@ func (h *HTMLHandler) Upcoming(c echo.Context) error {
 	if hxhttp.IsRequest(c.Request().Header) {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(offset, events, c.Path()).Render(c.Response())
+		return html.EventListPartial(offset, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -271,6 +215,7 @@ func (h *HTMLHandler) Upcoming(c echo.Context) error {
 		User:         user,
 		Offset:       offset,
 		Events:       events,
+		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }
 
@@ -297,7 +242,7 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 	if hxhttp.IsRequest(c.Request().Header) {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(offset, events, c.Path()).Render(c.Response())
+		return html.EventListPartial(offset, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -318,6 +263,7 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 		User:         user,
 		Offset:       offset,
 		Events:       events,
+		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }
 
@@ -345,7 +291,7 @@ func (h *HTMLHandler) LatestEvents(c echo.Context) error {
 	if hxhttp.IsRequest(c.Request().Header) {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(0, events, c.Path()).Render(c.Response())
+		return html.EventListPartial(0, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
 	}
 
 	user, err := h.loadUser(c)
@@ -366,6 +312,7 @@ func (h *HTMLHandler) LatestEvents(c echo.Context) error {
 		User:         user,
 		Offset:       0,
 		Events:       events,
+		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }
 
@@ -392,6 +339,7 @@ func (h *HTMLHandler) Tags(c echo.Context) error {
 		Path:         c.Path(),
 		User:         user,
 		Tags:         tags,
+		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }
 
@@ -415,89 +363,58 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 
 		s := c.Get("settings").(*domain.Settings)
 
-		return html.LoginPage(s.Title, nil, "", "").Render(c.Response())
+		return html.LoginPage(s.Title, nil, c.Get("csrf").(string), "", "").Render(c.Response())
 
 	case http.MethodPost:
 		username := c.FormValue("username")
 		password := c.FormValue("password")
-		if username == "" || password == "" {
-			errs := map[string]string{
-				"username": "Username and password must be set",
-				"password": "Username and password must be set",
-			}
 
+		invalidLogin := func() error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
+			errs := map[string]string{
+				"username": "Invalid username or password",
+				"password": "Invalid username or password",
+			}
+
 			s := c.Get("settings").(*domain.Settings)
 
-			return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
+			return html.LoginPage(s.Title, errs, c.Get("csrf").(string), username, password).Render(c.Response())
 		}
 
-		{
-			// Grace timeout for login failures so we always fail in constant time
-			// regardless of whether user does not exist or invalid password provided.
-			ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
-			defer cancel()
-
-			user, err := model.GetUser(ctx, h.db, username)
-			if err != nil {
-				if errors.Is(err, wreck.NotFound) {
-					<-ctx.Done()
-
-					c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-					c.Response().WriteHeader(200)
-
-					errs := map[string]string{
-						"username": "Invalid username or password",
-						"password": "Invalid username or password",
-					}
-
-					s := c.Get("settings").(*domain.Settings)
-
-					return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
-				}
-
-				return err
-			}
-
-			if err := user.VerifyPassword(password); err != nil {
-				<-ctx.Done()
-
-				c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-				c.Response().WriteHeader(200)
-
-				errs := map[string]string{
-					"username": "Invalid username or password",
-					"password": "Invalid username or password",
-				}
-
-				s := c.Get("settings").(*domain.Settings)
-
-				return html.LoginPage(s.Title, errs, username, password).Render(c.Response())
-			}
+		if username == "" || password == "" {
+			return invalidLogin()
 		}
 
-		sess, err := session.Get("session", c)
+		// Grace timeout for login failures so we always fail in constant time
+		// regardless of whether user does not exist or invalid password provided.
+		ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+		defer cancel()
+
+		user, err := model.GetUser(ctx, h.db, username)
 		if err != nil {
-			c.Logger().Warn(err.Error())
-		}
-
-		sess.Options = &sessions.Options{
-			Path:     "/",
-			MaxAge:   86400 * 7,
-			HttpOnly: true,
-			Secure:   false, // TODO: upgrade this when running on https
-			// TODO: cookie actually set to SameSite=None by default
-			// SameSite: http.SameSiteNoneMode,
-		}
-
-		sess.Values["username"] = username
-		if err := sess.Save(c.Request(), c.Response()); err != nil {
+			if errors.Is(err, wreck.NotFound) {
+				<-ctx.Done()
+				return invalidLogin()
+			}
 			return err
 		}
 
-		return c.Redirect(http.StatusFound, "/")
+		if err := user.VerifyPassword(password); err != nil {
+			<-ctx.Done()
+			return invalidLogin()
+		}
+
+		// First renew the session token.
+		if err := h.sm.RenewToken(c.Request().Context()); err != nil {
+			return err
+		}
+
+		// Then make the privilege-level change.
+		h.sm.Put(c.Request().Context(), "username", username)
+
+		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
 		panic("unhandled method")
@@ -505,31 +422,16 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 }
 
 // Logout handles user logout.
-func (*HTMLHandler) Logout(c echo.Context) error {
-	sess, err := session.Get("session", c)
-	if err != nil {
-		c.Logger().Warn(err.Error())
-	}
-
-	sess.Values = nil
-	sess.Options.MaxAge = -1
-
-	if err := sess.Save(c.Request(), c.Response()); err != nil {
+func (h *HTMLHandler) Logout(c echo.Context) error {
+	if err := h.sm.Destroy(c.Request().Context()); err != nil {
 		return err
 	}
-
-	return c.Redirect(http.StatusFound, "/")
+	return c.Redirect(http.StatusSeeOther, "/")
 }
 
 func (h *HTMLHandler) loadUser(c echo.Context) (*domain.User, error) {
-	sess, err := session.Get("session", c)
-	if err != nil {
-		c.Logger().Warn(err.Error())
-		return nil, nil
-	}
-
-	username, ok := sess.Values["username"].(string)
-	if !ok || username == "" {
+	username := h.sm.GetString(c.Request().Context(), "username")
+	if username == "" {
 		return nil, nil
 	}
 
@@ -538,16 +440,79 @@ func (h *HTMLHandler) loadUser(c echo.Context) (*domain.User, error) {
 		if errors.Is(err, wreck.NotFound) {
 			return nil, nil
 		}
-
 		return nil, err
 	}
 
 	return user, nil
 }
 
+// Register the handler.
+func (h *HTMLHandler) Register(e *echo.Echo) {
+	h.sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+		if err := HandleError(err, e.NewContext(r, w)); err != nil {
+			panic(err)
+		}
+	}
+
+	// Serve assets from the embedded filesystem.
+	e.GET("/dist/*",
+		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
+		AssetCacheMiddleware,
+	)
+
+	g := e.Group("",
+		LoadSettingsMiddleware(h.db),
+		echo.WrapMiddleware(h.sm.LoadAndSave),
+	)
+
+	g.GET("/", h.LatestEvents)
+	g.POST("/", h.LatestEvents) // Fox htmx.
+	g.GET("/tag/:tagName", h.LatestEvents)
+	g.POST("/tag/:tagName", h.LatestEvents) // For htmx.
+
+	g.GET("/upcoming", h.Upcoming)
+	g.POST("/upcoming", h.Upcoming) // Fox htmx.
+	g.GET("/upcoming/tag/:tagName", h.Upcoming)
+	g.POST("/upcoming/tag/:tagName", h.Upcoming) // For htmx.
+
+	g.GET("/past", h.PastEvents)
+	g.POST("/past", h.PastEvents) // For htmx.
+	g.GET("/past/tag/:tagName", h.PastEvents)
+	g.POST("/past/tag/:tagName", h.PastEvents) // For htmx.
+
+	g.GET("/tags", h.Tags)
+
+	g.GET("/setup", h.Setup, echo.WrapMiddleware(NoCache))
+	g.POST("/setup", h.Setup, echo.WrapMiddleware(NoCache))
+
+	g.GET("/login", h.Login, echo.WrapMiddleware(NoCache))
+	g.POST("/login", h.Login, echo.WrapMiddleware(NoCache))
+
+	g.GET("/logout", h.Logout, echo.WrapMiddleware(NoCache))
+
+	g.GET("/manage", h.Manage, echo.WrapMiddleware(NoCache))
+	g.POST("/manage", h.Manage, echo.WrapMiddleware(NoCache))
+}
+
 // NewHTMLHandler creates a new HTML handler.
-func NewHTMLHandler(db *bun.DB) *HTMLHandler {
+func NewHTMLHandler(db *bun.DB, store scs.Store, baseURL *url.URL) *HTMLHandler {
+	// Initialize a new session manager and configure the session lifetime.
+	sm := scs.New()
+	sm.Store = store
+	sm.HashTokenInStore = true
+	sm.Lifetime = 24 * time.Hour
+	// sm.IdleTimeout = 20 * time.Minute // TODO
+	sm.Cookie.Name = "session_id"
+	sm.Cookie.Domain = ""
+	sm.Cookie.HttpOnly = true
+	sm.Cookie.Path = "/"
+	sm.Cookie.Persist = true
+	sm.Cookie.SameSite = http.SameSiteStrictMode
+	sm.Cookie.Secure = true
+
 	return &HTMLHandler{
-		db: db,
+		db:      db,
+		sm:      sm,
+		baseURL: baseURL,
 	}
 }

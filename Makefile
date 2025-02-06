@@ -18,4 +18,4 @@ dev:
 	npx concurrently -n tailwind,go,browser -c blue,green,yellow \
 		"tailwindcss -i tailwind.css -o ./internal/dist/app.css --watch" \
 		"air -c .air.toml" \
-		"wait-on tcp:localhost:8080 && open-cli http://localhost:8080"
+		"wait-on tcp:calendar.testing:8443 && open-cli https://calendar.testing:8443"

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/xml"
 	"net/http"
+	"net/url"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
@@ -17,17 +18,8 @@ import (
 
 // FeedHandler handles feed output.
 type FeedHandler struct {
-	db *bun.DB
-}
-
-// Register the handler.
-func (h *FeedHandler) Register(e *echo.Echo) {
-	g := e.Group("",
-		LoadSettingsMiddleware(h.db),
-	)
-
-	g.GET("/feed", h.HandleRSS)
-	g.GET("/ical", h.HandleICal)
+	db      *bun.DB
+	baseURL *url.URL
 }
 
 // HandleRSS handles RSS feeds.
@@ -49,7 +41,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetDescription(s.Title)
-	cal.SetUrl(s.BaseURL.JoinPath("/ical").String())
+	cal.SetUrl(h.baseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
@@ -88,7 +80,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 
 	feed := &feeds.Feed{
 		Title: s.Title,
-		Link:  &feeds.Link{Rel: "self", Href: s.BaseURL.JoinPath(c.Path()).String()},
+		Link:  &feeds.Link{Rel: "self", Href: h.baseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}
 
@@ -125,9 +117,20 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 	return e.Encode(x)
 }
 
+// Register the handler.
+func (h *FeedHandler) Register(e *echo.Echo) {
+	g := e.Group("",
+		LoadSettingsMiddleware(h.db),
+	)
+
+	g.GET("/feed", h.HandleRSS)
+	g.GET("/ical", h.HandleICal)
+}
+
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB) *FeedHandler {
+func NewFeedHandler(db *bun.DB, baseURL *url.URL) *FeedHandler {
 	return &FeedHandler{
-		db: db,
+		db:      db,
+		baseURL: baseURL,
 	}
 }

@@ -42,6 +42,7 @@ func (c *Builder) Connect() *bun.DB {
 
 	sqldb.SetMaxIdleConns(1)
 	sqldb.SetMaxOpenConns(1)
+	sqldb.SetConnMaxLifetime(0)
 
 	db := bun.NewDB(sqldb, sqlitedialect.New())
 

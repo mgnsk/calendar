@@ -1,16 +1,10 @@
 ---
 volumes:
   calendar-database:
+  calendar-cache:
 
 
 services:
-  # TODO: add a HTTPS proxy service
-  # Caddyfile:
-
-  # example.com
-  # reverse_proxy calendar:8080
-
-
   calendar:
     image: ghcr.io/mgnsk/calendar:edge
     build:
@@ -19,7 +13,23 @@ services:
     container_name: calendar
     restart: unless-stopped
     ports:
-      - "8080:8080/tcp"
-    env_file: ".env"
+      - "80:80/tcp"
+      - "443:443/tcp"
+    environment:
+      # LISTEN_ADDR specifies the bind address for HTTPS server.
+      - LISTEN_ADDR=:443
+
+      # DATABASE_DIR specifies directory for SQLite database files.
+      - DATABASE_DIR=/database
+
+      # CACHE_DIR specifies directory for Let's Encrypt cache files.
+      - CACHE_DIR=/cache
+
+      # DOMAIN_NAME specifies the public domain name. May be a subdomain.
+      - DOMAIN_NAME=calendar.testing
+
     volumes:
       - calendar-database:/database
+
+      # Used for Let's Encrypt cache.
+      - calendar-cache:/cache
