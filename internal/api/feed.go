@@ -30,7 +30,10 @@ func (h *FeedHandler) HandleRSS(c echo.Context) error {
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
 	// Upcoming events in created at ASC.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, "", model.OrderCreatedAtAsc, 0, 0)
+	events, err := model.NewEventsQuery().
+		WithStartAtFrom(time.Now()).
+		WithOrder(0, model.OrderCreatedAtAsc).
+		List(c.Request().Context(), h.db, "")
 	if err != nil {
 		return err
 	}
@@ -71,7 +74,10 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 
 func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 	// Latest upcoming events in created at ASC.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, "", model.OrderCreatedAtAsc, 0, 0)
+	events, err := model.NewEventsQuery().
+		WithStartAtFrom(time.Now()).
+		WithOrder(0, model.OrderCreatedAtAsc).
+		List(c.Request().Context(), h.db, "")
 	if err != nil {
 		return err
 	}

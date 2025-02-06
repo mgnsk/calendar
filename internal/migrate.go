@@ -16,17 +16,7 @@ var migrationsFS embed.FS
 
 // MigrateUp runs the up migrations for database.
 func MigrateUp(db *sql.DB) error {
-	sourceInstance, err := iofs.New(migrationsFS, "migrations")
-	if err != nil {
-		return err
-	}
-
-	dbInstance, err := migratesqlite.WithInstance(db, &migratesqlite.Config{})
-	if err != nil {
-		return err
-	}
-
-	m, err := migrate.NewWithInstance("iofs", sourceInstance, "sqlite", dbInstance)
+	m, err := newMigrator(db)
 	if err != nil {
 		return err
 	}
@@ -41,4 +31,28 @@ func MigrateUp(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+// MigrateDown runs the down migrations for database.
+func MigrateDown(db *sql.DB) error {
+	m, err := newMigrator(db)
+	if err != nil {
+		return err
+	}
+
+	return m.Down()
+}
+
+func newMigrator(db *sql.DB) (*migrate.Migrate, error) {
+	sourceInstance, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return nil, err
+	}
+
+	dbInstance, err := migratesqlite.WithInstance(db, &migratesqlite.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	return migrate.NewWithInstance("iofs", sourceInstance, "sqlite", dbInstance)
 }

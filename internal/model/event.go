@@ -114,78 +114,108 @@ var (
 	OrderCreatedAtDesc = &[]string{"event.id DESC"}
 )
 
-// ListEvents lists events.
+// EventsQueryBuilder builds an event list query.
+type EventsQueryBuilder func(*bun.SelectQuery)
+
+// NewEventsQuery creates a new events list query.
 // TODO: verify if we need tag_id idx on events_tags table.
 // Note: cursor is ID cursor when sorting by created at
 // and offset when sorting by start time.
-func ListEvents(
-	ctx context.Context,
-	db bun.IDB,
-	startFrom,
-	startUntil time.Time,
-	searchText string,
-	order EventOrder,
-	cursor int64,
-	limit int,
-	filterTags ...string,
-) ([]*domain.Event, error) {
-	model := []*Event{}
+func NewEventsQuery() EventsQueryBuilder {
+	return func(*bun.SelectQuery) {}
+}
 
-	q := db.NewSelect().Model(&model).
-		Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
-			return q.Order("tag.name ASC")
+// WithLimit configures results limit.
+func (build EventsQueryBuilder) WithLimit(limit int) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		q.Limit(limit)
+	}
+}
+
+// WithOrder configures results order.
+func (build EventsQueryBuilder) WithOrder(cursor int64, orders EventOrder) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		switch orders {
+		case OrderStartAtAsc:
+			q.Order(*orders...)
+			if cursor > 0 {
+				q.Offset(int(cursor))
+			}
+
+		case OrderStartAtDesc:
+			q.Order(*orders...)
+			if cursor > 0 {
+				q.Offset(int(cursor))
+			}
+
+		case OrderCreatedAtAsc:
+			q.Order(*orders...)
+			if cursor > 0 {
+				q.Where("event.id > ?", cursor)
+			}
+
+		case OrderCreatedAtDesc:
+			q.Order(*orders...)
+			if cursor > 0 {
+				q.Where("event.id < ?", cursor)
+			}
+
+		default:
+			panic("invalid order")
+		}
+	}
+}
+
+// WithStartAtFrom configures minimum start at time.
+func (build EventsQueryBuilder) WithStartAtFrom(from time.Time) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		q.Where("event.start_at_unix >= ?", from.Unix())
+	}
+}
+
+// WithStartAtUntil configures maximum start at time.
+func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		q.Where("event.start_at_unix <= ?", until.Unix())
+	}
+}
+
+// WithFilterTags filters results with tags.
+func (build EventsQueryBuilder) WithFilterTags(tags ...string) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		tags = slices.DeleteFunc(tags, func(tag string) bool {
+			return tag == ""
 		})
 
-	switch order {
-	case OrderStartAtAsc:
-		q = q.Order(*order...)
-		q = q.Limit(limit)
-		if cursor > 0 {
-			q = q.Offset(int(cursor))
+		if len(tags) > 0 {
+			q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
+				Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
+				Where("tags.name IN (?)", bun.In(tags))
 		}
-
-	case OrderStartAtDesc:
-		q = q.Order(*order...)
-		q = q.Limit(limit)
-		if cursor > 0 {
-			q = q.Offset(int(cursor))
-		}
-
-	case OrderCreatedAtAsc:
-		q = q.Order(*order...)
-		q = q.Limit(limit)
-		if cursor > 0 {
-			q = q.Where("event.id > ?", cursor)
-		}
-
-	case OrderCreatedAtDesc:
-		q = q.Order(*order...)
-		q = q.Limit(limit)
-		if cursor > 0 {
-			q = q.Where("event.id < ?", cursor)
-		}
-
-	default:
-		panic("invalid order")
 	}
+}
 
-	if !startFrom.IsZero() {
-		q = q.Where("event.start_at_unix >= ?", startFrom.Unix())
-	}
+// List executes the query.
+func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText string) ([]*domain.Event, error) {
+	q := db.NewSelect()
 
-	if !startUntil.IsZero() {
-		q = q.Where("event.start_at_unix <= ?", startUntil.Unix())
-	}
+	build(q)
 
-	filterTags = slices.DeleteFunc(filterTags, func(tag string) bool {
-		return tag == ""
+	model := []*Event{}
+
+	q.Model(&model).Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
+		return q.Order("tag.name ASC")
 	})
-
-	if len(filterTags) > 0 {
-		q = q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
-			Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
-			Where("tags.name IN (?)", bun.In(filterTags))
-	}
 
 	var searchResults []*eventFTS
 
@@ -198,7 +228,7 @@ func ListEvents(
 		// Try exact match first and only when non-quoted input.
 		if !strings.Contains(searchText, `"`) {
 			quoted := ensureQuoted(searchText)
-			results, err := searchEvents(ctx, db, quoted)
+			results, err := searchEvents(ctx, q.DB(), quoted)
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +238,7 @@ func ListEvents(
 		// Search again more generally.
 		if len(searchResults) == 0 {
 			searchText = prepareGeneralSearchString(searchText)
-			results, err := searchEvents(ctx, db, searchText)
+			results, err := searchEvents(ctx, q.DB(), searchText)
 			if err != nil {
 				return nil, err
 			}
@@ -221,7 +251,7 @@ func ListEvents(
 	}
 
 	if len(searchResults) > 0 {
-		q = q.Where("event.id IN (?)", bun.In(lo.Map(searchResults, func(r *eventFTS, _ int) snowflake.ID {
+		q.Where("event.id IN (?)", bun.In(lo.Map(searchResults, func(r *eventFTS, _ int) snowflake.ID {
 			return r.ID
 		})))
 	}

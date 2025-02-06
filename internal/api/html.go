@@ -183,7 +183,12 @@ func (h *HTMLHandler) Upcoming(c echo.Context) error {
 		return err
 	}
 
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderStartAtAsc, offset, LimitPerPage, filterTag)
+	events, err := model.NewEventsQuery().
+		WithStartAtFrom(time.Now()).
+		WithOrder(offset, model.OrderStartAtAsc).
+		WithLimit(LimitPerPage).
+		WithFilterTags(filterTag).
+		List(c.Request().Context(), h.db, c.FormValue("search"))
 	if err != nil {
 		if !errors.Is(err, wreck.NotFound) {
 			return err
@@ -231,7 +236,12 @@ func (h *HTMLHandler) PastEvents(c echo.Context) error {
 	}
 
 	// Lists events that have already started, in descending order.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Time{}, time.Now(), c.FormValue("search"), model.OrderStartAtDesc, offset, LimitPerPage, filterTag)
+	events, err := model.NewEventsQuery().
+		WithStartAtUntil(time.Now()).
+		WithOrder(offset, model.OrderStartAtDesc).
+		WithLimit(LimitPerPage).
+		WithFilterTags(filterTag).
+		List(c.Request().Context(), h.db, c.FormValue("search"))
 	if err != nil {
 		if !errors.Is(err, wreck.NotFound) {
 			return err
@@ -280,7 +290,12 @@ func (h *HTMLHandler) LatestEvents(c echo.Context) error {
 
 	// Latest events sorted in newest created first.
 	// Past events are filtered out.
-	events, err := model.ListEvents(c.Request().Context(), h.db, time.Now(), time.Time{}, c.FormValue("search"), model.OrderCreatedAtDesc, cursor, LimitPerPage, filterTag)
+	events, err := model.NewEventsQuery().
+		WithStartAtFrom(time.Now()).
+		WithOrder(cursor, model.OrderCreatedAtDesc).
+		WithLimit(LimitPerPage).
+		WithFilterTags(filterTag).
+		List(c.Request().Context(), h.db, c.FormValue("search"))
 	if err != nil {
 		if !errors.Is(err, wreck.NotFound) {
 			return err

@@ -18,6 +18,9 @@ var _ = BeforeEach(func() {
 	DeferCleanup(db.Close)
 
 	Expect(internal.MigrateUp(db.DB)).To(Succeed())
+	DeferCleanup(func() error {
+		return internal.MigrateDown(db.DB)
+	})
 
 	model.RegisterModels(db)
 })
