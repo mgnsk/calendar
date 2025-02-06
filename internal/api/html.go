@@ -135,12 +135,11 @@ func (h *HTMLHandler) Setup(c echo.Context) error {
 		}
 
 		s := domain.NewDefaultSettings()
-		s.IsInitialized = true
 		s.Title = title
 		s.Description = desc
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.InsertOrIgnoreSettings(ctx, tx, s); err != nil {
+			if err := model.InsertSettings(ctx, tx, s); err != nil {
 				return err
 			}
 
@@ -353,7 +352,7 @@ func (h *HTMLHandler) Login(c echo.Context) error {
 	if currentUser, err := h.loadUser(c); err != nil {
 		return err
 	} else if currentUser != nil {
-		return c.Redirect(http.StatusFound, "/")
+		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
 	switch c.Request().Method {
