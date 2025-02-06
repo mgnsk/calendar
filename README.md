@@ -40,7 +40,7 @@ Choose whichever system you're familiar with.
 
 You need a Docker installation with the [Compose plugin](https://docs.docker.com/compose/install/linux/).
 
-Copy `docker-compose.example.yml` to `/etc/docker/compose/calendar/docker-compose.yml`.
+Copy `docker-compose.yml` to `/etc/docker/compose/calendar/`.
 Configure the environment variables.
 
 Copy `docker-compose@.service` to `/etc/systemd/system/`.
