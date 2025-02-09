@@ -9,11 +9,9 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
-	"github.com/mgnsk/evcache/v4"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -23,8 +21,7 @@ const EventLimitPerPage = 3
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
-	db    *bun.DB
-	cache *evcache.Cache[string, []*domain.Tag]
+	db *bun.DB
 }
 
 // Latest handles latest events.
