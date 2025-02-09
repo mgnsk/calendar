@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
-	"github.com/mgnsk/evcache/v4"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
@@ -21,7 +20,7 @@ import (
 type FeedHandler struct {
 	db      *bun.DB
 	baseURL *url.URL
-	cache   *evcache.Cache[string, []*domain.Event]
+	cache   Cache[string, []*domain.Event]
 }
 
 // HandleRSS handles RSS feeds.
@@ -138,7 +137,7 @@ func (h *FeedHandler) Register(g *echo.Group) {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, baseURL *url.URL, cache *evcache.Cache[string, []*domain.Event]) *FeedHandler {
+func NewFeedHandler(db *bun.DB, baseURL *url.URL, cache Cache[string, []*domain.Event]) *FeedHandler {
 	return &FeedHandler{
 		db:      db,
 		baseURL: baseURL,

@@ -229,6 +229,9 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 		if rand.Int()%2 == 0 {
 			hours = rand.N(30 * 24 * time.Hour)
 		}
+		if rand.Int()%2 == 0 {
+			hours *= -1
+		}
 
 		baseTime = baseTime.Add(hours)
 

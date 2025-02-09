@@ -58,16 +58,16 @@ func Register(
 		h.Register(g)
 	}
 
-	eventsCache := evcache.New[string, []*domain.Event](
-		evcache.WithCapacity(128),
-		evcache.WithTTL(time.Minute),
-		evcache.WithPolicy(evcache.LRU),
-	)
-
 	// Events.
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+		)
+
+		eventsCache := evcache.New[string, []*domain.Event](
+			evcache.WithCapacity(128),
+			evcache.WithTTL(time.Minute),
+			evcache.WithPolicy(evcache.LRU),
 		)
 
 		tagsCache := evcache.New[string, []*domain.Tag](
@@ -80,9 +80,16 @@ func Register(
 		h.Register(g)
 	}
 
+	// Feeds.
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+		)
+
+		eventsCache := evcache.New[string, []*domain.Event](
+			evcache.WithCapacity(128),
+			evcache.WithTTL(time.Hour),
+			evcache.WithPolicy(evcache.LRU),
 		)
 
 		h := NewFeedHandler(db, baseURL, eventsCache)
