@@ -293,7 +293,7 @@ func tagsList(tags []*domain.Tag) Node {
 }
 
 func eventCard(ev *domain.Event, path string) Node {
-	inPast := ev.StartAt.Time().Before(time.Now())
+	inPast := ev.StartAt.Before(time.Now())
 
 	return Div(
 		Classes{
@@ -353,7 +353,7 @@ func eventDesc(ev *domain.Event) Node {
 }
 
 func eventDay(ev *domain.Event) Node {
-	day := ev.StartAt.Time().Day()
+	day := ev.StartAt.Day()
 
 	return P(Class("text-2xl md:text-4xl font-bold text-center"),
 		Text(timestamp.FormatDay(day)),

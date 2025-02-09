@@ -13,7 +13,6 @@ import (
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
@@ -21,16 +20,15 @@ import (
 
 // Event is the event database model.
 type Event struct {
-	ID             snowflake.ID        `bun:"id,pk"`
-	StartAtUnix    int64               `bun:"start_at_unix"`
-	EndAtUnix      sql.NullInt64       `bun:"end_at_unix"`
-	StartAtRFC3339 timestamp.Timestamp `bun:"start_at_rfc3339"`
-	EndAtRFC3339   timestamp.Timestamp `bun:"end_at_rfc3339"`
-	Title          string              `bun:"title"`
-	Description    string              `bun:"description"`
-	URL            string              `bun:"url"`
-	Tags           []*Tag              `bun:"m2m:events_tags,join:Event=Tag"`
-	FTSData        string              `bun:"fts_data"`
+	ID             snowflake.ID  `bun:"id,pk"`
+	StartAtUnix    int64         `bun:"start_at_unix"`
+	EndAtUnix      sql.NullInt64 `bun:"end_at_unix"`
+	TimezoneOffset int           `bun:"tz_offset"`
+	Title          string        `bun:"title"`
+	Description    string        `bun:"description"`
+	URL            string        `bun:"url"`
+	Tags           []*Tag        `bun:"m2m:events_tags,join:Event=Tag"`
+	FTSData        string        `bun:"fts_data"`
 
 	bun.BaseModel `bun:"events"`
 }
@@ -53,16 +51,17 @@ type eventFTS struct {
 
 // InsertEvent inserts an event to the database.
 func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
+	_, offset := ev.StartAt.Zone()
+
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&Event{
 			ID:          ev.ID,
-			StartAtUnix: ev.StartAt.Time().Unix(),
+			StartAtUnix: ev.StartAt.Unix(),
 			EndAtUnix: sql.NullInt64{
-				Int64: ev.EndAt.Time().Unix(),
-				Valid: !ev.EndAt.Time().IsZero(),
+				Int64: ev.EndAt.Unix(),
+				Valid: !ev.EndAt.IsZero(),
 			},
-			StartAtRFC3339: ev.StartAt,
-			EndAtRFC3339:   ev.EndAt,
+			TimezoneOffset: offset,
 			Title:          ev.Title,
 			Description:    ev.Description,
 			URL:            ev.URL,
@@ -283,10 +282,17 @@ func searchEvents(ctx context.Context, db bun.IDB, text string) ([]*eventFTS, er
 }
 
 func eventToDomain(ev *Event) *domain.Event {
+	zone := time.FixedZone("", ev.TimezoneOffset)
+
 	return &domain.Event{
-		ID:          snowflake.ID(ev.ID),
-		StartAt:     ev.StartAtRFC3339,
-		EndAt:       ev.EndAtRFC3339,
+		ID:      snowflake.ID(ev.ID),
+		StartAt: time.Unix(ev.StartAtUnix, 0).In(zone),
+		EndAt: func() time.Time {
+			if ev.EndAtUnix.Valid {
+				return time.Unix(ev.EndAtUnix.Int64, 0).In(zone)
+			}
+			return time.Time{}
+		}(),
 		Title:       ev.Title,
 		Description: ev.Description,
 		URL:         ev.URL,

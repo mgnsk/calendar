@@ -12,8 +12,8 @@ import (
 // Event is the event domain model.
 type Event struct {
 	ID           snowflake.ID
-	StartAt      timestamp.Timestamp
-	EndAt        timestamp.Timestamp
+	StartAt      time.Time
+	EndAt        time.Time
 	Title        string
 	Description  string
 	URL          string
@@ -27,29 +27,25 @@ func (e *Event) GetCreatedAt() time.Time {
 }
 
 func (e *Event) GetDateString() string {
-	start := e.StartAt.Time()
-	end := e.EndAt.Time()
-
 	var buf strings.Builder
-	buf.WriteString(start.Format("January _2, 2006 "))
+	buf.WriteString(e.StartAt.Format("January _2, 2006 "))
 
-	if start.Minute() == 0 {
-		buf.WriteString(start.Format("3PM"))
+	if e.StartAt.Minute() == 0 {
+		buf.WriteString(e.StartAt.Format("3PM"))
 	} else {
-		buf.WriteString(start.Format("3:04PM"))
+		buf.WriteString(e.StartAt.Format("3:04PM"))
 	}
 
-	if !end.IsZero() {
+	if !e.EndAt.IsZero() {
 		buf.WriteString("-")
-		if end.Minute() == 0 {
-			buf.WriteString(end.Format("3PM"))
+		if e.EndAt.Minute() == 0 {
+			buf.WriteString(e.EndAt.Format("3PM"))
 		} else {
-			buf.WriteString(end.Format("3:04PM"))
+			buf.WriteString(e.EndAt.Format("3:04PM"))
 		}
 	}
 
 	return buf.String()
-
 }
 
 // GetDescription returns the event description with tags.
@@ -63,10 +59,10 @@ func (e *Event) GetDescription() string {
 		buf.WriteString(fmt.Sprintf("\n\ntags: %s", strings.Join(e.Tags, ", ")))
 	}
 
-	buf.WriteString(fmt.Sprintf("\n\nstarts at: %s", e.StartAt.String()))
+	buf.WriteString(fmt.Sprintf("\n\nstarts at: %s", e.StartAt.Format(time.RFC1123Z)))
 
-	if !e.EndAt.Time().IsZero() {
-		buf.WriteString(fmt.Sprintf("\nends at: %s", e.EndAt.String()))
+	if !e.EndAt.IsZero() {
+		buf.WriteString(fmt.Sprintf("\nends at: %s", e.EndAt.Format(time.RFC1123Z)))
 	}
 
 	return buf.String()
@@ -81,7 +77,7 @@ func (e *Event) GetFTSData() string {
 		strings.Join(e.Tags, " "),
 	}
 
-	day := e.StartAt.Time().Day()
+	day := e.StartAt.Day()
 	words = append(words, timestamp.FormatDay(day))
 
 	for _, format := range []string{
@@ -92,7 +88,7 @@ func (e *Event) GetFTSData() string {
 		time.Kitchen,
 		"3PM",
 	} {
-		words = append(words, e.StartAt.Time().Format(format))
+		words = append(words, e.StartAt.Format(format))
 	}
 
 	return strings.Join(words, " ")

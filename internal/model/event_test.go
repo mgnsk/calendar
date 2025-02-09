@@ -8,7 +8,6 @@ import (
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,8 +27,8 @@ var _ = Describe("inserting events", func() {
 
 			ev = &domain.Event{
 				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
+				StartAt:     time.Now().Add(2 * time.Hour),
+				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
@@ -47,8 +46,8 @@ var _ = Describe("inserting events", func() {
 					HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
 					PointTo(MatchAllFields(Fields{
 						"ID":          Equal(ev.ID),
-						"StartAt":     HaveField("Time()", BeTemporally("~", ev.StartAt.Time(), time.Second)),
-						"EndAt":       HaveField("Time()", BeZero()),
+						"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
+						"EndAt":       BeZero(),
 						"Title":       Equal(ev.Title),
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
@@ -70,8 +69,8 @@ var _ = Describe("listing events", func() {
 			events := []*domain.Event{
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     time.Now().Add(3 * time.Hour),
+					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
@@ -79,8 +78,8 @@ var _ = Describe("listing events", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     time.Now().Add(2 * time.Hour),
+					EndAt:       time.Time{},
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
@@ -88,8 +87,8 @@ var _ = Describe("listing events", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
-					EndAt:       timestamp.New(time.Now().Add(2 * time.Hour)),
+					StartAt:     time.Now().Add(1 * time.Hour),
+					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
@@ -367,8 +366,8 @@ var _ = Describe("full text search", func() {
 			events := []*domain.Event{
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     time.Now().Add(3 * time.Hour),
+					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
@@ -376,8 +375,8 @@ var _ = Describe("full text search", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(startTime),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     startTime,
+					EndAt:       time.Time{},
 					Title:       "Event ÕÄÖÜ 😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
@@ -385,8 +384,8 @@ var _ = Describe("full text search", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
-					EndAt:       timestamp.New(time.Now().Add(2 * time.Hour)),
+					StartAt:     time.Now().Add(1 * time.Hour),
+					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
@@ -474,8 +473,8 @@ var _ = Describe("concurrent insert", func() {
 		for range concurrency {
 			ev := &domain.Event{
 				ID:          snowflake.Generate(),
-				StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
-				EndAt:       timestamp.Timestamp{},
+				StartAt:     time.Now().Add(2 * time.Hour),
+				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
