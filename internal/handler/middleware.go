@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
@@ -20,6 +21,15 @@ func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Response().Header().Set("Cache-Control", "max-age=31536000, immutable")
 
 		return next(c)
+	}
+}
+
+// TODO
+func CacheMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			return next(c)
+		}
 	}
 }
 
@@ -47,6 +57,27 @@ func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 			}
 
 			return c.Redirect(http.StatusSeeOther, "/setup")
+		}
+	}
+}
+
+// LoadUserMiddleware loads the current user.
+func LoadUserMiddleware(db *bun.DB, sm *scs.SessionManager) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			username := sm.GetString(c.Request().Context(), "username")
+			if username != "" {
+				user, err := model.GetUser(c.Request().Context(), db, username)
+				if err != nil {
+					if !errors.Is(err, wreck.NotFound) {
+						return err
+					}
+				} else {
+					c.Set("user", user)
+				}
+			}
+
+			return next(c)
 		}
 	}
 }

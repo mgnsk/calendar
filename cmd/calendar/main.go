@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar/internal"
@@ -118,12 +119,32 @@ func run() error {
 
 	defer store.StopCleanup()
 
+	// Initialize a new session manager and configure the session lifetime.
+	sm := scs.New()
+	sm.Store = store
+	sm.HashTokenInStore = true
+	sm.Lifetime = 24 * time.Hour
+	// sm.IdleTimeout = 20 * time.Minute // TODO
+	sm.Cookie.Name = "session_id"
+	sm.Cookie.Domain = ""
+	sm.Cookie.HttpOnly = true
+	sm.Cookie.Path = "/"
+	sm.Cookie.Persist = true
+	sm.Cookie.SameSite = http.SameSiteStrictMode
+	sm.Cookie.Secure = true
+
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if err := handler.HandleError(err, c); err != nil {
 			panic(err)
 		}
 	}
+	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+		if err := handler.HandleError(err, e.NewContext(r, w)); err != nil {
+			panic(err)
+		}
+	}
+
 	e.Use(
 		slogecho.NewWithConfig(slog.Default(), slogecho.Config{
 			DefaultLevel:     slog.LevelInfo,
@@ -145,30 +166,19 @@ func run() error {
 		}),
 		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
 		middleware.BodyLimit("1M"),
-		middleware.CSRFWithConfig(middleware.CSRFConfig{
-			TokenLength:    32,
-			TokenLookup:    "form:csrf",
-			ContextKey:     "csrf",
-			CookieName:     "_csrf",
-			CookieDomain:   "",
-			CookiePath:     "/",
-			CookieMaxAge:   86400,
-			CookieSecure:   true,
-			CookieHTTPOnly: true,
-			CookieSameSite: http.SameSiteStrictMode,
-		}),
 		middleware.ContextTimeout(time.Minute),
 	)
 
-	{
-		h := handler.NewFeedHandler(db, cfg.BaseURL)
-		h.Register(e)
-	}
+	// TODO: render events and tags page content completely with HTMX, then we can cache them.
+	// implement active tab and url push.
 
-	{
-		h := handler.NewHTMLHandler(db, store, cfg.BaseURL)
-		h.Register(e)
-	}
+	// Static assets.
+	e.GET("/dist/*",
+		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
+		handler.AssetCacheMiddleware,
+	)
+
+	handler.Register(e, db, sm, cfg.BaseURL)
 
 	e.Server.ReadHeaderTimeout = time.Minute
 	e.Server.ReadTimeout = time.Minute
