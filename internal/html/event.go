@@ -32,14 +32,14 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 			return eventCard(ev, path)
 		}),
 		Div(ID("load-more"),
-			hx.Post(""),
+			hx.Get(""),
 			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"csrf":    csrf,
 				"last_id": events[len(events)-1].ID.String(),
 				"offset":  strconv.FormatInt(offset, 10),
 			})))),
-			hx.Trigger("revealed"),
+			hx.Trigger("revealed"), // TODO: not working when all events can fit on page.
 			hx.Target("#load-more"),
 			hx.Swap("outerHTML"), // Swap the current element (#load-more) with new content.
 			hx.Indicator("#loading-spinner"),
@@ -161,7 +161,7 @@ func EventsPage(p EventsPageParams) Node {
 		eventNav(p.Path, navLinks, p.CSRF),
 		Div(ID("event-list"),
 			hx.Get(""),
-			hx.Trigger("revealed"),
+			hx.Trigger("load"),
 			hx.Swap("beforeend"),
 			hx.Target("#event-list"),
 			hx.Indicator("#loading-spinner"),
@@ -208,7 +208,7 @@ func TagsPage(p TagsPageParams) Node {
 		}, p.CSRF),
 		Div(ID("tag-list"),
 			hx.Get(""),
-			hx.Trigger("revealed"),
+			hx.Trigger("load"),
 			hx.Swap("beforeend"),
 			hx.Target("#tag-list"),
 			hx.Indicator("#loading-spinner"),
@@ -260,7 +260,7 @@ func eventNav(path string, links []eventNavLink, csrf string) Node {
 							Type("text"),
 							Placeholder("Filter..."),
 							Required(),
-							hx.Post(""), // Post to current URL.
+							hx.Get(""), // Post to current URL.
 							hx.Trigger("keyup delay:0.2s"),
 							hx.Target("#event-list"),
 							hx.Indicator("#search-spinner"),

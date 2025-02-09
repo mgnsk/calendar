@@ -61,6 +61,10 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
+github.com/mgnsk/evcache/v4 v4.0.3 h1:yg/PpW/UJm+xYrB8gTtNWg4VioxWoueVoRuJZC3apRs=
+github.com/mgnsk/evcache/v4 v4.0.3/go.mod h1:TI7WsdQf2NurE1B9wSfbDlz/s7UYsUl3X7ghcpUT9B8=
+github.com/mgnsk/ringlist v0.0.0-20250117144119-717292b9f651 h1:LPVvJOrPxYB2nGAVbSeJtbpKuP8Vyl3h9ZSM4ID5WiU=
+github.com/mgnsk/ringlist v0.0.0-20250117144119-717292b9f651/go.mod h1:fyW9CbxFtYtWazjV96eJt4r+B2ABDRu3/rXQOxxTjLE=
 github.com/mmcdole/gofeed v1.3.0 h1:5yn+HeqlcvjMeAI4gu6T+crm7d0anY85+M+v6fIFNG4=
 github.com/mmcdole/gofeed v1.3.0/go.mod h1:9TGv2LcJhdXePDzxiuMnukhV2/zb6VtnZt1mS+SjkLE=
 github.com/mmcdole/goxpp v1.1.1-0.20240225020742-a0c311522b23 h1:Zr92CAlFhy2gL+V1F+EyIuzbQNbSgP4xhTODZtrXUtk=

@@ -24,15 +24,6 @@ func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// TODO
-func CacheMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			return next(c)
-		}
-	}
-}
-
 // LoadSettingsMiddleware loads settings or redirects to setup page.
 func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {

@@ -13,6 +13,7 @@ import (
 	"github.com/mgnsk/calendar/internal/handler"
 	"github.com/mgnsk/calendar/internal/model"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
+	"github.com/mgnsk/evcache/v4"
 	"github.com/mmcdole/gofeed"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +32,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")))
+		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")), evcache.New[string, []byte]())
 
 		server = httptest.NewServer(e)
 		DeferCleanup(server.Close)
@@ -153,7 +154,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")))
+		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")), evcache.New[string, []byte]())
 
 		server = httptest.NewServer(e)
 		DeferCleanup(server.Close)

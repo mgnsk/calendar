@@ -13,8 +13,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// TODO: consider adding an ETag header so that proxies can cache the response.
-
 // FeedHandler handles feed output.
 type FeedHandler struct {
 	db      *bun.DB

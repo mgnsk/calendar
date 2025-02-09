@@ -26,6 +26,7 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
+	"github.com/mgnsk/evcache/v4"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	"golang.org/x/crypto/acme/autocert"
@@ -177,7 +178,12 @@ func run() error {
 		handler.AssetCacheMiddleware,
 	)
 
-	handler.Register(e, db, sm, cfg.BaseURL)
+	htmxCache := evcache.New[string, []byte](
+		evcache.WithCapacity(128),
+		evcache.WithTTL(time.Minute),
+		evcache.WithPolicy(evcache.LRU),
+	)
+	handler.Register(e, db, sm, cfg.BaseURL, htmxCache)
 
 	e.Server.ReadHeaderTimeout = time.Minute
 	e.Server.ReadTimeout = time.Minute
