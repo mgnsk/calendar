@@ -7,7 +7,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/mgnsk/evcache/v4"
 	"github.com/uptrace/bun"
 )
 
@@ -17,7 +16,6 @@ func Register(
 	db *bun.DB,
 	sm *scs.SessionManager,
 	baseURL *url.URL,
-	cache *evcache.Cache[string, []byte],
 ) {
 	g := e.Group("",
 		echo.WrapMiddleware(sm.LoadAndSave),
