@@ -19,8 +19,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar/internal"
-	"github.com/mgnsk/calendar/internal/api"
 	"github.com/mgnsk/calendar/internal/domain"
+	"github.com/mgnsk/calendar/internal/handler"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
@@ -120,7 +120,7 @@ func run() error {
 
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		if err := api.HandleError(err, c); err != nil {
+		if err := handler.HandleError(err, c); err != nil {
 			panic(err)
 		}
 	}
@@ -134,7 +134,7 @@ func run() error {
 			WithRequestID: true,
 		}),
 		middleware.Recover(), // Recover from all panics to always have your server up.
-		api.ErrorHandler(),
+		handler.ErrorHandler(),
 		middleware.RequestID(),
 		middleware.SecureWithConfig(middleware.SecureConfig{
 			XSSProtection:         "1; mode=block",
@@ -161,12 +161,12 @@ func run() error {
 	)
 
 	{
-		h := api.NewFeedHandler(db, cfg.BaseURL)
+		h := handler.NewFeedHandler(db, cfg.BaseURL)
 		h.Register(e)
 	}
 
 	{
-		h := api.NewHTMLHandler(db, store, cfg.BaseURL)
+		h := handler.NewHTMLHandler(db, store, cfg.BaseURL)
 		h.Register(e)
 	}
 

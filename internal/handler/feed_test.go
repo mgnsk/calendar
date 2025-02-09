@@ -1,4 +1,4 @@
-package api_test
+package handler_test
 
 import (
 	"net/http"
@@ -8,8 +8,8 @@ import (
 
 	ics "github.com/arran4/golang-ical"
 	"github.com/labstack/echo/v4"
-	"github.com/mgnsk/calendar/internal/api"
 	"github.com/mgnsk/calendar/internal/domain"
+	"github.com/mgnsk/calendar/internal/handler"
 	"github.com/mgnsk/calendar/internal/model"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
 	"github.com/mmcdole/gofeed"
@@ -30,7 +30,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
+		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
 		h.Register(e)
 
 		server = httptest.NewServer(e)
@@ -153,7 +153,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := api.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
+		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
 		h.Register(e)
 
 		server = httptest.NewServer(e)
