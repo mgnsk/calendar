@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
@@ -57,24 +56,30 @@ func (h *EventsHandler) Past(c echo.Context) error {
 
 // Tags handles tags.
 func (h *EventsHandler) Tags(c echo.Context) error {
-	tags, err := model.ListTags(c.Request().Context(), h.db)
-	if err != nil {
-		return err
-	}
 
-	user := loadUser(c)
+	if hxhttp.IsRequest(c.Request().Header) {
+		tags, err := model.ListTags(c.Request().Context(), h.db)
+		if err != nil {
+			return err
+		}
+
+		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+		c.Response().WriteHeader(200)
+
+		return html.TagListPartial(tags).Render(c.Response())
+	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	settings := c.Get("settings").(*domain.Settings)
+	user := loadUser(c)
+	settings := loadSettings(c)
 
 	return html.TagsPage(html.TagsPageParams{
 		MainTitle:    settings.Title,
 		SectionTitle: "Tags",
 		Path:         c.Path(),
 		User:         user,
-		Tags:         tags,
 		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }

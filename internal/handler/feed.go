@@ -9,7 +9,6 @@ import (
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
 	"github.com/labstack/echo/v4"
-	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/uptrace/bun"
 )
@@ -82,7 +81,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 		return err
 	}
 
-	settings := c.Get("settings").(*domain.Settings)
+	settings := loadSettings(c)
 
 	feed := &feeds.Feed{
 		Title: settings.Title,
