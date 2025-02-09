@@ -47,6 +47,43 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 	}
 }
 
+// TagListPartial renders the tag list partial.
+func TagListPartial(tags []*domain.Tag) Node {
+	if len(tags) == 0 {
+		return Div(Class("px-3 py-4 text-center"),
+			P(Text("no tags found")),
+		)
+	}
+
+	hist, sizes, colors := calcHistogram(8, tags)
+
+	getClassIndex := func(eventCount uint64) int {
+		for i, bucket := range hist.Buckets {
+			if eventCount >= uint64(bucket.Min) && eventCount <= uint64(bucket.Max) {
+				return i
+			}
+		}
+		panic("no bucket found")
+	}
+
+	return Div(Class("max-w-3xl mx-auto my-5"),
+		Ul(Class("flex justify-center flex-wrap align-center gap-2 leading-8"),
+			Map(tags, func(tag *domain.Tag) Node {
+				classes := Classes{"hover:underline": true}
+				idx := getClassIndex(tag.EventCount)
+				classes[sizes[idx]] = true
+				classes[colors[idx]] = true
+
+				return Li(
+					A(classes,
+						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
+					),
+				)
+			}),
+		),
+	)
+}
+
 // EventsPageParams is the params for events page.
 type EventsPageParams struct {
 	MainTitle    string
@@ -55,8 +92,6 @@ type EventsPageParams struct {
 	Path         string
 	FilterTag    string
 	User         *domain.User
-	Offset       int64
-	Events       []*domain.Event
 	CSRF         string
 }
 
@@ -125,7 +160,11 @@ func EventsPage(p EventsPageParams) Node {
 	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.SubTitle, p.User,
 		eventNav(p.Path, navLinks, p.CSRF),
 		Div(ID("event-list"),
-			EventListPartial(p.Offset, p.Events, p.CSRF, p.Path),
+			hx.Get(""),
+			hx.Trigger("revealed"),
+			hx.Swap("beforeend"),
+			hx.Target("#event-list"),
+			hx.Indicator("#loading-spinner"),
 		),
 		Div(ID("loading-spinner"), Class("my-5 opacity-0 htmx-indicator m-10 mx-auto flex justify-center"),
 			spinner(8),
@@ -139,7 +178,6 @@ type TagsPageParams struct {
 	SectionTitle string
 	Path         string
 	User         *domain.User
-	Tags         []*domain.Tag
 	CSRF         string
 }
 
@@ -168,7 +206,13 @@ func TagsPage(p TagsPageParams) Node {
 				Active: true,
 			},
 		}, p.CSRF),
-		tagsList(p.Tags),
+		Div(ID("tag-list"),
+			hx.Get(""),
+			hx.Trigger("revealed"),
+			hx.Swap("beforeend"),
+			hx.Target("#tag-list"),
+			hx.Indicator("#loading-spinner"),
+		),
 	)
 }
 
@@ -254,42 +298,6 @@ func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string,
 	hist := histogram.Hist(len(sizes), counts)
 
 	return hist, sizes, colors
-}
-
-func tagsList(tags []*domain.Tag) Node {
-	if len(tags) == 0 {
-		return Div(Class("px-3 py-4 text-center"),
-			P(Text("no tags found")),
-		)
-	}
-
-	hist, sizes, colors := calcHistogram(8, tags)
-
-	getClassIndex := func(eventCount uint64) int {
-		for i, bucket := range hist.Buckets {
-			if eventCount >= uint64(bucket.Min) && eventCount <= uint64(bucket.Max) {
-				return i
-			}
-		}
-		panic("no bucket found")
-	}
-
-	return Div(Class("max-w-3xl mx-auto my-5"),
-		Ul(Class("flex justify-center flex-wrap align-center gap-2 leading-8"),
-			Map(tags, func(tag *domain.Tag) Node {
-				classes := Classes{"hover:underline": true}
-				idx := getClassIndex(tag.EventCount)
-				classes[sizes[idx]] = true
-				classes[colors[idx]] = true
-
-				return Li(
-					A(classes,
-						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
-					),
-				)
-			}),
-		),
-	)
 }
 
 func eventCard(ev *domain.Event, path string) Node {
