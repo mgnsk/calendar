@@ -108,21 +108,21 @@ var _ = Describe("RSS feed output", func() {
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event1.Title),
 							"Description":     Equal(event1.GetDescription()),
-							"PublishedParsed": PointTo(BeTemporally("~", event1.StartAt.Time(), time.Second)),
+							"PublishedParsed": PointTo(BeTemporally("~", event1.StartAt, time.Second)),
 							"GUID":            Equal(event1.ID.String()),
 							"Link":            Equal(event1.URL),
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event2.Title),
 							"Description":     Equal(event2.GetDescription()),
-							"PublishedParsed": PointTo(BeTemporally("~", event2.StartAt.Time(), time.Second)),
+							"PublishedParsed": PointTo(BeTemporally("~", event2.StartAt, time.Second)),
 							"GUID":            Equal(event2.ID.String()),
 							"Link":            Equal(event2.URL),
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event3.Title),
 							"Description":     Equal(event3.GetDescription()),
-							"PublishedParsed": PointTo(BeTemporally("~", event3.StartAt.Time(), time.Second)),
+							"PublishedParsed": PointTo(BeTemporally("~", event3.StartAt, time.Second)),
 							"GUID":            Equal(event3.ID.String()),
 							"Link":            Equal(event3.URL),
 						})),
@@ -238,13 +238,13 @@ var _ = Describe("iCal feed output", func() {
 			for _, target := range []*domain.Event{event1, event2, event3} {
 				matchers = append(matchers, MakeMatcher(func(ev *ics.VEvent) (bool, error) {
 					Expect(Must(ev.GetLastModifiedAt())).To(BeTemporally("~", time.Now(), time.Second))
-					Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt.Time(), time.Second))
+					Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt, time.Second))
 
-					if target.EndAt.Time().IsZero() {
+					if target.EndAt.IsZero() {
 						_, err := ev.GetEndAt()
 						Expect(err).To(HaveOccurred())
 					} else {
-						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.EndAt.Time(), time.Second))
+						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.EndAt, time.Second))
 					}
 
 					summary := ev.GetProperty(ics.ComponentPropertySummary)

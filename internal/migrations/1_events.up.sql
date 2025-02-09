@@ -1,9 +1,8 @@
 CREATE TABLE `events` (
   `id` bigint PRIMARY KEY NOT NULL,
   `start_at_unix` bigint NOT NULL,
-  `start_at_rfc3339` text NOT NULL,
   `end_at_unix` bigint,
-  `end_at_rfc3339` text,
+  `tz_offset` int NOT NULL,
   `title` text NOT NULL,
   `description` text NOT NULL,
   `url` text NOT NULL,

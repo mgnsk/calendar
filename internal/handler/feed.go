@@ -52,9 +52,9 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 		event.SetCreatedTime(ev.GetCreatedAt())
 		event.SetModifiedAt(ev.GetCreatedAt())
 
-		event.SetStartAt(ev.StartAt.Time())
-		if endAt := ev.EndAt.Time(); !endAt.IsZero() {
-			event.SetEndAt(endAt)
+		event.SetStartAt(ev.StartAt)
+		if !ev.EndAt.IsZero() {
+			event.SetEndAt(ev.EndAt)
 		}
 
 		event.SetSummary(ev.Title)
@@ -97,8 +97,8 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 			Description: ev.GetDescription(),
 			Id:          ev.ID.String(),
 			IsPermaLink: "false",
-			Updated:     ev.StartAt.Time(),
-			Created:     ev.StartAt.Time(),
+			Updated:     ev.StartAt,
+			Created:     ev.StartAt,
 		})
 	}
 

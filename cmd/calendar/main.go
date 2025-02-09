@@ -25,7 +25,6 @@ import (
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
@@ -244,8 +243,8 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 	n := rand.IntN(10000)
 	event1 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(ts.Add(-48 * time.Hour)),
-		EndAt:       timestamp.Timestamp{},
+		StartAt:     ts.Add(-48 * time.Hour),
+		EndAt:       time.Time{},
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
@@ -255,8 +254,8 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 	ts = getRandBaseTime().Truncate(15 * time.Minute)
 	event2 := &domain.Event{
 		ID:      snowflake.Generate(),
-		StartAt: timestamp.New(ts.Add(-12 * time.Hour)),
-		EndAt:   timestamp.Timestamp{},
+		StartAt: ts.Add(-12 * time.Hour),
+		EndAt:   time.Time{},
 		Title:   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat nec enim sed pretium.",
 		Description: `
 😀😀😀
@@ -278,8 +277,8 @@ Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at fini
 	n = rand.IntN(10000)
 	event3 := &domain.Event{
 		ID:          snowflake.Generate(),
-		StartAt:     timestamp.New(ts),
-		EndAt:       timestamp.New(ts.Add(2 * time.Hour)),
+		StartAt:     ts,
+		EndAt:       ts.Add(2 * time.Hour),
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 3",
 		URL:         "https://event3.testing",

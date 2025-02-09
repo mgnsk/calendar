@@ -7,7 +7,6 @@ import (
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -69,8 +68,8 @@ var _ = Describe("listing tags", func() {
 			events := []*domain.Event{
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(3 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     time.Now().Add(3 * time.Hour),
+					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
@@ -78,8 +77,8 @@ var _ = Describe("listing tags", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(2 * time.Hour)),
-					EndAt:       timestamp.Timestamp{},
+					StartAt:     time.Now().Add(2 * time.Hour),
+					EndAt:       time.Time{},
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
@@ -87,8 +86,8 @@ var _ = Describe("listing tags", func() {
 				},
 				{
 					ID:          snowflake.Generate(),
-					StartAt:     timestamp.New(time.Now().Add(1 * time.Hour)),
-					EndAt:       timestamp.New(time.Now().Add(2 * time.Hour)),
+					StartAt:     time.Now().Add(1 * time.Hour),
+					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
