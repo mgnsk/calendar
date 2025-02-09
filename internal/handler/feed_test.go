@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	ics "github.com/arran4/golang-ical"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/domain"
@@ -30,8 +31,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
-		h.Register(e)
+		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")))
 
 		server = httptest.NewServer(e)
 		DeferCleanup(server.Close)
@@ -153,8 +153,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
-		h.Register(e)
+		handler.Register(e, db, scs.New(), Must(url.Parse("https://calendar.testing")))
 
 		server = httptest.NewServer(e)
 		DeferCleanup(server.Close)

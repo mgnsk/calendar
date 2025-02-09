@@ -38,12 +38,12 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 		return err
 	}
 
-	s := c.Get("settings").(*domain.Settings)
+	settings := loadSettings(c)
 
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(s.Title)
+	cal.SetDescription(settings.Title)
 	cal.SetUrl(h.baseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
@@ -124,11 +124,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 }
 
 // Register the handler.
-func (h *FeedHandler) Register(e *echo.Echo) {
-	g := e.Group("",
-		LoadSettingsMiddleware(h.db),
-	)
-
+func (h *FeedHandler) Register(g *echo.Group) {
 	g.GET("/feed", h.HandleRSS)
 	g.GET("/ical", h.HandleICal)
 }
