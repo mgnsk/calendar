@@ -65,6 +65,7 @@ func LoadUserMiddleware(db *bun.DB, sm *scs.SessionManager) echo.MiddlewareFunc 
 					}
 				} else {
 					c.Set("user", user)
+					slogecho.AddCustomAttributes(c, slog.String("username", username))
 				}
 			}
 
