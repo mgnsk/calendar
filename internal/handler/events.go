@@ -56,7 +56,6 @@ func (h *EventsHandler) Past(c echo.Context) error {
 
 // Tags handles tags.
 func (h *EventsHandler) Tags(c echo.Context) error {
-
 	if hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db)
 		if err != nil {
@@ -90,12 +89,12 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 		return err
 	}
 
-	lastID, err := h.getIntParam("last_id", c)
-	if err != nil {
-		return err
-	}
-
 	if hxhttp.IsRequest(c.Request().Header) {
+		lastID, err := h.getIntParam("last_id", c)
+		if err != nil {
+			return err
+		}
+
 		offset, err := h.getIntParam("offset", c)
 		if err != nil {
 			return err
