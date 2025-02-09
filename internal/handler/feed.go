@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/xml"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -9,7 +10,10 @@ import (
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
+	"github.com/mgnsk/evcache/v4"
+	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
 
@@ -17,6 +21,7 @@ import (
 type FeedHandler struct {
 	db      *bun.DB
 	baseURL *url.URL
+	cache   *evcache.Cache[string, []*domain.Event]
 }
 
 // HandleRSS handles RSS feeds.
@@ -26,11 +31,7 @@ func (h *FeedHandler) HandleRSS(c echo.Context) error {
 
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
-	// Upcoming events in created at ASC.
-	events, err := model.NewEventsQuery().
-		WithStartAtFrom(time.Now()).
-		WithOrder(0, model.OrderCreatedAtAsc).
-		List(c.Request().Context(), h.db, "")
+	events, err := h.getEvents(c)
 	if err != nil {
 		return err
 	}
@@ -70,11 +71,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 }
 
 func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
-	// Latest upcoming events in created at ASC.
-	events, err := model.NewEventsQuery().
-		WithStartAtFrom(time.Now()).
-		WithOrder(0, model.OrderCreatedAtAsc).
-		List(c.Request().Context(), h.db, "")
+	events, err := h.getEvents(c)
 	if err != nil {
 		return err
 	}
@@ -120,6 +117,20 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 	return e.Encode(x)
 }
 
+func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
+	didFetch := false
+	events, err := h.cache.Fetch("feed-events", func() ([]*domain.Event, error) {
+		didFetch = true
+		// Upcoming events in created at ASC.
+		return model.NewEventsQuery().
+			WithStartAtFrom(time.Now()).
+			WithOrder(0, model.OrderCreatedAtAsc).
+			List(c.Request().Context(), h.db, "")
+	})
+	slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
+	return events, err
+}
+
 // Register the handler.
 func (h *FeedHandler) Register(g *echo.Group) {
 	g.GET("/feed", h.HandleRSS)
@@ -127,9 +138,10 @@ func (h *FeedHandler) Register(g *echo.Group) {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, baseURL *url.URL) *FeedHandler {
+func NewFeedHandler(db *bun.DB, baseURL *url.URL, cache *evcache.Cache[string, []*domain.Event]) *FeedHandler {
 	return &FeedHandler{
 		db:      db,
 		baseURL: baseURL,
+		cache:   cache,
 	}
 }
