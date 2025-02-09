@@ -55,8 +55,6 @@ type EventsPageParams struct {
 	Path         string
 	FilterTag    string
 	User         *domain.User
-	Offset       int64
-	Events       []*domain.Event
 	CSRF         string
 }
 
@@ -125,7 +123,11 @@ func EventsPage(p EventsPageParams) Node {
 	return page(p.MainTitle, p.SectionTitle+sectionTitleSuffix, p.SubTitle, p.User,
 		eventNav(p.Path, navLinks, p.CSRF),
 		Div(ID("event-list"),
-			EventListPartial(p.Offset, p.Events, p.CSRF, p.Path),
+			hx.Get("/"),
+			hx.Trigger("revealed"),
+			hx.Swap("beforeend"),
+			hx.Target("#event-list"),
+			hx.Indicator("#loading-spinner"),
 		),
 		Div(ID("loading-spinner"), Class("my-5 opacity-0 htmx-indicator m-10 mx-auto flex justify-center"),
 			spinner(8),

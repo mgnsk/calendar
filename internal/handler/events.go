@@ -67,10 +67,10 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	s := c.Get("settings").(*domain.Settings)
+	settings := c.Get("settings").(*domain.Settings)
 
 	return html.TagsPage(html.TagsPageParams{
-		MainTitle:    s.Title,
+		MainTitle:    settings.Title,
 		SectionTitle: "Tags",
 		Path:         c.Path(),
 		User:         user,
@@ -85,34 +85,34 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 		return err
 	}
 
-	offset, err := h.getIntParam("offset", c)
-	if err != nil {
-		return err
-	}
-	if offset > 0 {
-		offset += EventLimitPerPage
-	}
-
 	lastID, err := h.getIntParam("last_id", c)
 	if err != nil {
 		return err
 	}
 
-	cursor := cmp.Or(offset, lastID)
-
-	query = query.
-		WithOrder(cursor, order).
-		WithFilterTags(filterTag).
-		WithLimit(EventLimitPerPage)
-
-	events, err := query.List(c.Request().Context(), h.db, c.FormValue("search"))
-	if err != nil {
-		if !errors.Is(err, wreck.NotFound) {
+	if hxhttp.IsRequest(c.Request().Header) {
+		offset, err := h.getIntParam("offset", c)
+		if err != nil {
 			return err
 		}
-	}
+		if offset > 0 {
+			offset += EventLimitPerPage
+		}
 
-	if hxhttp.IsRequest(c.Request().Header) {
+		cursor := cmp.Or(offset, lastID)
+
+		query = query.
+			WithOrder(cursor, order).
+			WithFilterTags(filterTag).
+			WithLimit(EventLimitPerPage)
+
+		events, err := query.List(c.Request().Context(), h.db, c.FormValue("search"))
+		if err != nil {
+			if !errors.Is(err, wreck.NotFound) {
+				return err
+			}
+		}
+
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 		return html.EventListPartial(offset, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
@@ -130,8 +130,6 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 		Path:         c.Path(),
 		FilterTag:    filterTag,
 		User:         user,
-		Offset:       offset,
-		Events:       events,
 		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
 }

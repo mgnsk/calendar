@@ -82,10 +82,10 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 		return err
 	}
 
-	s := c.Get("settings").(*domain.Settings)
+	settings := c.Get("settings").(*domain.Settings)
 
 	feed := &feeds.Feed{
-		Title: s.Title,
+		Title: settings.Title,
 		Link:  &feeds.Link{Rel: "self", Href: h.baseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}
