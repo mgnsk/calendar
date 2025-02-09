@@ -13,20 +13,19 @@ import (
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
-	"github.com/mgnsk/evcache/v4"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 // EventLimitPerPage specifies maximum number of events per page.
-const EventLimitPerPage = 3
+const EventLimitPerPage = 25
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
 	db          *bun.DB
-	tagsCache   *evcache.Cache[string, []*domain.Tag]
-	eventsCache *evcache.Cache[string, []*domain.Event]
+	tagsCache   Cache[string, []*domain.Tag]
+	eventsCache Cache[string, []*domain.Event]
 }
 
 // Latest handles latest events.
@@ -193,8 +192,8 @@ func (h *EventsHandler) Register(g *echo.Group) {
 // NewEventsHandler creates a new events handler.
 func NewEventsHandler(
 	db *bun.DB,
-	tagsCache *evcache.Cache[string, []*domain.Tag],
-	eventsCache *evcache.Cache[string, []*domain.Event],
+	tagsCache Cache[string, []*domain.Tag],
+	eventsCache Cache[string, []*domain.Event],
 ) *EventsHandler {
 	return &EventsHandler{
 		db:          db,

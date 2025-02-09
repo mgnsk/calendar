@@ -39,7 +39,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 				"last_id": events[len(events)-1].ID.String(),
 				"offset":  strconv.FormatInt(offset, 10),
 			})))),
-			hx.Trigger("revealed"), // TODO: not working when all events can fit on page.
+			hx.Trigger("intersect once"),
 			hx.Target("#load-more"),
 			hx.Swap("outerHTML"), // Swap the current element (#load-more) with new content.
 			hx.Indicator("#loading-spinner"),
