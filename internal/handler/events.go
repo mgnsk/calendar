@@ -3,15 +3,18 @@ package handler
 import (
 	"cmp"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
+	"github.com/mgnsk/evcache/v4"
+	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -21,7 +24,9 @@ const EventLimitPerPage = 3
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
-	db *bun.DB
+	db          *bun.DB
+	tagsCache   *evcache.Cache[string, []*domain.Tag]
+	eventsCache *evcache.Cache[string, []*domain.Event]
 }
 
 // Latest handles latest events.
@@ -56,10 +61,30 @@ func (h *EventsHandler) Past(c echo.Context) error {
 
 // Tags handles tags.
 func (h *EventsHandler) Tags(c echo.Context) error {
+	user := loadUser(c)
+
 	if hxhttp.IsRequest(c.Request().Header) {
-		tags, err := model.ListTags(c.Request().Context(), h.db)
+		var (
+			tags []*domain.Tag
+			err  error
+		)
+
+		if user != nil {
+			slogecho.AddCustomAttributes(c, slog.Bool("cached", false))
+			tags, err = model.ListTags(c.Request().Context(), h.db)
+		} else {
+			didFetch := false
+			tags, err = h.tagsCache.Fetch(c.Request().URL.String(), func() ([]*domain.Tag, error) {
+				didFetch = true
+				return model.ListTags(c.Request().Context(), h.db)
+			})
+			slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
+		}
+
 		if err != nil {
-			return err
+			if !errors.Is(err, wreck.NotFound) {
+				return err
+			}
 		}
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -71,7 +96,6 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	user := loadUser(c)
 	settings := loadSettings(c)
 
 	return html.TagsPage(html.TagsPageParams{
@@ -84,21 +108,14 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 }
 
 func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder, sectionTitle string) error {
-	filterTag, err := h.getTagFilter(c)
-	if err != nil {
-		return err
-	}
+	user := loadUser(c)
+
+	filterTag := getTagFilter(c)
 
 	if hxhttp.IsRequest(c.Request().Header) {
-		lastID, err := h.getIntQuery("last_id", c)
-		if err != nil {
-			return err
-		}
+		lastID := getIntQuery("last_id", c)
 
-		offset, err := h.getIntQuery("offset", c)
-		if err != nil {
-			return err
-		}
+		offset := getIntQuery("offset", c)
 		if offset > 0 {
 			offset += EventLimitPerPage
 		}
@@ -110,7 +127,23 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			WithFilterTags(filterTag).
 			WithLimit(EventLimitPerPage)
 
-		events, err := query.List(c.Request().Context(), h.db, c.QueryParam("search"))
+		var (
+			events []*domain.Event
+			err    error
+		)
+
+		if user != nil {
+			slogecho.AddCustomAttributes(c, slog.Bool("cached", false))
+			events, err = query.List(c.Request().Context(), h.db, c.QueryParam("search"))
+		} else {
+			didFetch := false
+			events, err = h.eventsCache.Fetch(c.Request().URL.String(), func() ([]*domain.Event, error) {
+				didFetch = true
+				return query.List(c.Request().Context(), h.db, c.QueryParam("search"))
+			})
+			slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
+		}
+
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -126,7 +159,6 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 	c.Response().WriteHeader(200)
 
 	s := loadSettings(c)
-	user := loadUser(c)
 
 	return html.EventsPage(html.EventsPageParams{
 		MainTitle:    s.Title,
@@ -136,30 +168,6 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 		User:         user,
 		CSRF:         c.Get("csrf").(string),
 	}).Render(c.Response())
-}
-
-func (h *EventsHandler) getTagFilter(c echo.Context) (string, error) {
-	if param := c.Param("tagName"); param != "" {
-		v, err := url.QueryUnescape(param)
-		if err != nil {
-			return "", wreck.InvalidValue.New("Invalid tag filter", err)
-		}
-		return v, nil
-	}
-
-	return "", nil
-}
-
-func (h *EventsHandler) getIntQuery(key string, c echo.Context) (int64, error) {
-	if v := c.QueryParam(key); v != "" {
-		val, err := strconv.ParseInt(v, 10, 64)
-		if err != nil {
-			return 0, wreck.InvalidValue.New(fmt.Sprintf("Invalid %s", key), err)
-		}
-		return val, nil
-	}
-
-	return 0, nil
 }
 
 // Register the handler.
@@ -183,8 +191,24 @@ func (h *EventsHandler) Register(g *echo.Group) {
 }
 
 // NewEventsHandler creates a new events handler.
-func NewEventsHandler(db *bun.DB) *EventsHandler {
+func NewEventsHandler(
+	db *bun.DB,
+	tagsCache *evcache.Cache[string, []*domain.Tag],
+	eventsCache *evcache.Cache[string, []*domain.Event],
+) *EventsHandler {
 	return &EventsHandler{
-		db: db,
+		db:          db,
+		tagsCache:   tagsCache,
+		eventsCache: eventsCache,
 	}
+}
+
+func getTagFilter(c echo.Context) string {
+	v, _ := url.QueryUnescape(c.Param("tagName"))
+	return v
+}
+
+func getIntQuery(key string, c echo.Context) int64 {
+	v, _ := strconv.ParseInt(c.QueryParam(key), 10, 64)
+	return v
 }
