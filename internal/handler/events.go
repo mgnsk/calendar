@@ -90,12 +90,12 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 	}
 
 	if hxhttp.IsRequest(c.Request().Header) {
-		lastID, err := h.getIntParam("last_id", c)
+		lastID, err := h.getIntQuery("last_id", c)
 		if err != nil {
 			return err
 		}
 
-		offset, err := h.getIntParam("offset", c)
+		offset, err := h.getIntQuery("offset", c)
 		if err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			WithFilterTags(filterTag).
 			WithLimit(EventLimitPerPage)
 
-		events, err := query.List(c.Request().Context(), h.db, c.FormValue("search"))
+		events, err := query.List(c.Request().Context(), h.db, c.QueryParam("search"))
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -150,8 +150,8 @@ func (h *EventsHandler) getTagFilter(c echo.Context) (string, error) {
 	return "", nil
 }
 
-func (h *EventsHandler) getIntParam(key string, c echo.Context) (int64, error) {
-	if v := c.FormValue(key); v != "" {
+func (h *EventsHandler) getIntQuery(key string, c echo.Context) (int64, error) {
+	if v := c.QueryParam(key); v != "" {
 		val, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return 0, wreck.InvalidValue.New(fmt.Sprintf("Invalid %s", key), err)

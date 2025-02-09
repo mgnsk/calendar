@@ -18,8 +18,8 @@ func Register(
 	baseURL *url.URL,
 ) {
 	g := e.Group("",
-		LoadSettingsMiddleware(db),
 		echo.WrapMiddleware(sm.LoadAndSave),
+		LoadSettingsMiddleware(db),
 		LoadUserMiddleware(db, sm),
 		middleware.CSRFWithConfig(middleware.CSRFConfig{
 			TokenLength:    32,
