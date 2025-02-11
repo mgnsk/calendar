@@ -114,6 +114,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 }
 
 func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
+	// TODO: limit
 	return model.NewEventsQuery().
 		WithStartAtFrom(time.Now()).
 		WithOrder(0, model.OrderCreatedAtAsc).
