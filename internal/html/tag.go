@@ -42,7 +42,11 @@ func TagListPartial(tags []*domain.Tag) Node {
 
 				return Li(
 					A(classes,
-						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
+						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))),
+						Text(tag.Name),
+						Sup(Class("text-gray-400"),
+							Textf("(%d)", tag.EventCount),
+						),
 					),
 				)
 			}),

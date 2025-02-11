@@ -16,6 +16,8 @@ function changeTab(link) {
     el.parentElement.classList.remove("border-t");
     el.parentElement.classList.remove("border-r");
     el.parentElement.classList.remove("rounded-t");
+
+    el.removeAttribute("aria-current");
   });
 
   // Make this link active.
@@ -28,4 +30,6 @@ function changeTab(link) {
   link.parentElement.classList.add("border-t");
   link.parentElement.classList.add("border-r");
   link.parentElement.classList.add("rounded-t");
+
+  link.setAttribute("aria-current", "page");
 }
