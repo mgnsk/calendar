@@ -18,7 +18,7 @@ import (
 )
 
 // EventLimitPerPage specifies maximum number of events per page.
-const EventLimitPerPage = 2
+const EventLimitPerPage = 25
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
