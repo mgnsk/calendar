@@ -30,7 +30,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 			return eventCard(ev, path)
 		}),
 		Div(ID("load-more"),
-			hx.Get(""),
+			hx.Post(""),
 			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"csrf":    csrf,
@@ -115,11 +115,14 @@ func EventsPage(p EventsPageParams) Node {
 		eventNav(p.Path, navLinks, p.CSRF),
 		Main(
 			Div(ID("event-list"),
-				hx.Get(""),
+				hx.Post(""),
 				hx.Trigger("load"),
 				hx.Swap("beforeend"),
 				hx.Target("#event-list"),
 				hx.Indicator("#loading-spinner"),
+				hx.Vals(string(must(json.Marshal(map[string]string{
+					"csrf": p.CSRF,
+				})))),
 			),
 		),
 		ScriptSync("dist/mark.min.js"),

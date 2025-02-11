@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -55,7 +56,7 @@ func (h *EventsHandler) Past(c echo.Context) error {
 func (h *EventsHandler) Tags(c echo.Context) error {
 	user := loadUser(c)
 
-	if hxhttp.IsRequest(c.Request().Header) {
+	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db)
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
@@ -88,13 +89,13 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 	filterTag := getTagFilter(c)
 
-	if hxhttp.IsRequest(c.Request().Header) {
+	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		var cursor int64
 
 		if strings.HasPrefix(c.Path(), "/upcoming") || strings.HasPrefix(c.Path(), "/past") {
-			cursor = getIntQuery("offset", c) + EventLimitPerPage
+			cursor = getIntForm("offset", c) + EventLimitPerPage
 		} else {
-			cursor = getIntQuery("last_id", c)
+			cursor = getIntForm("last_id", c)
 		}
 
 		query = query.
@@ -107,7 +108,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db, c.QueryParam("search"))
+		events, err = query.List(c.Request().Context(), h.db, c.FormValue("search"))
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -151,6 +152,7 @@ func (h *EventsHandler) Register(g *echo.Group) {
 	g.POST("/past/tag/:tagName", h.Past) // For htmx.
 
 	g.GET("/tags", h.Tags)
+	g.POST("/tags", h.Tags) // Fox htmx.
 }
 
 // NewEventsHandler creates a new events handler.
@@ -167,7 +169,7 @@ func getTagFilter(c echo.Context) string {
 	return v
 }
 
-func getIntQuery(key string, c echo.Context) int64 {
-	v, _ := strconv.ParseInt(c.QueryParam(key), 10, 64)
+func getIntForm(key string, c echo.Context) int64 {
+	v, _ := strconv.ParseInt(c.FormValue(key), 10, 64)
 	return v
 }
