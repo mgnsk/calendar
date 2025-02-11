@@ -93,9 +93,13 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 		var cursor int64
 
 		if strings.HasPrefix(c.Path(), "/upcoming") || strings.HasPrefix(c.Path(), "/past") {
-			cursor = getIntForm("offset", c) + EventLimitPerPage
+			if offset := getIntForm("offset", c); offset != nil {
+				cursor = *offset + EventLimitPerPage
+			}
 		} else {
-			cursor = getIntForm("last_id", c)
+			if lastID := getIntForm("last_id", c); lastID != nil {
+				cursor = *lastID
+			}
 		}
 
 		query = query.
@@ -169,7 +173,10 @@ func getTagFilter(c echo.Context) string {
 	return v
 }
 
-func getIntForm(key string, c echo.Context) int64 {
-	v, _ := strconv.ParseInt(c.FormValue(key), 10, 64)
-	return v
+func getIntForm(key string, c echo.Context) *int64 {
+	if val := c.FormValue(key); val != "" {
+		v, _ := strconv.ParseInt(c.FormValue(key), 10, 64)
+		return &v
+	}
+	return nil
 }
