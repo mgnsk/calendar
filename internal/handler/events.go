@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"cmp"
 	"errors"
 	"log/slog"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -19,7 +19,7 @@ import (
 )
 
 // EventLimitPerPage specifies maximum number of events per page.
-const EventLimitPerPage = 25
+const EventLimitPerPage = 2
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
@@ -34,7 +34,6 @@ func (h *EventsHandler) Latest(c echo.Context) error {
 		c,
 		model.NewEventsQuery().WithStartAtFrom(time.Now()),
 		model.OrderCreatedAtDesc,
-		"Latest Events",
 	)
 }
 
@@ -44,7 +43,6 @@ func (h *EventsHandler) Upcoming(c echo.Context) error {
 		c,
 		model.NewEventsQuery().WithStartAtFrom(time.Now()),
 		model.OrderStartAtAsc,
-		"Upcoming Events",
 	)
 }
 
@@ -54,7 +52,6 @@ func (h *EventsHandler) Past(c echo.Context) error {
 		c,
 		model.NewEventsQuery().WithStartAtUntil(time.Now()),
 		model.OrderStartAtDesc,
-		"Past Events",
 	)
 }
 
@@ -106,20 +103,19 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	}).Render(c.Response())
 }
 
-func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder, sectionTitle string) error {
+func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	user := loadUser(c)
 
 	filterTag := getTagFilter(c)
 
 	if hxhttp.IsRequest(c.Request().Header) {
-		lastID := getIntQuery("last_id", c)
+		var cursor int64
 
-		offset := getIntQuery("offset", c)
-		if offset > 0 {
-			offset += EventLimitPerPage
+		if strings.HasPrefix(c.Path(), "/upcoming") || strings.HasPrefix(c.Path(), "/past") {
+			cursor = getIntQuery("offset", c) + EventLimitPerPage
+		} else {
+			cursor = getIntQuery("last_id", c)
 		}
-
-		cursor := cmp.Or(offset, lastID)
 
 		query = query.
 			WithOrder(cursor, order).
@@ -151,7 +147,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(offset, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
+		return html.EventListPartial(cursor, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -160,12 +156,11 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 	s := loadSettings(c)
 
 	return html.EventsPage(html.EventsPageParams{
-		MainTitle:    s.Title,
-		SectionTitle: sectionTitle,
-		Path:         c.Path(),
-		FilterTag:    filterTag,
-		User:         user,
-		CSRF:         c.Get("csrf").(string),
+		MainTitle: s.Title,
+		Path:      c.Path(),
+		FilterTag: filterTag,
+		User:      user,
+		CSRF:      c.Get("csrf").(string),
 	}).Render(c.Response())
 }
 

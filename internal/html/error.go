@@ -18,7 +18,7 @@ func ErrorPage(mainTitle string, httpCode int, msg, reqID string) Node {
 		s = fmt.Sprintf("Error %d: %s", httpCode, http.StatusText(httpCode))
 	}
 
-	return page(mainTitle, s, "", nil,
+	return page(mainTitle, s, nil,
 		Div(Class("px-3 py-4 text-center"),
 			P(Text(msg)),
 		),

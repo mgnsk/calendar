@@ -7,7 +7,7 @@ import (
 
 // LoginPage render the login page.
 func LoginPage(mainTitle string, errs map[string]string, csrf, username, password string) Node {
-	return page(mainTitle, "Login", "", nil,
+	return page(mainTitle, "Login", nil,
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
 				Action("/login"),
