@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/xml"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/model"
-	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
 
@@ -20,7 +18,6 @@ import (
 type FeedHandler struct {
 	db      *bun.DB
 	baseURL *url.URL
-	cache   Cache[string, []*domain.Event]
 }
 
 // HandleRSS handles RSS feeds.
@@ -117,17 +114,10 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 }
 
 func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
-	didFetch := false
-	events, err := h.cache.Fetch("feed-events", func() ([]*domain.Event, error) {
-		didFetch = true
-		// Upcoming events in created at ASC.
-		return model.NewEventsQuery().
-			WithStartAtFrom(time.Now()).
-			WithOrder(0, model.OrderCreatedAtAsc).
-			List(c.Request().Context(), h.db, "")
-	})
-	slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
-	return events, err
+	return model.NewEventsQuery().
+		WithStartAtFrom(time.Now()).
+		WithOrder(0, model.OrderCreatedAtAsc).
+		List(c.Request().Context(), h.db, "")
 }
 
 // Register the handler.
@@ -137,10 +127,9 @@ func (h *FeedHandler) Register(g *echo.Group) {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, baseURL *url.URL, cache Cache[string, []*domain.Event]) *FeedHandler {
+func NewFeedHandler(db *bun.DB, baseURL *url.URL) *FeedHandler {
 	return &FeedHandler{
 		db:      db,
 		baseURL: baseURL,
-		cache:   cache,
 	}
 }
