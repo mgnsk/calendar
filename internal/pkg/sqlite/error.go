@@ -27,6 +27,9 @@ func NormalizeError(err error) error {
 			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
 			return wreck.AlreadyExists.New("Already exists", err)
 
+		case sqlite3.SQLITE_LOCKED:
+			return wreck.Timeout.New("Timeout", err)
+
 		default:
 			return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[code], code, err)
 		}
