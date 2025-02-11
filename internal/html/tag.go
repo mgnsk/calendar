@@ -93,7 +93,6 @@ func TagsPage(p TagsPageParams) Node {
 				hx.Indicator("#loading-spinner"),
 			),
 		),
-		loadingSpinner(),
 	)
 }
 

@@ -122,7 +122,6 @@ func EventsPage(p EventsPageParams) Node {
 				hx.Indicator("#loading-spinner"),
 			),
 		),
-		loadingSpinner(),
 		ScriptSync("dist/mark.min.js"),
 		ScriptRaw(searchScript),
 	)

@@ -78,6 +78,7 @@ func eventNav(path string, links []eventNavLink, csrf string) Node {
 							hx.Get(""), // Post to current URL.
 							hx.Trigger("keyup delay:0.2s"),
 							hx.Target("#event-list"),
+							hx.Swap("innerHTML"),
 							hx.Indicator("#search-spinner"),
 							hx.Vals(string(must(json.Marshal(map[string]string{
 								"csrf": csrf,

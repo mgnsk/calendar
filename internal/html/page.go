@@ -53,6 +53,7 @@ func page(mainTitle, subTitle string, user *domain.User, children ...Node) Node 
 				userNav(user),
 				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),
 				Group(children),
+				loadingSpinner(),
 			),
 		},
 	})
