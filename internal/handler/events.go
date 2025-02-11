@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	"github.com/mgnsk/calendar/internal/html"
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
-	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -23,9 +21,7 @@ const EventLimitPerPage = 2
 
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
-	db          *bun.DB
-	tagsCache   Cache[string, []*domain.Tag]
-	eventsCache Cache[string, []*domain.Event]
+	db *bun.DB
 }
 
 // Latest handles latest events.
@@ -60,23 +56,7 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	user := loadUser(c)
 
 	if hxhttp.IsRequest(c.Request().Header) {
-		var (
-			tags []*domain.Tag
-			err  error
-		)
-
-		if user != nil {
-			slogecho.AddCustomAttributes(c, slog.Bool("cached", false))
-			tags, err = model.ListTags(c.Request().Context(), h.db)
-		} else {
-			didFetch := false
-			tags, err = h.tagsCache.Fetch(c.Request().URL.String(), func() ([]*domain.Tag, error) {
-				didFetch = true
-				return model.ListTags(c.Request().Context(), h.db)
-			})
-			slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
-		}
-
+		tags, err := model.ListTags(c.Request().Context(), h.db)
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -127,18 +107,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			err    error
 		)
 
-		if user != nil {
-			slogecho.AddCustomAttributes(c, slog.Bool("cached", false))
-			events, err = query.List(c.Request().Context(), h.db, c.QueryParam("search"))
-		} else {
-			didFetch := false
-			events, err = h.eventsCache.Fetch(c.Request().URL.String(), func() ([]*domain.Event, error) {
-				didFetch = true
-				return query.List(c.Request().Context(), h.db, c.QueryParam("search"))
-			})
-			slogecho.AddCustomAttributes(c, slog.Bool("cached", !didFetch))
-		}
-
+		events, err = query.List(c.Request().Context(), h.db, c.QueryParam("search"))
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -187,13 +156,9 @@ func (h *EventsHandler) Register(g *echo.Group) {
 // NewEventsHandler creates a new events handler.
 func NewEventsHandler(
 	db *bun.DB,
-	tagsCache Cache[string, []*domain.Tag],
-	eventsCache Cache[string, []*domain.Event],
 ) *EventsHandler {
 	return &EventsHandler{
-		db:          db,
-		tagsCache:   tagsCache,
-		eventsCache: eventsCache,
+		db: db,
 	}
 }
 
