@@ -1,6 +1,7 @@
 package html
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -90,11 +91,14 @@ func TagsPage(p TagsPageParams) Node {
 		}, p.CSRF),
 		Main(
 			Div(ID("event-list"),
-				hx.Get(""),
+				hx.Post(""),
 				hx.Trigger("load"),
 				hx.Swap("beforeend"),
 				hx.Target("#event-list"),
 				hx.Indicator("#loading-spinner"),
+				hx.Vals(string(must(json.Marshal(map[string]string{
+					"csrf": p.CSRF,
+				})))),
 			),
 		),
 	)
