@@ -3,13 +3,11 @@ package handler
 import (
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar/internal/domain"
-	"github.com/mgnsk/evcache/v4"
 	"github.com/uptrace/bun"
 )
 
@@ -64,17 +62,21 @@ func Register(
 			echo.WrapMiddleware(NoCache),
 		)
 
-		eventsCache := evcache.New[string, []*domain.Event](
-			evcache.WithCapacity(128),
-			evcache.WithTTL(time.Minute),
-			evcache.WithPolicy(evcache.LRU),
-		)
+		eventsCache := NoopCache[string, []*domain.Event]{}
 
-		tagsCache := evcache.New[string, []*domain.Tag](
-			evcache.WithCapacity(128),
-			evcache.WithTTL(time.Minute),
-			evcache.WithPolicy(evcache.LRU),
-		)
+		// eventsCache := evcache.New[string, []*domain.Event](
+		// 	evcache.WithCapacity(128),
+		// 	evcache.WithTTL(time.Minute),
+		// 	evcache.WithPolicy(evcache.LRU),
+		// )
+
+		tagsCache := NoopCache[string, []*domain.Tag]{}
+
+		// tagsCache := evcache.New[string, []*domain.Tag](
+		// 	evcache.WithCapacity(128),
+		// 	evcache.WithTTL(time.Minute),
+		// 	evcache.WithPolicy(evcache.LRU),
+		// )
 
 		h := NewEventsHandler(db, tagsCache, eventsCache)
 		h.Register(g)
@@ -86,11 +88,13 @@ func Register(
 			echo.WrapMiddleware(NoCache),
 		)
 
-		eventsCache := evcache.New[string, []*domain.Event](
-			evcache.WithCapacity(128),
-			evcache.WithTTL(time.Hour),
-			evcache.WithPolicy(evcache.LRU),
-		)
+		eventsCache := NoopCache[string, []*domain.Event]{}
+
+		// eventsCache := evcache.New[string, []*domain.Event](
+		// 	evcache.WithCapacity(128),
+		// 	evcache.WithTTL(time.Hour),
+		// 	evcache.WithPolicy(evcache.LRU),
+		// )
 
 		h := NewFeedHandler(db, baseURL, eventsCache)
 		h.Register(g)

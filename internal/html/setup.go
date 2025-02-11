@@ -10,7 +10,7 @@ import (
 // SetupPage render the setup page.
 // TODO: implement similar settings page but with values loaded form *domain.Settings.
 func SetupPage(form url.Values, errs map[string]string, csrf string) Node {
-	return page("Setup", "", "", nil,
+	return page("Setup", "", nil,
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
 				Action("/setup"),

@@ -1,8 +1,6 @@
 package html
 
 import (
-	"fmt"
-
 	"github.com/mgnsk/calendar/internal"
 	"github.com/mgnsk/calendar/internal/domain"
 	. "maragu.dev/gomponents"
@@ -39,37 +37,23 @@ func userNav(user *domain.User) Node {
 	)
 }
 
-func page(mainTitle, sectionTitle, subTitle string, user *domain.User, children ...Node) Node {
+func page(mainTitle, subTitle string, user *domain.User, children ...Node) Node {
 	return HTML5(HTML5Props{
-		Title:    fmt.Sprintf("%s - %s", mainTitle, sectionTitle),
+		Title:    mainTitle,
 		Language: "en",
 		Head: []Node{
 			Link(Rel("icon"), Type("image/x-icon"), Href(internal.GetAssetLink("dist/favicon.ico"))),
 			Link(Rel("stylesheet"), Href(internal.GetAssetLink("dist/app.css"))),
-			Script(Type("application/javascript"), Defer(), Src(internal.GetAssetLink("dist/htmx.min.js"))),
+			ScriptDefer("dist/htmx.min.js"),
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
 			Attr("onload", "let input = document.getElementById('search'); input ? input.value = '' : false"),
 			container(
 				userNav(user),
-				H1(Class("m-8 text-center text-xl md:text-4xl font-semibold"), Text(sectionTitle)),
 				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),
 				Group(children),
 			),
-			Script(Type("application/javascript"), Src(internal.GetAssetLink("dist/mark.min.js"))),
-			Script(Type("application/javascript"), Raw(`
-				let eventList = document.getElementById("event-list");
-				let search = document.getElementById("search");
-
-				if (search && eventList) {
-					let mark = new Mark(eventList);
-					eventList.addEventListener("htmx:afterSettle", function(evt){
-						let s = search.value.replace(/['"]+/g, '');
-						mark.mark(s);
-					});
-				}
-			`)),
 		},
 	})
 }
@@ -145,4 +129,10 @@ func textarea(name, value string, err string, extraClasses ...string) Node {
 			Rows("3"),
 		),
 	}
+}
+
+func loadingSpinner() Node {
+	return Div(ID("loading-spinner"), Class("my-5 opacity-0 htmx-indicator m-10 mx-auto flex justify-center"),
+		spinner(8),
+	)
 }
