@@ -14,7 +14,7 @@ import (
 
 // Tag is the tag database model.
 type Tag struct {
-	ID         snowflake.ID `bun:"id,pk"`
+	ID         snowflake.ID `bun:"id,pk"` // TODO: autoincrement
 	Name       string       `bun:"name"`
 	EventCount uint64       `bun:"event_count"`
 
@@ -53,7 +53,6 @@ func ListTags(ctx context.Context, db bun.IDB) ([]*domain.Tag, error) {
 
 	return lo.Map(model, func(tag *Tag, _ int) *domain.Tag {
 		return &domain.Tag{
-			ID:         tag.ID,
 			Name:       tag.Name,
 			EventCount: tag.EventCount,
 		}

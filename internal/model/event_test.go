@@ -32,7 +32,6 @@ var _ = Describe("inserting events", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
-				Tags:        []string{"tag1", "tag2"},
 			}
 
 			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
@@ -51,11 +50,6 @@ var _ = Describe("inserting events", func() {
 						"Title":       Equal(ev.Title),
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
-						"Tags":        HaveExactElements("tag1", "tag2"),
-						"TagRelations": HaveExactElements(
-							HaveField("EventCount", uint64(1)),
-							HaveField("EventCount", uint64(1)),
-						),
 					})),
 				),
 			))
@@ -74,7 +68,6 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
-					Tags:        []string{"tag1"},
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -83,7 +76,6 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
-					Tags:        []string{"tag1", "tag2"},
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -92,7 +84,6 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
-					Tags:        []string{"tag2", "tag3"},
 				},
 			}
 
@@ -108,38 +99,12 @@ var _ = Describe("listing events", func() {
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 3"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag3"),
-						"EventCount": Equal(uint64(1)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 1"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 		))
 	})
@@ -150,38 +115,12 @@ var _ = Describe("listing events", func() {
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 1"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 3"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag3"),
-						"EventCount": Equal(uint64(1)),
-					})),
-				),
 			})),
 		))
 	})
@@ -192,38 +131,12 @@ var _ = Describe("listing events", func() {
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 3"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag3"),
-						"EventCount": Equal(uint64(1)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 1"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 		))
 	})
@@ -240,16 +153,6 @@ var _ = Describe("listing events", func() {
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
 			})),
 		))
 	})
@@ -273,7 +176,6 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
-					Tags:        []string{"tag1"},
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -282,7 +184,6 @@ var _ = Describe("full text search", func() {
 					Title:       "Event ÕÄÖÜ 😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
-					Tags:        []string{"tag1", "tag2"},
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -291,7 +192,6 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
-					Tags:        []string{"tag2", "tag3"},
 				},
 			}
 
@@ -333,16 +233,6 @@ var _ = Describe("full text search", func() {
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Title":       Equal("Event ÕÄÖÜ 😀"),
 					"Description": HavePrefix("Desc 2"),
-					"TagRelations": HaveExactElements(
-						PointTo(MatchFields(IgnoreExtras, Fields{
-							"Name":       Equal("tag1"),
-							"EventCount": Equal(uint64(2)),
-						})),
-						PointTo(MatchFields(IgnoreExtras, Fields{
-							"Name":       Equal("tag2"),
-							"EventCount": Equal(uint64(2)),
-						})),
-					),
 				})),
 			))
 		},
@@ -378,7 +268,6 @@ var _ = Describe("concurrent insert", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
-				Tags:        []string{"tag1", "tag2"},
 			}
 
 			wg.Add(1)

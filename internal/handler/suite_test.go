@@ -47,7 +47,6 @@ func init() {
 		Title:       "Event 1",
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
-		Tags:        []string{"tag1"},
 	}
 
 	event2 = &domain.Event{
@@ -57,7 +56,6 @@ func init() {
 		Title:       "Event 2",
 		Description: "Desc 2",
 		URL:         "https://event2.testing",
-		Tags:        []string{"tag1", "tag2"},
 	}
 
 	event3 = &domain.Event{
@@ -67,6 +65,5 @@ func init() {
 		Title:       "Event 3",
 		Description: "Desc 3",
 		URL:         "https://event3.testing",
-		Tags:        []string{"tag3"},
 	}
 }

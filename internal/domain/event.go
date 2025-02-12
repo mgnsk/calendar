@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,14 +12,12 @@ import (
 
 // Event is the event domain model.
 type Event struct {
-	ID           snowflake.ID
-	StartAt      time.Time
-	EndAt        time.Time
-	Title        string
-	Description  string
-	URL          string
-	Tags         []string
-	TagRelations []*Tag
+	ID          snowflake.ID
+	StartAt     time.Time
+	EndAt       time.Time
+	Title       string
+	Description string
+	URL         string
 }
 
 // GetCreatedAt returns the event created at time.
@@ -48,6 +47,30 @@ func (e *Event) GetDateString() string {
 	return buf.String()
 }
 
+// GetTags returns unique words in title and description.
+// A word is defined as having at least 3 characters.
+func (e *Event) GetTags() []string {
+	titleWords := strings.Split(e.Title, " ")
+	descWords := strings.Split(e.Description, " ")
+
+	var words []string
+	for _, word := range titleWords {
+		if len(word) >= 3 {
+			words = append(words, word)
+		}
+	}
+	for _, word := range descWords {
+		if len(word) >= 3 {
+			words = append(words, word)
+		}
+	}
+
+	slices.Sort(words)
+	words = slices.Compact(words)
+
+	return words
+}
+
 // GetDescription returns the event description with tags.
 // TODO: test this
 func (e *Event) GetDescription() string {
@@ -55,9 +78,10 @@ func (e *Event) GetDescription() string {
 
 	buf.WriteString(e.Description)
 
-	if len(e.Tags) > 0 {
-		buf.WriteString(fmt.Sprintf("\n\ntags: %s", strings.Join(e.Tags, ", ")))
-	}
+	// TODO: get top tags
+	// if len(e.Tags) > 0 {
+	// 	buf.WriteString(fmt.Sprintf("\n\ntags: %s", strings.Join(e.Tags, ", ")))
+	// }
 
 	buf.WriteString(fmt.Sprintf("\n\nstarts at: %s", e.StartAt.Format(time.RFC1123Z)))
 
@@ -74,7 +98,6 @@ func (e *Event) GetFTSData() string {
 		e.Title,
 		e.Description,
 		e.URL,
-		strings.Join(e.Tags, " "),
 	}
 
 	day := e.StartAt.Day()

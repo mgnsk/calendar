@@ -64,7 +64,7 @@ func run() error {
 	}
 
 	filename := filepath.Join(databaseDir, "calendar.sqlite")
-	db := sqlite.NewDB(filename).Connect()
+	db := sqlite.NewDB(filename).WithDebugLogging().Connect()
 	defer func() {
 		if err := db.Close(); err != nil {
 			slog.Error("error closing database connection", slog.String("error", err.Error()))
@@ -235,10 +235,6 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 		return baseTime
 	}
 
-	tags1 := []string{"tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7"}
-	tags2 := []string{"tag1", "tag2", "tag8", "tag9", "tag10"}
-	tags3 := []string{"tag3", "tag11", "tag12", "tag13", "Some Tag"}
-
 	ts := getRandBaseTime().Truncate(15 * time.Minute)
 	n := rand.IntN(10000)
 	event1 := &domain.Event{
@@ -248,7 +244,6 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
-		Tags:        tags1,
 	}
 
 	ts = getRandBaseTime().Truncate(15 * time.Minute)
@@ -269,8 +264,7 @@ Ut consectetur nulla quam, a tristique nibh volutpat quis. Praesent consequat mi
 
 Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at finibus arcu neque eu nunc. Ut consectetur semper nulla id elementum. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Curabitur laoreet lorem nec magna tempor venenatis. Vestibulum gravida in velit in mollis. Ut sodales tempus lectus sed malesuada. Nullam lacinia lacus non neque vehicula, et suscipit nunc dignissim. Aliquam et augue at lectus pellentesque suscipit eu a arcu. Nam vitae justo eros. Donec lacinia posuere molestie. Morbi id eros efficitur, dictum odio eget, congue lacus. Ut vel erat eu nisi iaculis tincidunt. Sed et ante ornare, vulputate massa et, posuere nibh. Integer scelerisque interdum tristique. Ut dapibus, elit sed imperdiet malesuada, eros augue sagittis nisi, at ultrices lacus neque ac nunc. In accumsan nec orci ut maximus.
 		`,
-		URL:  "https://event2.testing",
-		Tags: tags2,
+		URL: "https://event2.testing",
 	}
 
 	ts = getRandBaseTime().Truncate(15 * time.Minute)
@@ -282,7 +276,6 @@ Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at fini
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 3",
 		URL:         "https://event3.testing",
-		Tags:        tags3,
 	}
 
 	for _, ev := range []*domain.Event{event1, event2, event3} {

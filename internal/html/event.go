@@ -126,7 +126,6 @@ func eventCard(ev *domain.Event) Node {
 			Div(Class("col-span-6 sm:col-span-5"),
 				eventTitle(ev),
 				eventDate(ev),
-				If(len(ev.Tags) > 0, eventTags(ev)),
 				eventDesc(ev),
 			),
 		),
@@ -173,27 +172,6 @@ func eventDate(ev *domain.Event) Node {
 			Text(ev.GetDateString()),
 		),
 	}
-}
-
-func eventTags(ev *domain.Event) Node {
-	return P(Class("mt-2 text-gray-500 text-sm"),
-		mapIndexed(ev.TagRelations, func(i int, tag *domain.Tag) Node {
-			link := A(Class("hover:underline hover:cursor-pointer"),
-				Text(tag.Name),
-				Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
-				Attr("onclick", fmt.Sprintf(`setSearch("%s")`, tag.Name)), // TODO: tag validation
-			)
-
-			if i > 0 {
-				return Group{
-					Text(", "),
-					link,
-				}
-			}
-
-			return link
-		}),
-	)
 }
 
 func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {

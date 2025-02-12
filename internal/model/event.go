@@ -70,18 +70,19 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			return err
 		}
 
-		if len(ev.Tags) == 0 {
+		tags := ev.GetTags()
+		if len(tags) == 0 {
 			return nil
 		}
 
 		// Ensure tags exist.
-		if err := InsertTags(ctx, db, ev.Tags...); err != nil {
+		if err := InsertTags(ctx, db, tags...); err != nil {
 			return err
 		}
 
 		// Create tag relations.
-		relations := make([]eventToTag, 0, len(ev.Tags))
-		tagIDs, err := getTagIDs(ctx, db, ev.Tags...)
+		relations := make([]eventToTag, 0, len(tags))
+		tagIDs, err := getTagIDs(ctx, db, tags...)
 		if err != nil {
 			return err
 		}
@@ -97,7 +98,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			return err
 		}
 
-		return increaseEventCounts(ctx, db, ev.Tags...)
+		return increaseEventCounts(ctx, db, tags...)
 	})
 }
 
@@ -277,16 +278,6 @@ func eventToDomain(ev *Event) *domain.Event {
 		Title:       ev.Title,
 		Description: ev.Description,
 		URL:         ev.URL,
-		Tags: lo.Map(ev.Tags, func(tag *Tag, _ int) string {
-			return tag.Name
-		}),
-		TagRelations: lo.Map(ev.Tags, func(tag *Tag, _ int) *domain.Tag {
-			return &domain.Tag{
-				ID:         tag.ID,
-				Name:       tag.Name,
-				EventCount: tag.EventCount,
-			}
-		}),
 	}
 }
 

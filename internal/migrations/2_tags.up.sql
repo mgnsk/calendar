@@ -1,5 +1,5 @@
 CREATE TABLE `tags` (
-  `id` bigint PRIMARY KEY NOT NULL,
+  `id` bigint unsigned PRIMARY KEY,
   `name` text NOT NULL,
   `event_count` bigint unsigned NOT NULL,
   UNIQUE (`name`)
