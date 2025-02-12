@@ -15,6 +15,7 @@ var (
 	InvalidValue       = NewBaseError("invalid_param").With(KeyHTTPCode, http.StatusBadRequest)
 	AlreadyExists      = NewBaseError("already_exists").With(KeyHTTPCode, http.StatusConflict)
 	NotFound           = NewBaseError("not_found").With(KeyHTTPCode, http.StatusNotFound)
+	Timeout            = NewBaseError("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)
 
 	Internal = NewBaseError("internal").With(KeyHTTPCode, http.StatusInternalServerError)
 )
