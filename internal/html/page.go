@@ -11,7 +11,7 @@ import (
 func userNav(user *domain.User) Node {
 	return Nav(Class("max-w-3xl mx-auto mb-5"),
 		Ul(Class("flex justify-between font-semibold flex-row space-x-8"),
-			// TODO
+			// TODO: find better icons
 			Li(Class("justify-self-start"),
 				A(Class("inline-block p-2"), Href("/feed"), rssIcon()),
 				A(Class("inline-block p-2"), Href("/ical"), calendarIcon()),

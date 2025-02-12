@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -117,7 +116,6 @@ var (
 type EventsQueryBuilder func(*bun.SelectQuery)
 
 // NewEventsQuery creates a new events list query.
-// TODO: verify if we need tag_id idx on events_tags table.
 // Note: cursor is ID cursor when sorting by created at
 // and offset when sorting by start time.
 func NewEventsQuery() EventsQueryBuilder {
@@ -184,24 +182,6 @@ func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBui
 		build(q)
 
 		q.Where("event.start_at_unix <= ?", until.Unix())
-	}
-}
-
-// WithFilterTags filters results with tags.
-// TODO: remove this, tags are implemented in FTS
-func (build EventsQueryBuilder) WithFilterTags(tags ...string) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
-		build(q)
-
-		tags = slices.DeleteFunc(tags, func(tag string) bool {
-			return tag == ""
-		})
-
-		if len(tags) > 0 {
-			q.Join("LEFT JOIN events_tags ON event.id = events_tags.event_id").
-				Join("LEFT JOIN tags ON tags.id = events_tags.tag_id").
-				Where("tags.name IN (?)", bun.In(tags))
-		}
 	}
 }
 

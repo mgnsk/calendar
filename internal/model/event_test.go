@@ -253,104 +253,6 @@ var _ = Describe("listing events", func() {
 			})),
 		))
 	})
-
-	Specify("events can be filtered by tags", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).WithFilterTags("tag1").List(ctx, db, ""))
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
-			})),
-		))
-	})
-
-	Specify("empty tag filter is skipped", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 3"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag3"),
-						"EventCount": Equal(uint64(1)),
-					})),
-				),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
-			})),
-		))
-	})
-
-	Specify("events can be filtered by time and tags", func(ctx SpecContext) {
-		result := Must(
-			model.NewEventsQuery().
-				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
-				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
-				WithOrder(0, model.OrderStartAtAsc).
-				WithFilterTags("tag1").
-				List(ctx, db, ""),
-		)
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-				"TagRelations": HaveExactElements(
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag1"),
-						"EventCount": Equal(uint64(2)),
-					})),
-					PointTo(MatchFields(IgnoreExtras, Fields{
-						"Name":       Equal("tag2"),
-						"EventCount": Equal(uint64(2)),
-					})),
-				),
-			})),
-		))
-	})
 })
 
 var _ = Describe("full text search", func() {
@@ -405,7 +307,6 @@ var _ = Describe("full text search", func() {
 				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
 				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
 				WithOrder(0, model.OrderStartAtAsc).
-				WithFilterTags("tag1").
 				List(ctx, db, query)
 
 			Expect(err).To(MatchError(wreck.NotFound))
@@ -425,7 +326,6 @@ var _ = Describe("full text search", func() {
 					WithStartAtFrom(startTime).
 					WithStartAtUntil(endTime).
 					WithOrder(0, model.OrderStartAtAsc).
-					WithFilterTags("tag1").
 					List(ctx, db, query),
 			)
 

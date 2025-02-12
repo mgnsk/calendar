@@ -168,9 +168,6 @@ func run() error {
 		middleware.ContextTimeout(time.Minute),
 	)
 
-	// TODO: render events and tags page content completely with HTMX, then we can cache them.
-	// implement active tab and url push.
-
 	// Static assets.
 	e.GET("/dist/*",
 		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
