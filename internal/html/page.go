@@ -50,7 +50,6 @@ func Page(mainTitle, subTitle string, user *domain.User, children ...Node) Node 
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
-			// Attr("onload", "let input = document.getElementById('search'); input ? input.value = '' : false"),
 			container(
 				userNav(user),
 				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),
