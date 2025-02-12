@@ -2,8 +2,6 @@ package html
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/url"
 
 	"github.com/aybabtme/uniplot/histogram"
 	"github.com/mgnsk/calendar/internal/domain"
@@ -15,7 +13,7 @@ import (
 )
 
 // TagListPartial renders the tag list partial.
-func TagListPartial(tags []*domain.Tag) Node {
+func TagListPartial(tags []*domain.Tag, csrf string) Node {
 	if len(tags) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no tags found")),
@@ -36,18 +34,32 @@ func TagListPartial(tags []*domain.Tag) Node {
 	return Div(Class("max-w-3xl mx-auto my-5"),
 		Ul(Class("flex justify-center flex-wrap align-center gap-2 leading-8"),
 			Map(tags, func(tag *domain.Tag) Node {
-				classes := Classes{"hover:underline": true}
+				classes := Classes{
+					"hover:underline":      true,
+					"hover:cursor-pointer": true,
+				}
 				idx := getClassIndex(tag.EventCount)
 				classes[sizes[idx]] = true
 				classes[colors[idx]] = true
 
 				return Li(
 					A(classes,
-						Href(fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))),
 						Text(tag.Name),
 						Sup(Class("text-gray-400"),
 							Textf("(%d)", tag.EventCount),
 						),
+						// Show latest tagged events on click.
+						hx.Post("/"),
+						hx.Trigger("click"),
+						Attr("onclick", `changeTab(document.querySelectorAll(".nav-link")[0])`),
+						hx.Target("#event-list"),
+						hx.Swap("innerHTML"),
+						hx.PushURL("true"),
+						hx.Indicator("#loading-spinner"),
+						hx.Vals(string(must(json.Marshal(map[string]string{
+							"csrf": csrf,
+							"tag":  tag.Name,
+						})))),
 					),
 				)
 			}),
@@ -66,8 +78,8 @@ type TagsPageParams struct {
 
 // TagsPage displays tags list page.
 func TagsPage(p TagsPageParams) Node {
-	return page(p.MainTitle, p.SectionTitle, p.User,
-		eventNav(p.Path, []eventNavLink{
+	return Page(p.MainTitle, p.SectionTitle, p.User,
+		eventNav([]eventNavLink{
 			{
 				Text:   "Latest",
 				URL:    "/",

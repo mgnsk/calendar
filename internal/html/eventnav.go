@@ -15,8 +15,7 @@ type eventNavLink struct {
 	Active bool
 }
 
-// TODO: if tag filter, tehen somehow show
-func eventNav(path string, links []eventNavLink, csrf string) Node {
+func eventNav(links []eventNavLink, csrf string) Node {
 	return Div(Class("max-w-3xl mx-auto"),
 		ScriptRaw(eventNavScript),
 		Ul(Class("flex border-b"),
@@ -78,7 +77,7 @@ func eventNav(path string, links []eventNavLink, csrf string) Node {
 						Placeholder("Filter..."),
 						Required(),
 						hx.Post(""), // Post to current URL.
-						hx.Trigger("keyup delay:0.2s"),
+						hx.Trigger("change delay:0.2s, keyup delay:0.2s"),
 						hx.Target("#event-list"),
 						hx.Swap("innerHTML"),
 						hx.Indicator("#search-spinner"),

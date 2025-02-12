@@ -8,3 +8,9 @@ if (search && eventList) {
     mark.mark(s);
   });
 }
+
+function setSearch(s) {
+  let el = document.getElementById("search");
+  el.value = s;
+  el.dispatchEvent(new Event("change"));
+}

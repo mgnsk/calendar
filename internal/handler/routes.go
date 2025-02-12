@@ -65,6 +65,16 @@ func Register(
 		h.Register(g)
 	}
 
+	// Events management.
+	{
+		g := g.Group("",
+			echo.WrapMiddleware(NoCache),
+		)
+
+		h := NewAddEventHandler(db)
+		h.Register(g)
+	}
+
 	// Feeds.
 	{
 		g := g.Group("",

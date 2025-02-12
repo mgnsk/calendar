@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +28,7 @@ type EventsHandler struct {
 func (h *EventsHandler) Latest(c echo.Context) error {
 	return h.events(
 		c,
-		model.NewEventsQuery().WithStartAtFrom(time.Now()),
+		model.NewEventsQuery(),
 		model.OrderCreatedAtDesc,
 	)
 }
@@ -67,7 +66,7 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.TagListPartial(tags).Render(c.Response())
+		return html.TagListPartial(tags, c.Get("csrf").(string)).Render(c.Response())
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -87,8 +86,6 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	user := loadUser(c)
 
-	filterTag := getTagFilter(c)
-
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		var cursor int64
 
@@ -104,7 +101,6 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		query = query.
 			WithOrder(cursor, order).
-			WithFilterTags(filterTag).
 			WithLimit(EventLimitPerPage)
 
 		var (
@@ -121,7 +117,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(cursor, events, c.Get("csrf").(string), c.Path()).Render(c.Response())
+		return html.EventListPartial(cursor, events, c.Get("csrf").(string), c.FormValue("tag")).Render(c.Response())
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -132,7 +128,6 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 	return html.EventsPage(html.EventsPageParams{
 		MainTitle: s.Title,
 		Path:      c.Path(),
-		FilterTag: filterTag,
 		User:      user,
 		CSRF:      c.Get("csrf").(string),
 	}).Render(c.Response())
@@ -142,18 +137,12 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 func (h *EventsHandler) Register(g *echo.Group) {
 	g.GET("/", h.Latest)
 	g.POST("/", h.Latest) // Fox htmx.
-	g.GET("/tag/:tagName", h.Latest)
-	g.POST("/tag/:tagName", h.Latest) // For htmx.
 
 	g.GET("/upcoming", h.Upcoming)
 	g.POST("/upcoming", h.Upcoming) // Fox htmx.
-	g.GET("/upcoming/tag/:tagName", h.Upcoming)
-	g.POST("/upcoming/tag/:tagName", h.Upcoming) // For htmx.
 
 	g.GET("/past", h.Past)
 	g.POST("/past", h.Past) // For htmx.
-	g.GET("/past/tag/:tagName", h.Past)
-	g.POST("/past/tag/:tagName", h.Past) // For htmx.
 
 	g.GET("/tags", h.Tags)
 	g.POST("/tags", h.Tags) // Fox htmx.
@@ -166,11 +155,6 @@ func NewEventsHandler(
 	return &EventsHandler{
 		db: db,
 	}
-}
-
-func getTagFilter(c echo.Context) string {
-	v, _ := url.QueryUnescape(c.Param("tagName"))
-	return v
 }
 
 func getIntForm(key string, c echo.Context) *int64 {
