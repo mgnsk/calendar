@@ -16,6 +16,7 @@ var (
 	AlreadyExists      = NewBaseError("already_exists").With(KeyHTTPCode, http.StatusConflict)
 	NotFound           = NewBaseError("not_found").With(KeyHTTPCode, http.StatusNotFound)
 	Timeout            = NewBaseError("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)
+	Forbidden          = NewBaseError("forbidden").With(KeyHTTPCode, http.StatusForbidden)
 
 	Internal = NewBaseError("internal").With(KeyHTTPCode, http.StatusInternalServerError)
 )

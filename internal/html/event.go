@@ -3,7 +3,6 @@ package html
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -18,7 +17,7 @@ import (
 )
 
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, csrf, path string) Node {
+func EventListPartial(offset int64, events []*domain.Event, csrf, filterTag string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -26,8 +25,9 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 	}
 
 	return Group{
+		If(filterTag != "", ScriptRaw(fmt.Sprintf(`setSearch("%s")`, filterTag))), // TODO: tag validation
 		Map(events, func(ev *domain.Event) Node {
-			return eventCard(ev, path)
+			return eventCard(ev)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
@@ -49,7 +49,6 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, path string) N
 type EventsPageParams struct {
 	MainTitle string
 	Path      string
-	FilterTag string
 	User      *domain.User
 	CSRF      string
 }
@@ -60,49 +59,19 @@ func EventsPage(p EventsPageParams) Node {
 
 	navLinks = append(navLinks,
 		eventNavLink{
-			Text: "Latest",
-			URL: func() string {
-				if p.Path == "/tag/:tagName" && p.FilterTag != "" {
-					// Current active tab takes back to default.
-					return "/"
-				}
-
-				if p.FilterTag != "" {
-					return fmt.Sprintf("/tag/%s", url.QueryEscape(p.FilterTag))
-				}
-				return "/"
-			}(),
-			Active: p.Path == "/" || p.Path == "/tag/:tagName",
+			Text:   "Latest",
+			URL:    "/",
+			Active: p.Path == "/",
 		},
 		eventNavLink{
-			Text: "Upcoming",
-			URL: func() string {
-				if p.Path == "/upcoming/tag/:tagName" && p.FilterTag != "" {
-					// Current active tab takes back to default.
-					return "/upcoming"
-				}
-
-				if p.FilterTag != "" {
-					return fmt.Sprintf("/upcoming/tag/%s", url.QueryEscape(p.FilterTag))
-				}
-				return "/upcoming"
-			}(),
-			Active: p.Path == "/upcoming" || p.Path == "/upcoming/tag/:tagName",
+			Text:   "Upcoming",
+			URL:    "/upcoming",
+			Active: p.Path == "/upcoming",
 		},
 		eventNavLink{
-			Text: "Past",
-			URL: func() string {
-				if p.Path == "/past/tag/:tagName" {
-					// Current active tab takes back to default.
-					return "/past"
-				}
-
-				if p.FilterTag != "" {
-					return fmt.Sprintf("/past/tag/%s", url.QueryEscape(p.FilterTag))
-				}
-				return "/past"
-			}(),
-			Active: p.Path == "/past" || p.Path == "/past/tag/:tagName",
+			Text:   "Past",
+			URL:    "/past",
+			Active: p.Path == "/past",
 		},
 		eventNavLink{
 			Text:   "Tags",
@@ -111,8 +80,8 @@ func EventsPage(p EventsPageParams) Node {
 		},
 	)
 
-	return page(p.MainTitle, "", p.User,
-		eventNav(p.Path, navLinks, p.CSRF),
+	return Page(p.MainTitle, "", p.User,
+		eventNav(navLinks, p.CSRF),
 		Main(
 			Div(ID("event-list"),
 				hx.Post(""),
@@ -130,7 +99,7 @@ func EventsPage(p EventsPageParams) Node {
 	)
 }
 
-func eventCard(ev *domain.Event, path string) Node {
+func eventCard(ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	return Div(
@@ -157,7 +126,7 @@ func eventCard(ev *domain.Event, path string) Node {
 			Div(Class("col-span-6 sm:col-span-5"),
 				eventTitle(ev),
 				eventDate(ev),
-				If(len(ev.Tags) > 0, eventTags(ev, path)),
+				If(len(ev.Tags) > 0, eventTags(ev)),
 				eventDesc(ev),
 			),
 		),
@@ -206,21 +175,14 @@ func eventDate(ev *domain.Event) Node {
 	}
 }
 
-func eventTags(ev *domain.Event, path string) Node {
+func eventTags(ev *domain.Event) Node {
 	return P(Class("mt-2 text-gray-500 text-sm"),
 		mapIndexed(ev.TagRelations, func(i int, tag *domain.Tag) Node {
-			href := ""
-
-			switch path {
-			case "/", "/tag/:tagName":
-				href = fmt.Sprintf("/tag/%s", url.QueryEscape(tag.Name))
-			case "/upcoming", "/upcoming/tag/:tagName":
-				href = fmt.Sprintf("/upcoming/tag/%s", url.QueryEscape(tag.Name))
-			case "/past", "/past/tag/:tagName":
-				href = fmt.Sprintf("/past/tag/%s", url.QueryEscape(tag.Name))
-			}
-
-			link := A(Class("hover:underline"), Href(href), Text(tag.Name), Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)))
+			link := A(Class("hover:underline hover:cursor-pointer"),
+				Text(tag.Name),
+				Sup(Class("text-gray-400"), Textf("(%d)", tag.EventCount)),
+				Attr("onclick", fmt.Sprintf(`setSearch("%s")`, tag.Name)), // TODO: tag validation
+			)
 
 			if i > 0 {
 				return Group{

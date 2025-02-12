@@ -188,6 +188,7 @@ func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBui
 }
 
 // WithFilterTags filters results with tags.
+// TODO: remove this, tags are implemented in FTS
 func (build EventsQueryBuilder) WithFilterTags(tags ...string) EventsQueryBuilder {
 	return func(q *bun.SelectQuery) {
 		build(q)

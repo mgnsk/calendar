@@ -16,15 +16,15 @@ var eventNavScript string
 
 // ScriptSync creates a synchronously loaded script.
 func ScriptSync(filename string) Node {
-	return Script(Type("application/javascript"), Src(internal.GetAssetLink(filename)))
+	return Script(Src(internal.GetAssetLink(filename)))
 }
 
 // ScriptDefer creates a deferred script.
 func ScriptDefer(filename string) Node {
-	return Script(Type("application/javascript"), Defer(), Src(internal.GetAssetLink(filename)))
+	return Script(Defer(), Src(internal.GetAssetLink(filename)))
 }
 
 // ScriptRaw creates a raw script.
 func ScriptRaw(script string) Node {
-	return Script(Type("application/javascript"), Raw(script))
+	return Script(Raw(script))
 }

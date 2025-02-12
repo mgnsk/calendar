@@ -9,8 +9,9 @@ import (
 )
 
 func userNav(user *domain.User) Node {
-	return Nav(Class("max-w-3xl mx-auto"),
+	return Nav(Class("max-w-3xl mx-auto mb-5"),
 		Ul(Class("flex justify-between font-semibold flex-row space-x-8"),
+			// TODO
 			Li(Class("justify-self-start"),
 				A(Class("inline-block p-2"), Href("/feed"), rssIcon()),
 				A(Class("inline-block p-2"), Href("/ical"), calendarIcon()),
@@ -22,7 +23,7 @@ func userNav(user *domain.User) Node {
 						// If(user.Role == domain.Admin,
 						// 	A(Class("inline-block p-2"), Href("/users"), Text("Users")),
 						// ),
-						A(Class("inline-block p-2"), Href("/manage"), Text("Manage")),
+						A(Class("inline-block p-2"), Href("/add"), Text("Add event")),
 						A(Class("inline-block p-2"), Href("/logout"), Text("Logout")),
 					),
 				}
@@ -37,7 +38,8 @@ func userNav(user *domain.User) Node {
 	)
 }
 
-func page(mainTitle, subTitle string, user *domain.User, children ...Node) Node {
+// Page renders a page.
+func Page(mainTitle, subTitle string, user *domain.User, children ...Node) Node {
 	return HTML5(HTML5Props{
 		Title:    mainTitle,
 		Language: "en",
@@ -48,7 +50,7 @@ func page(mainTitle, subTitle string, user *domain.User, children ...Node) Node 
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
-			Attr("onload", "let input = document.getElementById('search'); input ? input.value = '' : false"),
+			// Attr("onload", "let input = document.getElementById('search'); input ? input.value = '' : false"),
 			container(
 				userNav(user),
 				If(subTitle != "", H1(Class("m-8 text-center text-sm md:text-m"), Text(subTitle))),

@@ -71,8 +71,11 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		}
 
 		if err := user.VerifyPassword(password); err != nil {
-			<-ctx.Done()
-			return invalidLogin()
+			if errors.Is(err, wreck.InvalidValue) {
+				<-ctx.Done()
+				return invalidLogin()
+			}
+			return err
 		}
 
 		// First renew the session token.
@@ -81,7 +84,7 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		}
 
 		// Then make the privilege-level change.
-		h.sm.Put(c.Request().Context(), "username", username)
+		h.sm.Put(c.Request().Context(), "username", user.Username)
 
 		return c.Redirect(http.StatusSeeOther, "/")
 

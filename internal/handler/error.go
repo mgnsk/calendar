@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -49,5 +50,7 @@ func HandleError(err error, c echo.Context) error {
 	slogecho.AddCustomAttributes(c, slog.String("error", err.Error()))
 	c.Response().Status = code
 
-	return html.ErrorPage("Error", code, msg, reqID).Render(c.Response())
+	user := loadUser(c)
+
+	return html.Page("Error", fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID), user).Render(c.Response())
 }
