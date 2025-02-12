@@ -55,7 +55,6 @@ func (h *AddEventHandler) Add(c echo.Context) error {
 			Title:       title,
 			Description: "",
 			URL:         "",
-			Tags:        []string{"festival", "rock"},
 		}); err != nil {
 			return err
 		}

@@ -1,5 +1,5 @@
 CREATE TABLE `events` (
-  `id` bigint PRIMARY KEY NOT NULL,
+  `id` bigint unsigned PRIMARY KEY,
   `start_at_unix` bigint NOT NULL,
   `end_at_unix` bigint,
   `tz_offset` int NOT NULL,

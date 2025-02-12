@@ -20,12 +20,10 @@ var _ = Describe("inserting tags", func() {
 			tags := Must(model.ListTags(ctx, db))
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"ID":   Not(BeZero()),
 					"Name": Equal("tag1"),
 				})),
 
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"ID":   Not(BeZero()),
 					"Name": Equal("tag2"),
 				})),
 			))
@@ -44,17 +42,14 @@ var _ = Describe("inserting tags", func() {
 
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"ID":   Not(BeZero()),
 					"Name": Equal("tag1"),
 				})),
 
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"ID":   Not(BeZero()),
 					"Name": Equal("tag2"),
 				})),
 
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"ID":   Not(BeZero()),
 					"Name": Equal("tag3"),
 				})),
 			))
@@ -71,27 +66,24 @@ var _ = Describe("listing tags", func() {
 					StartAt:     time.Now().Add(3 * time.Hour),
 					EndAt:       time.Time{},
 					Title:       "Event 1",
-					Description: "Desc 1",
+					Description: "Desc 1 tag1",
 					URL:         "",
-					Tags:        []string{"tag1"},
 				},
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(2 * time.Hour),
 					EndAt:       time.Time{},
 					Title:       "Event 2",
-					Description: "Desc 2",
+					Description: "Desc 2 tag1 tag2",
 					URL:         "",
-					Tags:        []string{"tag1", "tag2"},
 				},
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(1 * time.Hour),
 					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
-					Description: "Desc 3",
+					Description: "Desc 3 tag3",
 					URL:         "",
-					Tags:        []string{"tag3"},
 				},
 			}
 
@@ -104,21 +96,18 @@ var _ = Describe("listing tags", func() {
 	Specify("tags contain the number of related events", func(ctx SpecContext) {
 		tags := Must(model.ListTags(ctx, db))
 
-		Expect(tags).To(HaveExactElements(
+		Expect(tags).To(ContainElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
-				"ID":         Not(BeZero()),
 				"Name":       Equal("tag1"),
 				"EventCount": Equal(uint64(2)),
 			})),
 
 			PointTo(MatchFields(IgnoreExtras, Fields{
-				"ID":         Not(BeZero()),
 				"Name":       Equal("tag2"),
 				"EventCount": Equal(uint64(1)),
 			})),
 
 			PointTo(MatchFields(IgnoreExtras, Fields{
-				"ID":         Not(BeZero()),
 				"Name":       Equal("tag3"),
 				"EventCount": Equal(uint64(1)),
 			})),

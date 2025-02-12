@@ -1,5 +1,5 @@
 CREATE TABLE `events_tags` (
-  `tag_id` bigint NOT NULL,
-  `event_id` bigint NOT NULL,
+  `tag_id` integer NOT NULL,
+  `event_id` bigint unsigned NOT NULL,
   PRIMARY KEY (`event_id`, `tag_id`)
 );
