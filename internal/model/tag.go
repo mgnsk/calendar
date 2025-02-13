@@ -41,12 +41,13 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 	return nil
 }
 
-// ListTags lists tags.
-func ListTags(ctx context.Context, db bun.IDB) ([]*domain.Tag, error) {
+// ListTags lists most popular tags.
+func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
 	if err := db.NewSelect().Model(&model).
-		Order("name ASC").
+		Order("event_count DESC", "name ASC").
+		Limit(limit).
 		Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}

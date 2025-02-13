@@ -13,6 +13,10 @@ func AddEventPage(mainTitle string, errs map[string]string, title, csrf string) 
 				Action("/add"),
 				Method("POST"),
 				input("title", "text", "Title", title, errs["title"]),
+				Textarea(
+					Name("desc"),
+					Rows("3"),
+				),
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Button(Type("submit"), Class("font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Submit")),
 			),

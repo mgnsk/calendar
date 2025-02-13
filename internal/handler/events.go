@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -56,12 +57,16 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	user := loadUser(c)
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		tags, err := model.ListTags(c.Request().Context(), h.db)
+		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
 			}
 		}
+
+		slices.SortFunc(tags, func(a, b *domain.Tag) int {
+			return strings.Compare(a.Name, b.Name)
+		})
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)

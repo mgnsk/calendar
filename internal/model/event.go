@@ -4,14 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
+	"github.com/mgnsk/calendar/internal/pkg/textfilter"
 	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
@@ -201,14 +200,14 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 	var searchResults []*eventFTS
 
 	if searchText != "" {
-		searchText = cleanString(searchText)
+		searchText = textfilter.Clean(searchText)
 		if len(searchText) < 3 {
 			return nil, wreck.NotFound.New("No search results were found")
 		}
 
 		// Try exact match first and only when non-quoted input.
 		if !strings.Contains(searchText, `"`) {
-			quoted := ensureQuoted(searchText)
+			quoted := textfilter.EnsureQuoted(searchText)
 			results, err := searchEvents(ctx, q.DB(), quoted)
 			if err != nil {
 				return nil, err
@@ -218,7 +217,7 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 
 		// Search again more generally.
 		if len(searchResults) == 0 {
-			searchText = prepareGeneralSearchString(searchText)
+			searchText = textfilter.PrepareFTSSearchString(searchText)
 			results, err := searchEvents(ctx, q.DB(), searchText)
 			if err != nil {
 				return nil, err
@@ -279,48 +278,4 @@ func eventToDomain(ev *Event) *domain.Event {
 		Description: ev.Description,
 		URL:         ev.URL,
 	}
-}
-
-func ensureQuoted(s string) string {
-	if unquoted, err := strconv.Unquote(s); err == nil {
-		return strconv.Quote(unquoted)
-	}
-	return strconv.Quote(s)
-}
-
-func prepareGeneralSearchString(s string) string {
-	fields := splitString(s)
-	quoted := make([]string, 0, len(fields))
-
-	for _, field := range fields {
-		quoted = append(quoted, ensureQuoted(field))
-	}
-
-	s = strings.Join(quoted, " ")
-
-	return s
-}
-
-func cleanString(s string) string {
-	return strings.Map(func(r rune) rune {
-		if r == unicode.ReplacementChar {
-			return -1
-		}
-		if !unicode.IsPrint(r) {
-			return -1
-		}
-		return r
-	}, s)
-}
-
-// splitString splits a string by whitespace while
-// attempting to keep the most common bases of quote usage.
-func splitString(s string) []string {
-	quoted := false
-	return strings.FieldsFunc(s, func(r rune) bool {
-		if unicode.In(r, unicode.Quotation_Mark) {
-			quoted = !quoted
-		}
-		return !quoted && unicode.IsSpace(r)
-	})
 }
