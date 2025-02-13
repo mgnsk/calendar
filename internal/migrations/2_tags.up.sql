@@ -4,3 +4,5 @@ CREATE TABLE `tags` (
   `event_count` bigint unsigned NOT NULL,
   UNIQUE (`name`)
 );
+
+CREATE INDEX tags_event_count_idx ON tags (event_count);

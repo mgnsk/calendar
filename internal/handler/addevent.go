@@ -39,8 +39,10 @@ func (h *AddEventHandler) Add(c echo.Context) error {
 
 		// TODO: form validation framework
 		title := c.FormValue("title")
-		if title == "" {
+		desc := c.FormValue("desc")
+		if title == "" || desc == "" {
 			errs["title"] = "Required"
+			errs["desc"] = "Required"
 
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
@@ -53,7 +55,7 @@ func (h *AddEventHandler) Add(c echo.Context) error {
 			StartAt:     time.Now(),
 			EndAt:       time.Now().Add(2 * time.Hour),
 			Title:       title,
-			Description: "",
+			Description: desc,
 			URL:         "",
 		}); err != nil {
 			return err

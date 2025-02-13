@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gosimple/slug"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/timestamp"
 )
@@ -50,25 +51,21 @@ func (e *Event) GetDateString() string {
 // GetTags returns unique words in title and description.
 // A word is defined as having at least 3 characters.
 func (e *Event) GetTags() []string {
-	titleWords := strings.Split(e.Title, " ")
-	descWords := strings.Split(e.Description, " ")
-
-	var words []string
-	for _, word := range titleWords {
-		if len(word) >= 3 {
-			words = append(words, word)
-		}
-	}
-	for _, word := range descWords {
-		if len(word) >= 3 {
-			words = append(words, word)
+	var slugs []string
+	for _, source := range []string{e.Title, e.Description} {
+		for _, word := range strings.Split(source, " ") {
+			if len(word) >= 3 {
+				if s := slug.Make(word); s != "" {
+					slugs = append(slugs, s)
+				}
+			}
 		}
 	}
 
-	slices.Sort(words)
-	words = slices.Compact(words)
+	slices.Sort(slugs)
+	slugs = slices.Compact(slugs)
 
-	return words
+	return slugs
 }
 
 // GetDescription returns the event description with tags.
