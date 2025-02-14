@@ -21,76 +21,74 @@ type SetupHandler struct {
 
 // Setup handles the setup page.
 func (h *SetupHandler) Setup(c echo.Context) error {
-	settings := loadSettings(c)
-	if settings != nil {
+	s := loadSettings(c)
+	if s != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
 	} else {
-		settings = domain.NewDefaultSettings()
+		s = domain.NewDefaultSettings()
 	}
+	csrf := c.Get("csrf").(string)
 
 	switch c.Request().Method {
 	case http.MethodGet:
-
-		vals := url.Values{}
-		vals.Set("title", settings.Title)
-		vals.Set("description", settings.Description)
+		form := url.Values{}
+		form.Set("title", s.Title)
+		form.Set("description", s.Description)
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.SetupPage(vals, nil, c.Get("csrf").(string)).Render(c.Response())
+		return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
-		// TODO: Implement some form validation framework
-		errs := map[string]string{}
+		form, err := c.FormParams()
+		if err != nil {
+			return err
+		}
+		errs := url.Values{}
 
 		title := c.FormValue("title")
 		if title == "" {
-			errs["title"] = "Title must be set"
+			errs.Set("title", "Title must be set")
 		}
 
-		desc := c.FormValue("description")
+		desc := c.FormValue("desc")
 		if title == "" {
-			errs["description"] = "Description must be set"
+			errs.Set("desc", "Description must be set")
 		}
 
 		username := c.FormValue("username")
 		if username == "" {
-			errs["username"] = "Username must be set"
+			errs.Set("username", "Username must be set")
 		}
 
 		password1 := c.FormValue("password1")
 		if password1 == "" {
-			errs["password1"] = "Password must be set"
+			errs.Set("password1", "Password must be set")
 		}
 
 		password2 := c.FormValue("password2")
 		if password2 == "" {
-			errs["password2"] = "Password must be set"
+			errs.Set("password2", "Password must be set")
 		}
 
 		if password1 != password2 {
-			errs["password2"] = "Passwords must match"
+			errs.Set("password2", "Passwords must match")
 		}
 
 		if len(errs) > 0 {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			form, err := c.FormParams()
-			if err != nil {
-				return err
-			}
-
-			return html.SetupPage(form, errs, c.Get("csrf").(string)).Render(c.Response())
+			return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, errs, csrf)).Render(c.Response())
 		}
 
-		settings.Title = title
-		settings.Description = desc
+		s.Title = title
+		s.Description = desc
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.InsertSettings(ctx, tx, settings); err != nil {
+			if err := model.InsertSettings(ctx, tx, s); err != nil {
 				return err
 			}
 

@@ -16,8 +16,24 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
+// EventsMain renders the events page main content.
+func EventsMain(csrf string) Node {
+	return Main(
+		Div(ID("event-list"),
+			hx.Post(""),
+			hx.Trigger("load"),
+			hx.Swap("beforeend"),
+			hx.Target("#event-list"),
+			hx.Indicator("#loading-spinner"),
+			hx.Vals(string(must(json.Marshal(map[string]string{
+				"csrf": csrf,
+			})))),
+		),
+	)
+}
+
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, csrf, filterTag string) Node {
+func EventListPartial(offset int64, events []*domain.Event, csrf, searchText string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -25,7 +41,6 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, filterTag stri
 	}
 
 	return Group{
-		If(filterTag != "", ScriptRaw(fmt.Sprintf(`setSearch("%s")`, filterTag))), // TODO: tag validation
 		Map(events, func(ev *domain.Event) Node {
 			return eventCard(ev)
 		}),
@@ -45,68 +60,15 @@ func EventListPartial(offset int64, events []*domain.Event, csrf, filterTag stri
 	}
 }
 
-// EventsPageParams is the params for events page.
-type EventsPageParams struct {
-	MainTitle string
-	Path      string
-	User      *domain.User
-	CSRF      string
-}
-
-// EventsPage display events page.
-func EventsPage(p EventsPageParams) Node {
-	var navLinks []eventNavLink
-
-	navLinks = append(navLinks,
-		eventNavLink{
-			Text:   "Latest",
-			URL:    "/",
-			Active: p.Path == "/",
-		},
-		eventNavLink{
-			Text:   "Upcoming",
-			URL:    "/upcoming",
-			Active: p.Path == "/upcoming",
-		},
-		eventNavLink{
-			Text:   "Past",
-			URL:    "/past",
-			Active: p.Path == "/past",
-		},
-		eventNavLink{
-			Text:   "Tags",
-			URL:    "/tags",
-			Active: false,
-		},
-	)
-
-	return Page(p.MainTitle, "", p.User,
-		eventNav(navLinks, p.CSRF),
-		Main(
-			Div(ID("event-list"),
-				hx.Post(""),
-				hx.Trigger("load"),
-				hx.Swap("beforeend"),
-				hx.Target("#event-list"),
-				hx.Indicator("#loading-spinner"),
-				hx.Vals(string(must(json.Marshal(map[string]string{
-					"csrf": p.CSRF,
-				})))),
-			),
-		),
-		ScriptSync("dist/mark.min.js"),
-		ScriptRaw(searchScript),
-	)
-}
-
 func eventCard(ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	return Div(
 		Classes{
-			"relative":  true,
-			"max-w-3xl": true,
-			"mx-auto":   true,
+			"event-card": true,
+			"relative":   true,
+			"max-w-3xl":  true,
+			"mx-auto":    true,
 
 			// Less opacity for events that have already started.
 			"opacity-60": inPast,
@@ -188,7 +150,3 @@ func must[V any](v V, err error) V {
 	}
 	return v
 }
-
-var iconShare = Raw(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-</svg>`)

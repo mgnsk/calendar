@@ -2,6 +2,7 @@ package html
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/aybabtme/uniplot/histogram"
 	"github.com/mgnsk/calendar/internal/domain"
@@ -11,6 +12,22 @@ import (
 	. "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
 )
+
+// TagsMain renders the tags page main content.
+func TagsMain(csrf string) Node {
+	return Main(
+		Div(ID("event-list"),
+			hx.Post(""),
+			hx.Trigger("load"),
+			hx.Swap("beforeend"),
+			hx.Target("#event-list"),
+			hx.Indicator("#loading-spinner"),
+			hx.Vals(string(must(json.Marshal(map[string]string{
+				"csrf": csrf,
+			})))),
+		),
+	)
+}
 
 // TagListPartial renders the tag list partial.
 func TagListPartial(tags []*domain.Tag, csrf string) Node {
@@ -51,67 +68,19 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 						// Show latest tagged events on click.
 						hx.Post("/"),
 						hx.Trigger("click"),
-						Attr("onclick", `changeTab(document.querySelectorAll(".nav-link")[0])`),
+						Attr("onclick", fmt.Sprintf(`changeTab(document.querySelectorAll(".nav-link")[0]); setSearch("%s")`, tag.Name)),
+
 						hx.Target("#event-list"),
 						hx.Swap("innerHTML"),
 						hx.PushURL("true"),
 						hx.Indicator("#loading-spinner"),
 						hx.Vals(string(must(json.Marshal(map[string]string{
-							"csrf": csrf,
-							"tag":  tag.Name,
+							"csrf":   csrf,
+							"search": tag.Name,
 						})))),
 					),
 				)
 			}),
-		),
-	)
-}
-
-// TagsPageParams is the params for tags page.
-type TagsPageParams struct {
-	MainTitle    string
-	SectionTitle string
-	Path         string
-	User         *domain.User
-	CSRF         string
-}
-
-// TagsPage displays tags list page.
-func TagsPage(p TagsPageParams) Node {
-	return Page(p.MainTitle, p.SectionTitle, p.User,
-		eventNav([]eventNavLink{
-			{
-				Text:   "Latest",
-				URL:    "/",
-				Active: false,
-			},
-			{
-				Text:   "Upcoming",
-				URL:    "/upcoming",
-				Active: false,
-			},
-			{
-				Text:   "Past",
-				URL:    "/past",
-				Active: false,
-			},
-			{
-				Text:   "Tags",
-				URL:    "/tags",
-				Active: true,
-			},
-		}, p.CSRF),
-		Main(
-			Div(ID("event-list"),
-				hx.Post(""),
-				hx.Trigger("load"),
-				hx.Swap("beforeend"),
-				hx.Target("#event-list"),
-				hx.Indicator("#loading-spinner"),
-				hx.Vals(string(must(json.Marshal(map[string]string{
-					"csrf": p.CSRF,
-				})))),
-			),
 		),
 	)
 }

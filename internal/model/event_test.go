@@ -8,7 +8,6 @@ import (
 	"github.com/mgnsk/calendar/internal/model"
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	. "github.com/mgnsk/calendar/internal/pkg/testing"
-	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -181,7 +180,7 @@ var _ = Describe("full text search", func() {
 					ID:          snowflake.Generate(),
 					StartAt:     startTime,
 					EndAt:       time.Time{},
-					Title:       "Event ÕÄÖÜ 😀",
+					Title:       "Event ÕÄÖÜ 😀😀😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
 				},
@@ -203,20 +202,23 @@ var _ = Describe("full text search", func() {
 
 	DescribeTable("incorrect queries",
 		func(ctx SpecContext, query string) {
-			_, err := model.NewEventsQuery().
-				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
-				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
-				WithOrder(0, model.OrderStartAtAsc).
-				List(ctx, db, query)
+			result := Must(
+				model.NewEventsQuery().
+					WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
+					WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
+					WithOrder(0, model.OrderStartAtAsc).
+					List(ctx, db, query),
+			)
 
-			Expect(err).To(MatchError(wreck.NotFound))
+			Expect(result).To(BeEmpty())
 		},
-		Entry("emoji", `😀`),
-		Entry("invalid utf8", `😀`[:len(`😀`)-1]),
+		Entry("multiple exact match at least one", `"Desc 2" "unknown@email.testing"`), // Defaults to AND operator.
+		Entry("only AND operator", "AND"),
+		Entry("unused AND operator", "AND something"),
 		Entry("backslash", `aou\`),
+		Entry("spaces", "Desc \t \u00a0  3"),
 		Entry("wildcard in beginning", `*aou`),
-		Entry("wildcard in the end", `aou*`), // Note: we quote searches, making this otherwise valid query invalid.
-		Entry("no multiple exact match", `"Desc 2" "unknown@email.testing"`),
+		Entry("wildcard in the end", `Des*`), // Note: we quote searches, making this otherwise valid query invalid.
 	)
 
 	DescribeTable("valid queries",
@@ -231,27 +233,24 @@ var _ = Describe("full text search", func() {
 
 			Expect(result).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Title":       Equal("Event ÕÄÖÜ 😀"),
+					"Title":       Equal("Event ÕÄÖÜ 😀😀😀"),
 					"Description": HavePrefix("Desc 2"),
 				})),
 			))
 		},
 		Entry("letters", `aou`),
+		Entry("emoji", `😀😀😀`),
 		Entry("multi word exact match", `Desc 2`),
+		Entry("quoted exact match", `"Desc 2"`),
 		Entry("exact match", `"Desc 2"`),
-		Entry("spaces", "Desc \t \u00a0  3"),
-		Entry("invalid", "Desc \t \xa0  3"),
 		Entry("special characters", `äöü`),
 		Entry("partial word", `des`),
 		Entry("partial word no prefix", `esc`),
 		Entry("partial words", `des even`),
 		Entry("partial word", `even`),
 		Entry("multiple exact match", `"Desc 2" "some@email.testing"`),
+		Entry("OR operator", `"Desc 2" OR "some@email.testing"`),
 		Entry("email", `some@email.testing`),
-		Entry("day", "3rd"),
-		Entry("day and month", "3 jan"),
-		Entry("month and day", "jan 3"),
-		Entry("day and partial month", "3 ja"),
 	)
 })
 

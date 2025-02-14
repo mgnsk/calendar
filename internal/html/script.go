@@ -19,9 +19,9 @@ func ScriptSync(filename string) Node {
 	return Script(Src(internal.GetAssetLink(filename)))
 }
 
-// ScriptDefer creates a deferred script.
-func ScriptDefer(filename string) Node {
-	return Script(Defer(), Src(internal.GetAssetLink(filename)))
+// ScriptAsyncDefer creates an async deferred script.
+func ScriptAsyncDefer(filename string) Node {
+	return Script(Async(), Defer(), Src(internal.GetAssetLink(filename)))
 }
 
 // ScriptRaw creates a raw script.

@@ -61,10 +61,10 @@ func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error)
 }
 
 // increaseEventCounts increases tags' event counts by one.
-func increaseEventCounts(ctx context.Context, db bun.IDB, names ...string) error {
+func increaseEventCounts(ctx context.Context, db bun.IDB, tagIDs ...snowflake.ID) error {
 	return sqlite.WithErrorChecking(db.NewUpdate().Model((*Tag)(nil)).
 		Set("event_count = event_count + 1").
-		Where("name IN (?)", bun.In(names)).
+		Where("id IN (?)", bun.In(tagIDs)).
 		Exec(ctx))
 }
 

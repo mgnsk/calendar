@@ -77,15 +77,10 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
-	settings := loadSettings(c)
+	s := loadSettings(c)
+	csrf := c.Get("csrf").(string)
 
-	return html.TagsPage(html.TagsPageParams{
-		MainTitle:    settings.Title,
-		SectionTitle: "Tags",
-		Path:         c.Path(),
-		User:         user,
-		CSRF:         c.Get("csrf").(string),
-	}).Render(c.Response())
+	return html.Page(s.Title, user, c.Path(), csrf, html.TagsMain(csrf)).Render(c.Response())
 }
 
 func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
@@ -122,20 +117,16 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(cursor, events, c.Get("csrf").(string), c.FormValue("tag")).Render(c.Response())
+		return html.EventListPartial(cursor, events, c.Get("csrf").(string), c.FormValue("search")).Render(c.Response())
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
 
 	s := loadSettings(c)
+	csrf := c.Get("csrf").(string)
 
-	return html.EventsPage(html.EventsPageParams{
-		MainTitle: s.Title,
-		Path:      c.Path(),
-		User:      user,
-		CSRF:      c.Get("csrf").(string),
-	}).Render(c.Response())
+	return html.Page(s.Title, user, c.Path(), csrf, html.EventsMain(csrf)).Render(c.Response())
 }
 
 // Register the handler.
