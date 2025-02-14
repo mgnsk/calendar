@@ -5,7 +5,7 @@ const punct = ":;.,-–—‒_(){}[]!'\"+=".split("");
 async function highlightResults(node) {
   return new Promise((resolve) => {
     const mark = new Mark(node);
-    const s = search.value.replace(/\"+/g, ""); // Remove double quotes.
+    const s = search.value.replace(/"+/g, ""); // Remove double quotes.
     const results = [];
 
     mark.mark(s, {
