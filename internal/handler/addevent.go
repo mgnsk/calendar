@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -25,29 +26,34 @@ func (h *AddEventHandler) Add(c echo.Context) error {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
-	settings := loadSettings(c)
+	s := loadSettings(c)
+	csrf := c.Get("csrf").(string)
 
 	switch c.Request().Method {
 	case http.MethodGet:
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.AddEventPage(settings.Title, nil, "", c.Get("csrf").(string)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.AddEventMain(nil, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
-		errs := map[string]string{}
+		form, err := c.FormParams()
+		if err != nil {
+			return err
+		}
+		errs := url.Values{}
 
 		// TODO: form validation framework
 		title := c.FormValue("title")
 		desc := c.FormValue("desc")
 		if title == "" || desc == "" {
-			errs["title"] = "Required"
-			errs["desc"] = "Required"
+			errs.Set("title", "Required")
+			errs.Set("desc", "Required")
 
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.AddEventPage(settings.Title, errs, title, c.Get("csrf").(string)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.AddEventMain(form, errs, csrf)).Render(c.Response())
 		}
 
 		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{

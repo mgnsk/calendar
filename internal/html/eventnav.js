@@ -1,10 +1,4 @@
 function changeTab(link) {
-  // Clear search.
-  const search = document.getElementById("search");
-  if (search) {
-    search.value = "";
-  }
-
   // Make all links inactive.
   document.querySelectorAll(".nav-link").forEach(function (el) {
     el.classList.add("text-gray-400");

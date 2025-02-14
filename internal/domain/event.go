@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
-	"github.com/mgnsk/calendar/internal/pkg/timestamp"
+	"github.com/mgnsk/calendar/internal/pkg/textfilter"
 )
 
 // Event is the event domain model.
@@ -52,11 +52,7 @@ func (e *Event) GetDateString() string {
 func (e *Event) GetTags() []string {
 	var words []string
 	for _, source := range []string{e.Title, e.Description} {
-		for _, word := range strings.Split(source, " ") {
-			if len(word) >= 3 {
-				words = append(words, word)
-			}
-		}
+		words = append(words, textfilter.GetTags(source)...)
 	}
 
 	slices.Sort(words)
@@ -84,29 +80,4 @@ func (e *Event) GetDescription() string {
 	}
 
 	return buf.String()
-}
-
-// GetFTSData returns the combined data for full text search.
-func (e *Event) GetFTSData() string {
-	words := []string{
-		e.Title,
-		e.Description,
-		e.URL,
-	}
-
-	day := e.StartAt.Day()
-	words = append(words, timestamp.FormatDay(day))
-
-	for _, format := range []string{
-		"_2 January, 2006",
-		"02.01.2006",
-		time.DateOnly,
-		"15:04",
-		time.Kitchen,
-		"3PM",
-	} {
-		words = append(words, e.StartAt.Format(format))
-	}
-
-	return strings.Join(words, " ")
 }

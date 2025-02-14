@@ -3,7 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/mgnsk/calendar/internal/pkg/snowflake"
 	"github.com/mgnsk/calendar/internal/pkg/sqlite"
 	"github.com/mgnsk/calendar/internal/pkg/textfilter"
-	"github.com/mgnsk/calendar/internal/pkg/wreck"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
@@ -26,7 +25,6 @@ type Event struct {
 	Description    string        `bun:"description"`
 	URL            string        `bun:"url"`
 	Tags           []*Tag        `bun:"m2m:events_tags,join:Event=Tag"`
-	FTSData        string        `bun:"fts_data"`
 
 	bun.BaseModel `bun:"events"`
 }
@@ -38,13 +36,6 @@ type eventToTag struct {
 	Event   *Event       `bun:"rel:belongs-to,join:event_id=id"`
 
 	bun.BaseModel `bun:"events_tags"`
-}
-
-type eventFTS struct {
-	ID   snowflake.ID `bun:"rowid"`
-	Data string       `bun:"fts_data"`
-
-	bun.BaseModel `bun:"events_fts_idx"`
 }
 
 // InsertEvent inserts an event to the database.
@@ -64,7 +55,6 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Description:    ev.Description,
 			URL:            ev.URL,
 			Tags:           nil,
-			FTSData:        ev.GetFTSData(),
 		}).Exec(ctx)); err != nil {
 			return err
 		}
@@ -97,7 +87,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			return err
 		}
 
-		return increaseEventCounts(ctx, db, tags...)
+		return increaseEventCounts(ctx, db, tagIDs...)
 	})
 }
 
@@ -193,47 +183,48 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 
 	model := []*Event{}
 
-	q.Model(&model).Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
-		return q.Order("tag.name ASC")
-	})
+	q.Model(&model)
 
-	var searchResults []*eventFTS
+	// q.Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
+	// 	return q.Order("tag.name ASC")
+	// })
 
+	// Note: for search, we do not order by `rank` column from fts table.
+	// The original order of the events query is used.
 	if searchText != "" {
-		searchText = textfilter.Clean(searchText)
+		searchText = strings.TrimSpace(searchText)
 		if len(searchText) < 3 {
-			return nil, wreck.NotFound.New("No search results were found")
+			return []*domain.Event{}, nil
 		}
 
-		// Try exact match first and only when non-quoted input.
+		var (
+			exact   string
+			general []string
+		)
+
 		if !strings.Contains(searchText, `"`) {
-			quoted := textfilter.EnsureQuoted(searchText)
-			results, err := searchEvents(ctx, q.DB(), quoted)
-			if err != nil {
-				return nil, err
-			}
-			searchResults = results
+			exact = textfilter.EnsureQuoted(searchText)
+		}
+		general = textfilter.PrepareFTSSearchStrings(searchText)
+
+		var searchWord string
+		if exact == "" {
+			// Only general search.
+			searchWord = strings.Join(general, " ")
+		} else if len(general) == 0 || len(general) == 1 && exact == general[0] {
+			// Only exact search.
+			searchWord = exact
+		} else {
+			// Both exact and general.
+			searchWord = fmt.Sprintf("(%s) OR (%s)", exact, strings.Join(general, " "))
 		}
 
-		// Search again more generally.
-		if len(searchResults) == 0 {
-			searchText = textfilter.PrepareFTSSearchString(searchText)
-			results, err := searchEvents(ctx, q.DB(), searchText)
-			if err != nil {
-				return nil, err
-			}
-			searchResults = results
-		}
+		ftsQuery := db.NewSelect().
+			ColumnExpr("rowid").
+			Table("events_fts_idx").
+			Where("events_fts_idx MATCH ?", searchWord)
 
-		if len(searchResults) == 0 {
-			return nil, wreck.NotFound.New("No search results were found")
-		}
-	}
-
-	if len(searchResults) > 0 {
-		q.Where("event.id IN (?)", bun.In(lo.Map(searchResults, func(r *eventFTS, _ int) snowflake.ID {
-			return r.ID
-		})))
+		q.Join("JOIN (?) AS exact_result ON exact_result.rowid = event.id", ftsQuery)
 	}
 
 	if err := q.Scan(ctx); err != nil {
@@ -243,23 +234,6 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 	return lo.Map(model, func(ev *Event, _ int) *domain.Event {
 		return eventToDomain(ev)
 	}), nil
-}
-
-func searchEvents(ctx context.Context, db bun.IDB, text string) ([]*eventFTS, error) {
-	model := []*eventFTS{}
-
-	if err := sqlite.NormalizeError(db.NewSelect().Model(&model).
-		Column("rowid").
-		Where("events_fts_idx MATCH ?", text).
-		Order("rank").
-		Scan(ctx)); err != nil {
-		if errors.Is(err, wreck.NotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return model, nil
 }
 
 func eventToDomain(ev *Event) *domain.Event {

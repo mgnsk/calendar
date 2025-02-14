@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
@@ -27,29 +28,34 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
-	settings := loadSettings(c)
+	s := loadSettings(c)
+	csrf := c.Get("csrf").(string)
 
 	switch c.Request().Method {
 	case http.MethodGet:
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.LoginPage(settings.Title, nil, c.Get("csrf").(string), "", "").Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(nil, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
+		form, err := c.FormParams()
+		if err != nil {
+			return err
+		}
+		errs := url.Values{}
+
 		username := c.FormValue("username")
 		password := c.FormValue("password")
 
 		invalidLogin := func() error {
+			errs.Set("username", "Invalid username or password")
+			errs.Set("password", "Invalid username or password")
+
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			errs := map[string]string{
-				"username": "Invalid username or password",
-				"password": "Invalid username or password",
-			}
-
-			return html.LoginPage(settings.Title, errs, c.Get("csrf").(string), username, password).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(form, errs, csrf)).Render(c.Response())
 		}
 
 		if username == "" || password == "" {
@@ -93,7 +99,7 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 	}
 }
 
-// Login handles logout page.
+// Logout handles logout page.
 func (h *AuthenticationHandler) Logout(c echo.Context) error {
 	if err := h.sm.Destroy(c.Request().Context()); err != nil {
 		return err

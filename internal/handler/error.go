@@ -51,6 +51,8 @@ func HandleError(err error, c echo.Context) error {
 	c.Response().Status = code
 
 	user := loadUser(c)
+	csrf := c.Get("csrf").(string)
+	errText := fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID)
 
-	return html.Page("Error", fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID), user).Render(c.Response())
+	return html.Page("Error", user, c.Path(), csrf, html.ErrorMain(errText)).Render(c.Response())
 }

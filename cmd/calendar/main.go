@@ -64,7 +64,7 @@ func run() error {
 	}
 
 	filename := filepath.Join(databaseDir, "calendar.sqlite")
-	db := sqlite.NewDB(filename).WithDebugLogging().Connect()
+	db := sqlite.NewDB(filename).Connect()
 	defer func() {
 		if err := db.Close(); err != nil {
 			slog.Error("error closing database connection", slog.String("error", err.Error()))
@@ -96,20 +96,20 @@ func run() error {
 		return nil
 	})
 
-	// if *isDemo {
-	// 	g.Go(func() error {
-	// 		slog.Info("running in demo mode, inserting testdata")
-	// 		n := 100
-	// 		for range n {
-	// 			if err := insertTestData(ctx, db); err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 		slog.Info("finished inserting testdata")
-	// 		return nil
-	// 	})
-	// }
-	//
+	if *isDemo {
+		g.Go(func() error {
+			slog.Info("running in demo mode, inserting testdata")
+			n := 1000
+			for range n {
+				if err := insertTestData(ctx, db); err != nil {
+					return err
+				}
+			}
+			slog.Info("finished inserting testdata")
+			return nil
+		})
+	}
+
 	// Initialize the session store.
 	store, err := bunstore.New(db)
 	if err != nil {
