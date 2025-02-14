@@ -5,7 +5,7 @@ const punct = ":;.,-–—‒_(){}[]!'\"+=".split("");
 async function highlightResults(node) {
   return new Promise((resolve) => {
     const mark = new Mark(node);
-    const s = search.value.replace(/["]+/g, ""); // Remove double quotes.
+    const s = search.value.replace(/\"+/g, ""); // Remove double quotes.
     const results = [];
 
     mark.mark(s, {
@@ -27,11 +27,13 @@ if (search && eventList) {
         // Initial events loaded (on tab switch or search query change).
         await highlightResults(evt.detail.elt);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        break;
 
       case "load-more":
         // Infinite scroll loaded more events.
         // Highlight the added event.
         await highlightResults(evt.detail.elt);
+        break;
     }
   });
 }
