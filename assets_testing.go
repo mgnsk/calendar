@@ -6,5 +6,10 @@ import (
 	"io/fs"
 )
 
-// DistFS is an empty placeholder assets filesystem for testing.
-var DistFS fs.FS
+// assetsFS is an empty placeholder assets filesystem for testing.
+var assetsFS fs.FS
+
+// GetAssetPath returns the asset path.
+func GetAssetPath(name string) string {
+	return name
+}

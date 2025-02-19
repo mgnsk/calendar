@@ -13,15 +13,6 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// AssetCacheMiddleware enables caching for responses.
-func AssetCacheMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set("Cache-Control", "max-age=31536000, immutable")
-
-		return next(c)
-	}
-}
-
 // LoadSettingsMiddleware loads settings or redirects to setup page.
 func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
