@@ -6,7 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY tailwind.config.js tailwind.css ./
-COPY internal/html ./internal/html
+COPY html ./
 RUN npx tailwindcss -i tailwind.css -o app.css --minify
 
 
