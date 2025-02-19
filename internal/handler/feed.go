@@ -87,8 +87,8 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 			Description: ev.GetDescription(),
 			Id:          ev.ID.String(),
 			IsPermaLink: "false",
-			Updated:     ev.StartAt,
-			Created:     ev.StartAt,
+			Updated:     ev.GetCreatedAt(),
+			Created:     ev.GetCreatedAt(),
 		})
 	}
 

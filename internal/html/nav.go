@@ -20,8 +20,8 @@ func UserNav(user *domain.User, path, csrf string) Node {
 				A(Class("inline-block p-2"), Title("RSS feed"), Href("/feed"), rssIcon()),
 				A(Class("inline-block p-2"), Title("iCal URL"), ID("ical-link"), calendarIcon()),
 				A(Class("inline-block p-2"), Title("Add to Google Calendar"), ID("google-calendar-link"), Target("_blank"), calendarIcon()),
-				ScriptRaw(`document.getElementById("ical-link").setAttribute("href", "webcals://" + window.location.host + "/ical")`),
-				ScriptRaw(`document.getElementById("google-calendar-link").setAttribute("href", "https://calendar.google.com/calendar/render?cid=" + window.location.protocol + "//" + window.location.host + "/ical")`),
+				Script(Raw(`document.getElementById("ical-link").setAttribute("href", "webcals://" + window.location.host + "/ical")`)),
+				Script(Raw(`document.getElementById("google-calendar-link").setAttribute("href", "https://calendar.google.com/calendar/render?cid=" + window.location.protocol + "//" + window.location.host + "/ical")`)),
 			),
 
 			Iff(user != nil, func() Node {
@@ -137,7 +137,6 @@ func EventNav(path, csrf string) Node {
 						Name("search"),
 						Type("text"),
 						Placeholder("Filter..."),
-						Required(),
 						hx.Post(""), // Post to current URL.
 						hx.Trigger("input delay:0.2s"),
 						hx.Target("#event-list"),

@@ -10,34 +10,15 @@ import (
 )
 
 // Role is a user role.
-type Role int
-
-func (r Role) String() string {
-	switch r {
-	case Author:
-		return "author"
-
-	case Editor:
-		return "editor"
-
-	case Admin:
-		return "admin"
-
-	default:
-		return "unknown"
-	}
-}
+type Role string
 
 // User roles.
 const (
 	// Author can add events and edit their own events.
-	Author Role = 0
+	Author Role = "author"
 
-	// Editor can add events and edit all events.
-	Editor Role = 1
-
-	// Admin can do everything.
-	Admin Role = 255
+	// Admin can do everything, including adding new users.
+	Admin Role = "admin"
 )
 
 // User is the user domain model.

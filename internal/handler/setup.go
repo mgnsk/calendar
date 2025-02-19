@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/internal/domain"
 	"github.com/mgnsk/calendar/internal/html"
@@ -17,6 +18,7 @@ import (
 // SetupHandler handles setup pages.
 type SetupHandler struct {
 	db *bun.DB
+	sm *scs.SessionManager
 }
 
 // Setup handles the setup page.
@@ -104,14 +106,13 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 			return err
 		}
 
-		// TODO: currently the user must explicitly log in after setup
-		// // First renew the session token.
-		// if err := h.sm.RenewToken(c.Request().Context()); err != nil {
-		// 	return err
-		// }
-		//
-		// // Then make the privilege-level change.
-		// h.sm.Put(c.Request().Context(), "username", username)
+		// First renew the session token.
+		if err := h.sm.RenewToken(c.Request().Context()); err != nil {
+			return err
+		}
+
+		// Then make the privilege-level change.
+		h.sm.Put(c.Request().Context(), "username", username)
 
 		return c.Redirect(http.StatusSeeOther, "/")
 
@@ -127,8 +128,9 @@ func (h *SetupHandler) Register(g *echo.Group) {
 }
 
 // NewSetupHandler creates a new setup handler.
-func NewSetupHandler(db *bun.DB) *SetupHandler {
+func NewSetupHandler(db *bun.DB, sm *scs.SessionManager) *SetupHandler {
 	return &SetupHandler{
 		db: db,
+		sm: sm,
 	}
 }

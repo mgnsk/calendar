@@ -33,7 +33,7 @@ func EventsMain(csrf string) Node {
 }
 
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, csrf, searchText string) Node {
+func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -71,8 +71,7 @@ func eventCard(ev *domain.Event) Node {
 			"mx-auto":    true,
 
 			// Less opacity for events that have already started.
-			"opacity-60": inPast,
-			// "grayscale":          inPast,
+			"opacity-60":         inPast,
 			"bg-white":           true,
 			"rounded-xl":         true,
 			"shadow-md":          true,
@@ -85,17 +84,10 @@ func eventCard(ev *domain.Event) Node {
 			Div(Class("pr-4 col-span-1 hidden sm:inline-block"),
 				eventDay(ev),
 			),
-			Div(Class("col-span-6 sm:col-span-5"),
+			Div(Class("col-span-7 sm:col-span-6"),
 				eventTitle(ev),
 				eventDate(ev),
 				eventDesc(ev),
-			),
-		),
-		Div(Class("h-full flex flex-col justify-around absolute right-0 top-0 py-4 sm:py-8 px-6 sm:px-10"),
-			A(Class("hover:text-amber-600"),
-				Href("#"),
-				Target("_blank"),
-				iconShare,
 			),
 		),
 	)
