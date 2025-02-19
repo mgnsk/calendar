@@ -24,7 +24,7 @@ func Page(mainTitle string, user *domain.User, path, csrf string, children ...No
 		Head: []Node{
 			Link(Rel("icon"), Type("image/x-icon"), Href(internal.GetAssetLink("dist/favicon.ico"))),
 			Link(Rel("stylesheet"), Href(internal.GetAssetLink("dist/app.css"))),
-			Script(Async(), Defer(), Src(internal.GetAssetLink("dist/htmx.min.js"))),
+			Script(Defer(), Src(internal.GetAssetLink("dist/htmx.min.js"))),
 			Script(Defer(), Src("dist/mark.min.js")),
 			Script(Raw(eventNavScript)),
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
