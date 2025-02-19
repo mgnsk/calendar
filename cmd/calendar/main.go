@@ -19,13 +19,13 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/mgnsk/calendar/internal"
-	"github.com/mgnsk/calendar/internal/domain"
-	"github.com/mgnsk/calendar/internal/handler"
-	"github.com/mgnsk/calendar/internal/model"
-	"github.com/mgnsk/calendar/internal/pkg/snowflake"
-	"github.com/mgnsk/calendar/internal/pkg/sqlite"
-	"github.com/mgnsk/calendar/internal/pkg/wreck"
+	"github.com/mgnsk/calendar"
+	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/handler"
+	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/calendar/pkg/wreck"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	"golang.org/x/crypto/acme/autocert"
@@ -71,7 +71,7 @@ func run() error {
 		}
 	}()
 
-	if err := internal.MigrateUp(db.DB); err != nil {
+	if err := calendar.MigrateUp(db.DB); err != nil {
 		return wreck.Internal.New("error migrating database", err)
 	}
 
@@ -96,19 +96,19 @@ func run() error {
 		return nil
 	})
 
-	if *isDemo {
-		g.Go(func() error {
-			slog.Info("running in demo mode, inserting testdata")
-			n := 1000
-			for range n {
-				if err := insertTestData(ctx, db); err != nil {
-					return err
-				}
-			}
-			slog.Info("finished inserting testdata")
-			return nil
-		})
-	}
+	// if *isDemo {
+	// 	g.Go(func() error {
+	// 		slog.Info("running in demo mode, inserting testdata")
+	// 		n := 1000
+	// 		for range n {
+	// 			if err := insertTestData(ctx, db); err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 		slog.Info("finished inserting testdata")
+	// 		return nil
+	// 	})
+	// }
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)
@@ -169,8 +169,8 @@ func run() error {
 	)
 
 	// Static assets.
-	e.GET("/dist/*",
-		echo.StaticDirectoryHandler(echo.MustSubFS(internal.DistFS, "dist"), false),
+	e.GET("/assets/*",
+		echo.StaticDirectoryHandler(calendar.DistFS, false),
 		handler.AssetCacheMiddleware,
 	)
 

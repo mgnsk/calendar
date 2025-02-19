@@ -6,7 +6,7 @@ tmp_dir = "tmp"
   args_bin = []
   full_bin = "source ./.env.testing; CGO_ENABLED=0 go run -tags strictdist ./cmd/calendar -demo=true"
   delay = 1000
-  exclude_dir = ["internal/dist", "tmp", "vendor", "testdata", "node_modules"]
+  exclude_dir = ["tmp", "vendor", "testdata", "node_modules"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false

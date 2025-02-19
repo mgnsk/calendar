@@ -12,10 +12,8 @@ setup:
 
 .PHONY: dev
 dev:
-	npx tailwindcss -i tailwind.css -o ./internal/dist/app.css
-	cp ./node_modules/htmx.org/dist/htmx.min.js ./internal/dist/htmx.min.js
-	cp ./node_modules/mark.js/dist/mark.min.js ./internal/dist/mark.min.js
+	npx tailwindcss -i tailwind.css -o app.css
 	npx concurrently -n tailwind,go,browser -c blue,green,yellow \
-		"tailwindcss -i tailwind.css -o ./internal/dist/app.css --watch" \
+		"tailwindcss -i tailwind.css -o app.css --watch" \
 		"air -c .air.toml" \
 		"wait-on tcp:calendar.testing:8443 && open-cli https://calendar.testing:8443"
