@@ -41,7 +41,7 @@ func Register(
 			echo.WrapMiddleware(NoCache),
 		)
 
-		h := NewSetupHandler(db)
+		h := NewSetupHandler(db, sm)
 		h.Register(g)
 	}
 

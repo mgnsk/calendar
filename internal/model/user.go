@@ -15,7 +15,7 @@ type User struct {
 	ID       snowflake.ID `bun:"id,pk"`
 	Username string       `bun:"username"`
 	Password []byte       `bun:"password"`
-	Role     int          `bun:"role"`
+	Role     string       `bun:"role"`
 
 	bun.BaseModel `bun:"users"`
 }
@@ -26,7 +26,7 @@ func InsertUser(ctx context.Context, db bun.IDB, user *domain.User) error {
 		ID:       user.ID,
 		Username: user.Username,
 		Password: user.Password,
-		Role:     int(user.Role),
+		Role:     string(user.Role),
 	}).Exec(ctx))
 }
 
