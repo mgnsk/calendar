@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"flag"
 	"fmt"
 	"log"
@@ -169,10 +168,7 @@ func run() error {
 	)
 
 	// Static assets.
-	e.GET("/assets/*",
-		echo.StaticDirectoryHandler(calendar.AssetsFS, false),
-		handler.AssetCacheMiddleware,
-	)
+	calendar.RegisterAssetsHandler(e)
 
 	handler.Register(e, db, sm, cfg.BaseURL)
 
