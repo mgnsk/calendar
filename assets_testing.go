@@ -6,5 +6,5 @@ import (
 	"io/fs"
 )
 
-// DistFS is an empty placeholder assets filesystem for testing.
-var DistFS fs.FS
+// AssetsFS is an empty placeholder assets filesystem for testing.
+var AssetsFS fs.FS

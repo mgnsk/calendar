@@ -170,7 +170,7 @@ func run() error {
 
 	// Static assets.
 	e.GET("/assets/*",
-		echo.StaticDirectoryHandler(calendar.DistFS, false),
+		echo.StaticDirectoryHandler(calendar.AssetsFS, false),
 		handler.AssetCacheMiddleware,
 	)
 
