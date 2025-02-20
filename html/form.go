@@ -26,7 +26,7 @@ func input(name, typ, placeholder string, form, errs url.Values, extraClasses ..
 	}
 
 	return Group{
-		If(errs.Has(name), P(Class("pt-5 text-red-500 text-sm italic"), Text(errs.Get(name)))),
+		If(errs.Has(name), P(Class("text-red-500 text-sm italic"), Text(errs.Get(name)))),
 		Input(classes,
 			Name(name),
 			Type(typ),
@@ -55,11 +55,12 @@ func textarea(name string, form, errs url.Values, extraClasses ...string) Node {
 	}
 
 	return Group{
-		If(errs.Has(name), P(Class("pt-5 text-red-500 text-sm italic"), Text(errs.Get(name)))),
+		If(errs.Has(name), P(Class("text-red-500 text-sm italic"), Text(errs.Get(name)))),
 		Textarea(classes,
 			Name(name),
 			Text(form.Get(name)),
 			Rows("3"),
+			Required(),
 		),
 	}
 }

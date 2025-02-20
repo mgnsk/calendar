@@ -1,5 +1,3 @@
-const eventList = document.getElementById("event-list");
-const search = document.getElementById("search");
 const punct = ":;.,-–—‒_(){}[]!'\"+=".split("");
 
 async function highlightResults(node) {
@@ -20,25 +18,29 @@ async function highlightResults(node) {
   });
 }
 
-if (search && eventList) {
-  eventList.addEventListener("htmx:afterSettle", async function (evt) {
-    switch (evt.detail.target.id) {
-      case "event-list":
-        // Initial events loaded (on tab switch or search query change).
-        await highlightResults(evt.detail.elt);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        break;
-
-      case "load-more":
-        // Infinite scroll loaded more events.
-        // Highlight the added event.
-        await highlightResults(evt.detail.elt);
-        break;
-    }
-  });
-}
-
 function setSearch(s) {
   let el = document.getElementById("search");
   el.value = s;
 }
+
+document.addEventListener("DOMContentLoaded", (event) => {
+  const eventList = document.getElementById("event-list");
+  const search = document.getElementById("search");
+  if (search && eventList) {
+    eventList.addEventListener("htmx:afterSettle", async function (evt) {
+      switch (evt.detail.target.id) {
+        case "event-list":
+          // Initial events loaded (on tab switch or search query change).
+          await highlightResults(evt.detail.elt);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          break;
+
+        case "load-more":
+          // Infinite scroll loaded more events.
+          // Highlight the added event.
+          await highlightResults(evt.detail.elt);
+          break;
+      }
+    });
+  }
+});

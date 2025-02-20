@@ -42,7 +42,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 
 	return Group{
 		Map(events, func(ev *domain.Event) Node {
-			return eventCard(ev)
+			return EventCard(ev)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
@@ -60,7 +60,8 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 	}
 }
 
-func eventCard(ev *domain.Event) Node {
+// EventCard renders the event card.
+func EventCard(ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	return Div(
