@@ -54,27 +54,23 @@ func init() {
 	t := template.Must(template.New("").Parse(`
 /*!
  * Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com
- * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT L
-icense)
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
 :root, :host {
   --fa-style-family-classic: 'Font Awesome 6 Free';
-  --fa-font-regular: normal 400 1em/1 'Font Awesome 6 Free';
-}
+  --fa-font-solid: normal 900 1em/1 'Font Awesome 6 Free'; }
 
 @font-face {
   font-family: 'Font Awesome 6 Free';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 900;
   font-display: block;
-  src: url({{ .woffPath }}) format("woff2"), url({{ .ttfPath }}) format("truetype");
-}
+  src: url({{ .woffPath }}) format("woff2"), url({{ .ttfPath }}) format("truetype"); }
 
-.far,
-.fa-regular {
-  font-weight: 400;
-}
+.fas,
+.fa-solid {
+  font-weight: 900; }
 `))
 	var buf strings.Builder
 	if err := t.Execute(&buf, map[string]string{
