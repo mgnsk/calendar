@@ -118,7 +118,7 @@ func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
 		WithStartAtFrom(time.Now()).
 		WithOrder(0, model.OrderCreatedAtAsc).
 		WithLimit(100). // TODO: test this with rss and thunderbird calendar.
-		List(c.Request().Context(), h.db, "")
+		List(c.Request().Context(), h.db, false, "")
 }
 
 // Register the handler.

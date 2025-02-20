@@ -24,6 +24,7 @@ type Event struct {
 	Title          string        `bun:"title"`
 	Description    string        `bun:"description"`
 	URL            string        `bun:"url"`
+	IsDraft        bool          `bun:"is_draft"`
 	Tags           []*Tag        `bun:"m2m:events_tags,join:Event=Tag"`
 
 	bun.BaseModel `bun:"events"`
@@ -54,6 +55,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Title:          ev.Title,
 			Description:    ev.Description,
 			URL:            ev.URL,
+			IsDraft:        ev.IsDraft,
 			Tags:           nil,
 		}).Exec(ctx)); err != nil {
 			return err
@@ -176,7 +178,7 @@ func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBui
 }
 
 // List executes the query.
-func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText string) ([]*domain.Event, error) {
+func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, includeDrafts bool, searchText string) ([]*domain.Event, error) {
 	q := db.NewSelect()
 
 	build(q)
@@ -184,6 +186,10 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 	model := []*Event{}
 
 	q.Model(&model)
+
+	if !includeDrafts {
+		q.Where("event.is_draft = 0")
+	}
 
 	// q.Relation("Tags", func(q *bun.SelectQuery) *bun.SelectQuery {
 	// 	return q.Order("tag.name ASC")
@@ -251,5 +257,6 @@ func eventToDomain(ev *Event) *domain.Event {
 		Title:       ev.Title,
 		Description: ev.Description,
 		URL:         ev.URL,
+		IsDraft:     ev.IsDraft,
 	}
 }

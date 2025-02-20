@@ -18,6 +18,7 @@ type Event struct {
 	Title       string
 	Description string
 	URL         string
+	IsDraft     bool
 }
 
 // GetCreatedAt returns the event created at time.

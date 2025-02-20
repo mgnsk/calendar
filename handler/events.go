@@ -108,7 +108,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db, c.FormValue("search"))
+		events, err = query.List(c.Request().Context(), h.db, false, c.FormValue("search"))
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
