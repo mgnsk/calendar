@@ -15,10 +15,10 @@ func SetupMain(form, errs url.Values, csrf string) Node {
 				Action("/setup"),
 				Method("POST"),
 				Label(Class("block w-full pt-2"), For("title"), Text("Title")),
-				input("title", "text", "Title", form, errs, "mb-3"),
+				input("pagetitle", "text", "Title", form, errs, "mb-3"),
 
 				Label(Class("block w-full pt-2"), For("desc"), Text("Description")),
-				textarea("desc", form, errs, "mb-3"),
+				textarea("pagedesc", form, errs, "mb-3"),
 
 				Label(Class("block w-full pt-2"), For("username"), Text("Username")),
 				input("username", "text", "Username", form, errs, "mb-3"),
