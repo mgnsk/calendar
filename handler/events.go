@@ -131,7 +131,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(cursor, events, c.Get("csrf").(string)).Render(c.Response())
+		return html.EventListPartial(user, cursor, events, c.Get("csrf").(string)).Render(c.Response())
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)

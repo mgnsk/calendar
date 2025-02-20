@@ -42,6 +42,19 @@ type eventToTag struct {
 	bun.BaseModel `bun:"events_tags"`
 }
 
+// GetEvent retrieves a single event.
+func GetEvent(ctx context.Context, db *bun.DB, id snowflake.ID) (*domain.Event, error) {
+	model := &Event{}
+
+	if err := db.NewSelect().Model(model).
+		Where("id = ?", id).
+		Scan(ctx); err != nil {
+		return nil, sqlite.NormalizeError(err)
+	}
+
+	return eventToDomain(model), nil
+}
+
 // InsertEvent inserts an event to the database.
 func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 	_, offset := ev.StartAt.Zone()
@@ -65,36 +78,68 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			return err
 		}
 
-		tags := ev.GetTags()
-		if len(tags) == 0 {
-			return nil
-		}
-
-		// Ensure tags exist.
-		if err := InsertTags(ctx, db, tags...); err != nil {
-			return err
-		}
-
-		// Create tag relations.
-		relations := make([]eventToTag, 0, len(tags))
-		tagIDs, err := getTagIDs(ctx, db, tags...)
-		if err != nil {
-			return err
-		}
-
-		for _, tagID := range tagIDs {
-			relations = append(relations, eventToTag{
-				TagID:   tagID,
-				EventID: ev.ID,
-			})
-		}
-
-		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&relations).Exec(ctx)); err != nil {
-			return err
-		}
-
-		return increaseEventCounts(ctx, db, tagIDs...)
+		return createEventTagRelations(ctx, db, ev)
 	})
+}
+
+// UpdateEvent updates an event.
+func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
+	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
+		if err := sqlite.WithErrorChecking(
+			db.NewUpdate().Model((*Event)(nil)).
+				Set("title = ?", ev.Title).
+				Set("description = ?", ev.Description).
+				Where("id = ?", ev.ID).
+				Exec(ctx),
+		); err != nil {
+			return err
+		}
+
+		// Delete old tag relations.
+		if err := sqlite.WithErrorChecking(
+			db.NewDelete().Model((*eventToTag)(nil)).
+				Where("event_id = ?", ev.ID).
+				Exec(ctx),
+		); err != nil {
+			return err
+		}
+
+		// Clean up orphaned tags.
+		if err := CleanTags(ctx, db); err != nil {
+			return err
+		}
+
+		// Recreate tag relations.
+		return createEventTagRelations(ctx, db, ev)
+	})
+}
+
+func createEventTagRelations(ctx context.Context, db bun.IDB, ev *domain.Event) error {
+	tags := ev.GetTags()
+	if len(tags) == 0 {
+		return nil
+	}
+
+	// Ensure tags exist.
+	if err := InsertTags(ctx, db, tags...); err != nil {
+		return err
+	}
+
+	// Create tag relations.
+	relations := make([]eventToTag, 0, len(tags))
+	tagIDs, err := getTagIDs(ctx, db, tags...)
+	if err != nil {
+		return err
+	}
+
+	for _, tagID := range tagIDs {
+		relations = append(relations, eventToTag{
+			TagID:   tagID,
+			EventID: ev.ID,
+		})
+	}
+
+	return sqlite.WithErrorChecking(db.NewInsert().Model(&relations).Exec(ctx))
 }
 
 // EventOrder is an event ordering type.

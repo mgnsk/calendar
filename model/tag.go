@@ -14,9 +14,9 @@ import (
 
 // Tag is the tag database model.
 type Tag struct {
-	ID         snowflake.ID `bun:"id,pk"` // TODO: autoincrement
+	ID         snowflake.ID `bun:"id,pk"`
 	Name       string       `bun:"name"`
-	EventCount uint64       `bun:"event_count"`
+	EventCount uint64       `bun:"event_count,scanonly"`
 
 	bun.BaseModel `bun:"tags"`
 }
@@ -25,9 +25,8 @@ type Tag struct {
 func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 	model := lo.Map(names, func(name string, _ int) Tag {
 		return Tag{
-			ID:         snowflake.Generate(),
-			Name:       name,
-			EventCount: 0,
+			ID:   snowflake.Generate(),
+			Name: name,
 		}
 	})
 
@@ -46,6 +45,9 @@ func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error)
 	model := []*Tag{}
 
 	if err := db.NewSelect().Model(&model).
+		ColumnExpr("tag.id, tag.name, COUNT(et.event_id) AS event_count").
+		Join("LEFT JOIN events_tags AS et ON et.tag_id = tag.id").
+		Group("tag.id").
 		Order("event_count DESC", "name ASC").
 		Limit(limit).
 		Scan(ctx); err != nil {
@@ -60,12 +62,27 @@ func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error)
 	}), nil
 }
 
-// increaseEventCounts increases tags' event counts by one.
-func increaseEventCounts(ctx context.Context, db bun.IDB, tagIDs ...snowflake.ID) error {
-	return sqlite.WithErrorChecking(db.NewUpdate().Model((*Tag)(nil)).
-		Set("event_count = event_count + 1").
-		Where("id IN (?)", bun.In(tagIDs)).
-		Exec(ctx))
+// CleanTags deletes tags which have no event relations.
+func CleanTags(ctx context.Context, db bun.IDB) error {
+	subQuery := db.NewSelect().TableExpr("tags AS tag").
+		ColumnExpr("tag.id").
+		Join("LEFT JOIN events_tags AS et ON et.tag_id = tag.id").
+		Having("COUNT(et.event_id) = 0").
+		Group("tag.id")
+
+	if err := sqlite.WithErrorChecking(
+		db.NewDelete().Model((*Tag)(nil)).
+			Where("id IN (?)", subQuery).
+			Exec(ctx),
+	); err != nil {
+		if errors.Is(err, wreck.PreconditionFailed) {
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // getTagID returns a tag IDs from database.

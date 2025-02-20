@@ -11,4 +11,4 @@ CREATE TABLE `events` (
 );
 
 CREATE INDEX events_timestamp_idx ON events (start_at_unix);
--- TODO: check if need more indexes
+CREATE INDEX events_user_id_idx ON events (user_id);

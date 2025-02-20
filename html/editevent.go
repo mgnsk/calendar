@@ -7,13 +7,12 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-// AddEventMain render the add event page main content.
-func AddEventMain(form, errs url.Values, csrf string) Node {
+// EditEventMain render the edit event page main content.
+func EditEventMain(form, errs url.Values, csrf string) Node {
 	return Main(
 		// TODO: start and end datetime fields and URL field
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("w-full px-3 py-4 mx-auto"),
-				Action("/add"),
 				Method("POST"),
 				input("title", "text", "Title", form, errs, "mb-3"),
 				textarea("desc", form, errs),

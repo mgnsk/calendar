@@ -33,7 +33,7 @@ func EventsMain(csrf string) Node {
 }
 
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
+func EventListPartial(user *domain.User, offset int64, events []*domain.Event, csrf string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -42,7 +42,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 
 	return Group{
 		Map(events, func(ev *domain.Event) Node {
-			return EventCard(ev)
+			return EventCard(user, ev)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
@@ -61,7 +61,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 }
 
 // EventCard renders the event card.
-func EventCard(ev *domain.Event) Node {
+func EventCard(user *domain.User, ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	// TODO: draft status and edit button
@@ -91,6 +91,9 @@ func EventCard(ev *domain.Event) Node {
 				eventTitle(ev),
 				eventDate(ev),
 				eventDesc(ev),
+				If(user != nil && (user.Role == domain.Admin || user.ID == ev.UserID), Div(Class("mt-5"),
+					A(Class("hover:underline text-amber-600 font-semibold"), Href(fmt.Sprintf("/edit/%d", ev.ID)), Text("EDIT")),
+				)),
 			),
 		),
 	)

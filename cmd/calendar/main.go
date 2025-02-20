@@ -97,11 +97,14 @@ func run() error {
 
 	if *isDemo {
 		g.Go(func() error {
-			slog.Info("running in demo mode, inserting testdata")
 			n := 1000
-			for range n {
+			slog.Info(fmt.Sprintf("running in demo mode, inserting %d testdata", n))
+			for i := range n {
 				if err := insertTestData(ctx, db); err != nil {
 					return err
+				}
+				if i%1000 == 0 {
+					slog.Info(fmt.Sprintf("inserting testdata %d%% complete", int(float64(i)/float64(n)*100)))
 				}
 			}
 			slog.Info("finished inserting testdata")

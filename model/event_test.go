@@ -20,10 +20,6 @@ var _ = Describe("inserting events", func() {
 		)
 
 		JustBeforeEach(func(ctx SpecContext) {
-			By("inserting one existing tag", func() {
-				Expect(model.InsertTags(ctx, db, "tag1")).To(Succeed())
-			})
-
 			ev = &domain.Event{
 				ID:          snowflake.Generate(),
 				StartAt:     time.Now().Add(2 * time.Hour),
@@ -38,10 +34,10 @@ var _ = Describe("inserting events", func() {
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, false, ""))
+			By("asserting event can be retrieved", func() {
+				event := Must(model.GetEvent(ctx, db, ev.ID))
 
-			Expect(result).To(HaveExactElements(
-				SatisfyAll(
+				Expect(event).To(SatisfyAll(
 					HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
 					PointTo(MatchAllFields(Fields{
 						"ID":          Equal(ev.ID),
@@ -53,7 +49,83 @@ var _ = Describe("inserting events", func() {
 						"IsDraft":     BeFalse(),
 						"UserID":      Equal(ev.UserID),
 					})),
-				),
+				))
+			})
+
+			By("asserting event can be listed", func() {
+				result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, false, ""))
+
+				Expect(result).To(HaveExactElements(
+					SatisfyAll(
+						HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
+						PointTo(MatchAllFields(Fields{
+							"ID":          Equal(ev.ID),
+							"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
+							"EndAt":       BeZero(),
+							"Title":       Equal(ev.Title),
+							"Description": Equal(ev.Description),
+							"URL":         Equal(ev.URL),
+							"IsDraft":     BeFalse(),
+							"UserID":      Equal(ev.UserID),
+						})),
+					),
+				))
+			})
+		})
+	})
+})
+
+var _ = Describe("updating events", func() {
+	var (
+		ev *domain.Event
+	)
+
+	JustBeforeEach(func(ctx SpecContext) {
+		ev = &domain.Event{
+			ID:          snowflake.Generate(),
+			StartAt:     time.Now().Add(2 * time.Hour),
+			EndAt:       time.Time{},
+			Title:       "Old title",
+			Description: "Old description",
+			URL:         "",
+			UserID:      snowflake.Generate(),
+		}
+
+		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting tags are created", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "old"),
+				HaveField("Name", "title"),
+			))
+		})
+	})
+
+	Specify("event can be updated", func(ctx SpecContext) {
+		ev.Title = "New title"
+		ev.Description = "New description"
+
+		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting updated event was persisted", func() {
+			event := Must(model.GetEvent(ctx, db, ev.ID))
+
+			Expect(event).To(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title":       Equal("New title"),
+				"Description": Equal("New description"),
+			})))
+		})
+
+		By("asserting tags are updated", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "new"),
+				HaveField("Name", "title"),
 			))
 		})
 	})

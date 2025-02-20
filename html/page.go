@@ -18,8 +18,8 @@ var searchScript string
 //go:embed eventnav.js
 var eventNavScript string
 
-//go:embed addevent.js
-var addEventScript string
+//go:embed editevent.js
+var editEventScript string
 
 // Page renders a page.
 func Page(mainTitle string, user *domain.User, path, csrf string, children ...Node) Node {
@@ -37,7 +37,7 @@ func Page(mainTitle string, user *domain.User, path, csrf string, children ...No
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.js"))),
 			Script(Defer(), Raw(eventNavScript)),
 			Script(Defer(), Raw(searchScript)),
-			Script(Defer(), Raw(addEventScript)),
+			Script(Defer(), Raw(editEventScript)),
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{

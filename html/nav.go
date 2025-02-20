@@ -12,11 +12,12 @@ import (
 
 // UserNav renders the user navigation.
 func UserNav(user *domain.User, path, csrf string) Node {
-	return Nav(Class("sticky top-0 bg-white max-w-3xl mx-auto mb-5"),
+	return Nav(Class("sticky top-0 bg-white max-w-3xl mx-auto"),
 		Style("z-index: 1;"), // TODO: why tailwind z-1 not working?
-		Ul(Class("flex justify-between font-semibold flex-row space-x-8"),
+		Ul(Class("flex justify-between font-semibold flex-row space-x-8 mb-5"),
 			// TODO: find better icons
-			Li(Class("justify-self-start"),
+			Li(Class("justify-self-start align-start"),
+				A(Class("inline-block p-2"), Href("/"), Text("Home")),
 				A(Class("inline-block p-2"), Title("RSS feed"), Href("/feed"), rssIcon()),
 				A(Class("inline-block p-2"), Title("iCal URL"), ID("ical-link"), calendarIcon()),
 				A(Class("inline-block p-2"), Title("Add to Google Calendar"), ID("google-calendar-link"), Target("_blank"), calendarIcon()),

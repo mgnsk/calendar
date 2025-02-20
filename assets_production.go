@@ -32,5 +32,5 @@ func GetAssetPath(name string) string {
 
 	sum := crc32.ChecksumIEEE(b)
 
-	return fmt.Sprintf("assets/%s?crc=%d", name, sum)
+	return fmt.Sprintf("/assets/%s?crc=%d", name, sum)
 }
