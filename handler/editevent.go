@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,10 +11,10 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/calendar/pkg/markdown"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
-	"github.com/yuin/goldmark"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
@@ -62,7 +61,7 @@ func (h *EditEventHandler) Add(c echo.Context) error {
 			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
 		}
 
-		if err := goldmark.Convert([]byte(desc), io.Discard); err != nil {
+		if _, err := markdown.Convert(desc); err != nil {
 			errs.Set("desc", "Invalid markdown")
 
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -152,7 +151,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
 		}
 
-		if err := goldmark.Convert([]byte(desc), io.Discard); err != nil {
+		if _, err := markdown.Convert(desc); err != nil {
 			errs.Set("desc", "Invalid markdown")
 
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -226,7 +225,7 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 	title := strings.TrimSpace(c.FormValue("title"))
 	desc := strings.TrimSpace(c.FormValue("desc"))
 
-	if err := goldmark.Convert([]byte(desc), io.Discard); err != nil {
+	if _, err := markdown.Convert(desc); err != nil {
 		return wreck.InvalidValue.New("Invalid markdown", err)
 	}
 

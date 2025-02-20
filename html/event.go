@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/pkg/markdown"
 	"github.com/mgnsk/calendar/pkg/timestamp"
-	"github.com/yuin/goldmark"
 	. "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/components"
@@ -118,15 +117,13 @@ func eventTitle(ev *domain.Event) Node {
 }
 
 func eventDesc(ev *domain.Event) Node {
-	var buf strings.Builder
-	if err := goldmark.Convert([]byte(ev.Description), &buf); err != nil {
-		// TODO: event must be validated.
+	html, err := markdown.Convert(ev.Description)
+	if err != nil {
 		panic(fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err))
 	}
 
 	return Div(Class("text-justify"),
-		// TODO: syntax error here
-		Div(Class("mt-2 text-gray-700"), Raw(buf.String())),
+		Div(Class("mt-2 text-gray-700"), Raw(html)),
 	)
 }
 
