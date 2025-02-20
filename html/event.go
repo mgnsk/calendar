@@ -112,7 +112,7 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 
 func eventTitle(ev *domain.Event) Node {
 	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
-		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Text(ev.Title)),
+		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
 	)
 }
 
@@ -123,7 +123,7 @@ func eventDesc(ev *domain.Event) Node {
 	}
 
 	return Div(Class("text-justify"),
-		Div(Class("mt-2 text-gray-700"), Raw(html)),
+		Div(Class("mt-2 text-gray-700 [&>p]:py-3"), Raw(html)),
 	)
 }
 
