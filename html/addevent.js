@@ -25,23 +25,31 @@ document.addEventListener("DOMContentLoaded", (event) => {
       ],
       previewRender: function (plainText, preview) {
         (async function () {
-          const response = await fetch("/preview", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              csrf: document.querySelector('[name="csrf"]').value,
-              title: document.querySelector('[name="title"]').value,
-              desc: plainText,
-            }),
-          });
+          try {
+            const response = await fetch("/preview", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                csrf: document.querySelector('[name="csrf"]').value,
+                title: document.querySelector('[name="title"]').value,
+                desc: plainText,
+              }),
+            });
 
-          const text = await response.text();
+            if (!response.ok) {
+              throw new Error(`Preview failed: ${response.status}`);
+            }
 
-          preview.innerHTML = text;
+            const text = await response.text();
+
+            preview.innerHTML = text;
+          } catch (error) {
+            console.error("Preview error:", error);
+            preview.innerHTML = "Error loading preview";
+          }
         })();
-
         return "Loading...";
       },
     });
