@@ -38,7 +38,7 @@ func (h *EditEventHandler) Add(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(nil, nil, csrf)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(nil, nil, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
 		form, err := c.FormParams()
@@ -58,7 +58,7 @@ func (h *EditEventHandler) Add(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, nil, csrf)).Render(c.Response())
 		}
 
 		if _, err := markdown.Convert(desc); err != nil {
@@ -67,7 +67,7 @@ func (h *EditEventHandler) Add(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, nil, csrf)).Render(c.Response())
 		}
 
 		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
@@ -129,7 +129,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		form.Set("title", ev.Title)
 		form.Set("desc", ev.Description)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, csrf)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev, csrf)).Render(c.Response())
 
 	case http.MethodPost:
 		form, err := c.FormParams()
@@ -148,7 +148,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev, csrf)).Render(c.Response())
 		}
 
 		if _, err := markdown.Convert(desc); err != nil {
@@ -157,7 +157,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev, csrf)).Render(c.Response())
 		}
 
 		ev.Title = title

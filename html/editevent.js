@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       autosave: {
         enabled: true,
         delay: 1000,
-        uniqueId: "desc",
+        uniqueId: "desc-" + document.querySelector('[name="event_id"]').value,
       },
       forceSync: true,
       promptURLs: true,
