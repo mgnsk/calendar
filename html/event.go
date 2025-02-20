@@ -136,10 +136,3 @@ func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {
 	}
 	return nodes
 }
-
-func must[V any](v V, err error) V {
-	if err != nil {
-		panic(err)
-	}
-	return v
-}

@@ -2,6 +2,8 @@ package html
 
 import (
 	_ "embed"
+	"strings"
+	"text/template"
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
@@ -29,18 +31,65 @@ func Page(mainTitle string, user *domain.User, path, csrf string, children ...No
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("app.css"))),
+			StyleEl(Raw(faFontStyle)),
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/htmx.org/dist/htmx.min.js"))),
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/mark.js/dist/mark.min.js"))),
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.js"))),
-			Script(Raw(eventNavScript)),
+			Script(Defer(), Raw(eventNavScript)),
+			Script(Defer(), Raw(searchScript)),
+			Script(Defer(), Raw(addEventScript)),
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
 			UserNav(user, path, csrf),
 			Group(children),
 			loadingSpinner(),
-			Script(Raw(searchScript)),
-			Script(Raw(addEventScript)),
 		},
 	})
+}
+
+var faFontStyle string
+
+func init() {
+	t := template.Must(template.New("").Parse(`
+/*!
+ * Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com
+ * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT L
+icense)
+ * Copyright 2024 Fonticons, Inc.
+ */
+:root, :host {
+  --fa-style-family-classic: 'Font Awesome 6 Free';
+  --fa-font-regular: normal 400 1em/1 'Font Awesome 6 Free';
+}
+
+@font-face {
+  font-family: 'Font Awesome 6 Free';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url({{ .woffPath }}) format("woff2"), url({{ .ttfPath }}) format("truetype");
+}
+
+.far,
+.fa-regular {
+  font-weight: 400;
+}
+`))
+	var buf strings.Builder
+	if err := t.Execute(&buf, map[string]string{
+		"woffPath": calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2"),
+		"ttfPath":  calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.ttf"),
+	}); err != nil {
+		panic(err)
+	}
+
+	faFontStyle = buf.String()
+}
+
+func must[V any](v V, err error) V {
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
