@@ -16,6 +16,7 @@ import (
 	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
 	"github.com/yuin/goldmark"
+	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
 // EditEventHandler handles adding and editing events.
@@ -175,6 +176,46 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 	}
 }
 
+// Delete handles deleting events.
+func (h *EditEventHandler) Delete(c echo.Context) error {
+	user := loadUser(c)
+	if user == nil {
+		return wreck.Forbidden.New("Must be logged in")
+	}
+
+	eventID := c.Param("event_id")
+	if eventID == "" {
+		return wreck.InvalidValue.New("Expected event_id path param")
+	}
+
+	id, err := strconv.ParseInt(eventID, 10, 64)
+	if err != nil {
+		return wreck.InvalidValue.New("Invalid event_id path param", err)
+	}
+
+	ev, err := model.GetEvent(c.Request().Context(), h.db, snowflake.ID(id))
+	if err != nil {
+		return err
+	}
+
+	if user.Role != domain.Admin && user.ID != ev.UserID {
+		return wreck.Forbidden.New("Non-admin users can only edit own events")
+	}
+
+	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
+		if err := model.DeleteEvent(c.Request().Context(), h.db, ev); err != nil {
+			return err
+		}
+
+		// TODO: add success flash message
+		hxhttp.SetRefresh(c.Response().Header())
+
+		return nil
+	}
+
+	return wreck.NotFound.New("Not found")
+}
+
 // Preview returns a preview of the event.
 func (h *EditEventHandler) Preview(c echo.Context) error {
 	user := loadUser(c)
@@ -198,9 +239,11 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 		URL:         "", // TODO
 	}
 
+	csrf := c.Get("csrf").(string)
+
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
-	return html.EventCard(nil, ev).Render(c.Response())
+	return html.EventCard(nil, ev, csrf).Render(c.Response())
 }
 
 // Register the handler.
@@ -210,6 +253,8 @@ func (h *EditEventHandler) Register(g *echo.Group) {
 
 	g.GET("/edit/:event_id", h.Edit)
 	g.POST("/edit/:event_id", h.Edit)
+
+	g.POST("/delete/:event_id", h.Delete)
 
 	g.POST("/preview", h.Preview)
 }

@@ -42,7 +42,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 
 	return Group{
 		Map(events, func(ev *domain.Event) Node {
-			return EventCard(user, ev)
+			return EventCard(user, ev, csrf)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
@@ -61,7 +61,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 }
 
 // EventCard renders the event card.
-func EventCard(user *domain.User, ev *domain.Event) Node {
+func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	// TODO: draft status and edit button
@@ -91,8 +91,20 @@ func EventCard(user *domain.User, ev *domain.Event) Node {
 				eventTitle(ev),
 				eventDate(ev),
 				eventDesc(ev),
-				If(user != nil && (user.Role == domain.Admin || user.ID == ev.UserID), Div(Class("mt-5"),
-					A(Class("hover:underline text-amber-600 font-semibold"), Href(fmt.Sprintf("/edit/%d", ev.ID)), Text("EDIT")),
+				If(user != nil && (user.Role == domain.Admin || user.ID == ev.UserID), Div(Class("mt-5 flex justify-between"),
+					A(Class("hover:underline text-amber-600 font-semibold"),
+						Href(fmt.Sprintf("/edit/%d", ev.ID)),
+						Text("EDIT"),
+					),
+					A(Class("hover:underline text-amber-600 font-semibold"),
+						hx.Post(fmt.Sprintf("/delete/%d", ev.ID)),
+						hx.Confirm("Are you sure?"),
+						hx.Vals(string(must(json.Marshal(map[string]string{
+							"csrf": csrf,
+						})))),
+						Href(fmt.Sprintf("/delete/%d", ev.ID)),
+						Text("DELETE"),
+					),
 				)),
 			),
 		),

@@ -114,6 +114,31 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 	})
 }
 
+// DeleteEvent deletes an event..
+func DeleteEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
+	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
+		if err := sqlite.WithErrorChecking(
+			db.NewDelete().Model((*Event)(nil)).
+				Where("id = ?", ev.ID).
+				Exec(ctx),
+		); err != nil {
+			return err
+		}
+
+		// Delete tag relations.
+		if err := sqlite.WithErrorChecking(
+			db.NewDelete().Model((*eventToTag)(nil)).
+				Where("event_id = ?", ev.ID).
+				Exec(ctx),
+		); err != nil {
+			return err
+		}
+
+		// Clean up orphaned tags.
+		return CleanTags(ctx, db)
+	})
+}
+
 func createEventTagRelations(ctx context.Context, db bun.IDB, ev *domain.Event) error {
 	tags := ev.GetTags()
 	if len(tags) == 0 {

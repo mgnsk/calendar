@@ -8,6 +8,7 @@ import (
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	. "github.com/mgnsk/calendar/pkg/testing"
+	"github.com/mgnsk/calendar/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -127,6 +128,49 @@ var _ = Describe("updating events", func() {
 				HaveField("Name", "new"),
 				HaveField("Name", "title"),
 			))
+		})
+	})
+})
+
+var _ = Describe("deleting events", func() {
+	var (
+		ev *domain.Event
+	)
+
+	JustBeforeEach(func(ctx SpecContext) {
+		ev = &domain.Event{
+			ID:          snowflake.Generate(),
+			StartAt:     time.Now().Add(2 * time.Hour),
+			EndAt:       time.Time{},
+			Title:       "Old title",
+			Description: "Old description",
+			URL:         "",
+			UserID:      snowflake.Generate(),
+		}
+
+		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting tags are created", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "old"),
+				HaveField("Name", "title"),
+			))
+		})
+	})
+
+	Specify("event can be deleted", func(ctx SpecContext) {
+		Expect(model.DeleteEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting event was deleted", func() {
+			Expect(model.GetEvent(ctx, db, ev.ID)).Error().To(MatchError(wreck.NotFound))
+		})
+
+		By("asserting tags are updated", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+			Expect(tags).To(BeEmpty())
 		})
 	})
 })
