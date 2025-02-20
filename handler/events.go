@@ -52,6 +52,20 @@ func (h *EventsHandler) Past(c echo.Context) error {
 	)
 }
 
+// MyEvents handles current user events.
+func (h *EventsHandler) MyEvents(c echo.Context) error {
+	user := loadUser(c)
+	if user == nil {
+		return wreck.Forbidden.New("Must be logged in")
+	}
+
+	return h.events(
+		c,
+		model.NewEventsQuery().WithUserID(user.ID),
+		model.OrderCreatedAtDesc,
+	)
+}
+
 // Tags handles tags.
 func (h *EventsHandler) Tags(c echo.Context) error {
 	user := loadUser(c)
@@ -142,6 +156,9 @@ func (h *EventsHandler) Register(g *echo.Group) {
 
 	g.GET("/tags", h.Tags)
 	g.POST("/tags", h.Tags) // Fox htmx.
+
+	g.GET("/my-events", h.MyEvents)
+	g.POST("/my-events", h.MyEvents) // Fox htmx.
 }
 
 // NewEventsHandler creates a new events handler.

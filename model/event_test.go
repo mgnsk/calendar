@@ -31,6 +31,7 @@ var _ = Describe("inserting events", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
+				UserID:      snowflake.Generate(),
 			}
 
 			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
@@ -50,6 +51,7 @@ var _ = Describe("inserting events", func() {
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
 						"IsDraft":     BeFalse(),
+						"UserID":      Equal(ev.UserID),
 					})),
 				),
 			))
@@ -58,7 +60,15 @@ var _ = Describe("inserting events", func() {
 })
 
 var _ = Describe("listing events", func() {
+	var (
+		userID1 snowflake.ID
+		userID2 snowflake.ID
+	)
+
 	JustBeforeEach(func(ctx SpecContext) {
+		userID1 = snowflake.Generate()
+		userID2 = snowflake.Generate()
+
 		By("inserting events", func() {
 			events := []*domain.Event{
 				{
@@ -68,6 +78,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
+					UserID:      userID1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -76,6 +87,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
+					UserID:      userID1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -84,6 +96,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
+					UserID:      userID2,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -93,6 +106,7 @@ var _ = Describe("listing events", func() {
 					Description: "Desc 4",
 					URL:         "",
 					IsDraft:     true,
+					UserID:      userID2,
 				},
 			}
 
@@ -165,6 +179,34 @@ var _ = Describe("listing events", func() {
 			})),
 		))
 	})
+
+	Specify("events can be filtered by user", func(ctx SpecContext) {
+		result := Must(
+			model.NewEventsQuery().
+				WithOrder(0, model.OrderStartAtAsc).
+				WithUserID(userID1).
+				List(ctx, db, false, ""),
+		)
+
+		Expect(result).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+			})),
+		))
+	})
+
+	Specify("draft events can be included", func(ctx SpecContext) {
+		result := Must(
+			model.NewEventsQuery().
+				WithOrder(0, model.OrderStartAtAsc).
+				List(ctx, db, true, ""),
+		)
+
+		Expect(result).To(HaveLen(4))
+	})
 })
 
 var _ = Describe("full text search", func() {
@@ -185,6 +227,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -193,6 +236,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event ÕÄÖÜ 😀😀😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -201,6 +245,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 			}
 
@@ -277,6 +322,7 @@ var _ = Describe("concurrent insert", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
+				UserID:      snowflake.Generate(),
 			}
 
 			wg.Add(1)

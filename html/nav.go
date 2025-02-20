@@ -42,7 +42,7 @@ func UserNav(user *domain.User, path, csrf string) Node {
 				),
 			),
 		),
-		If(path == "/" || path == "/upcoming" || path == "/past" || path == "/tags", EventNav(path, csrf)),
+		If(path == "/" || path == "/upcoming" || path == "/past" || path == "/tags" || path == "/my-events", EventNav(user, path, csrf)),
 	)
 }
 
@@ -53,7 +53,7 @@ type eventNavLink struct {
 }
 
 // EventNav renders the event navigation.
-func EventNav(path, csrf string) Node {
+func EventNav(user *domain.User, path, csrf string) Node {
 	links := []eventNavLink{
 		{
 			Text:   "Latest",
@@ -75,6 +75,14 @@ func EventNav(path, csrf string) Node {
 			URL:    "/tags",
 			Active: path == "/tags",
 		},
+	}
+
+	if user != nil {
+		links = append(links, eventNavLink{
+			Text:   "My events",
+			URL:    "/my-events",
+			Active: path == "/my-events",
+		})
 	}
 
 	return Div(Class("max-w-3xl mx-auto"),

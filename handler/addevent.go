@@ -76,6 +76,8 @@ func (h *AddEventHandler) Add(c echo.Context) error {
 			Title:       title,
 			Description: desc,
 			URL:         "",
+			IsDraft:     false, // TODO
+			UserID:      user.ID,
 		}); err != nil {
 			return err
 		}

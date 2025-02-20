@@ -19,6 +19,7 @@ type Event struct {
 	Description string
 	URL         string
 	IsDraft     bool
+	UserID      snowflake.ID
 }
 
 // GetCreatedAt returns the event created at time.

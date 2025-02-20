@@ -95,19 +95,19 @@ func run() error {
 		return nil
 	})
 
-	// if *isDemo {
-	// 	g.Go(func() error {
-	// 		slog.Info("running in demo mode, inserting testdata")
-	// 		n := 1000
-	// 		for range n {
-	// 			if err := insertTestData(ctx, db); err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 		slog.Info("finished inserting testdata")
-	// 		return nil
-	// 	})
-	// }
+	if *isDemo {
+		g.Go(func() error {
+			slog.Info("running in demo mode, inserting testdata")
+			n := 1000
+			for range n {
+				if err := insertTestData(ctx, db); err != nil {
+					return err
+				}
+			}
+			slog.Info("finished inserting testdata")
+			return nil
+		})
+	}
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)

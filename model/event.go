@@ -25,7 +25,10 @@ type Event struct {
 	Description    string        `bun:"description"`
 	URL            string        `bun:"url"`
 	IsDraft        bool          `bun:"is_draft"`
-	Tags           []*Tag        `bun:"m2m:events_tags,join:Event=Tag"`
+	UserID         snowflake.ID  `bun:"user_id"`
+
+	// TODO: unused but only defined for relation table?
+	Tags []*Tag `bun:"m2m:events_tags,join:Event=Tag"`
 
 	bun.BaseModel `bun:"events"`
 }
@@ -56,6 +59,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Description:    ev.Description,
 			URL:            ev.URL,
 			IsDraft:        ev.IsDraft,
+			UserID:         ev.UserID,
 			Tags:           nil,
 		}).Exec(ctx)); err != nil {
 			return err
@@ -177,6 +181,15 @@ func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBui
 	}
 }
 
+// WithUserID filters the event list by user ID.
+func (build EventsQueryBuilder) WithUserID(userID snowflake.ID) EventsQueryBuilder {
+	return func(q *bun.SelectQuery) {
+		build(q)
+
+		q.Where("event.user_id = ?", userID)
+	}
+}
+
 // List executes the query.
 func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, includeDrafts bool, searchText string) ([]*domain.Event, error) {
 	q := db.NewSelect()
@@ -258,5 +271,6 @@ func eventToDomain(ev *Event) *domain.Event {
 		Description: ev.Description,
 		URL:         ev.URL,
 		IsDraft:     ev.IsDraft,
+		UserID:      ev.UserID,
 	}
 }

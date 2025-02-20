@@ -6,8 +6,9 @@ CREATE TABLE `events` (
   `title` text NOT NULL,
   `description` text NOT NULL,
   `url` text NOT NULL,
-  `is_draft` tinyint DEFAULT 0
+  `is_draft` tinyint NOT NULL,
+  `user_id` bigint unsigned NOT NULL
 );
 
 CREATE INDEX events_timestamp_idx ON events (start_at_unix);
--- TODO: check if need is_draft index
+-- TODO: check if need more indexes

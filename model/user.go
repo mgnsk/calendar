@@ -47,12 +47,7 @@ func GetUser(ctx context.Context, db bun.IDB, username string) (*domain.User, er
 		return nil, sqlite.NormalizeError(err)
 	}
 
-	return &domain.User{
-		ID:       model.ID,
-		Username: model.Username,
-		Password: model.Password,
-		Role:     domain.Role(model.Role),
-	}, nil
+	return userToDomain(model), nil
 }
 
 // ListUsers lists users.
@@ -66,11 +61,19 @@ func ListUsers(ctx context.Context, db bun.IDB) ([]*domain.User, error) {
 	}
 
 	return lo.Map(model, func(user *User, _ int) *domain.User {
-		return &domain.User{
-			ID:       user.ID,
-			Username: user.Username,
-			Password: user.Password,
-			Role:     domain.Role(user.Role),
-		}
+		return userToDomain(user)
 	}), nil
+}
+
+func userToDomain(user *User) *domain.User {
+	if user == nil {
+		return nil
+	}
+
+	return &domain.User{
+		ID:       user.ID,
+		Username: user.Username,
+		Password: user.Password,
+		Role:     domain.Role(user.Role),
+	}
 }

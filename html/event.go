@@ -64,6 +64,8 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 func EventCard(ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
+	// TODO: draft status and edit button
+
 	return Div(
 		Classes{
 			"event-card": true,
