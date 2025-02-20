@@ -98,6 +98,10 @@ func (h *AddEventHandler) Preview(c echo.Context) error {
 	title := strings.TrimSpace(c.FormValue("title"))
 	desc := strings.TrimSpace(c.FormValue("desc"))
 
+	if err := goldmark.Convert([]byte(desc), io.Discard); err != nil {
+		return wreck.InvalidValue.New("Invalid markdown", err)
+	}
+
 	ev := &domain.Event{
 		ID:          0,
 		StartAt:     time.Time{}, // TODO
