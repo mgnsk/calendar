@@ -14,5 +14,9 @@
     "globals": "^16.0.0",
     "open-cli": "^8.0.0",
     "wait-on": "^8.0.2"
+  },
+  "scripts": {
+    "lint": "eslint",
+    "lint:report": "eslint --output-file eslint_report.json --format json"
   }
 }
