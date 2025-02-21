@@ -15,19 +15,19 @@ func SetupMain(form, errs url.Values, csrf string) Node {
 				Action("/setup"),
 				Method("POST"),
 				Label(Class("block w-full pt-2"), For("title"), Text("Title")),
-				input("title", "text", "Title", form, errs, "mb-3"),
+				input("pagetitle", "text", "Title", form, errs),
 
 				Label(Class("block w-full pt-2"), For("desc"), Text("Description")),
-				textarea("desc", form, errs, "mb-3"),
+				textarea("pagedesc", form, errs),
 
 				Label(Class("block w-full pt-2"), For("username"), Text("Username")),
-				input("username", "text", "Username", form, errs, "mb-3"),
+				input("username", "text", "Username", form, errs),
 
 				Label(Class("block w-full pt-2"), For("password1"), Text("Password")),
-				input("password1", "password", "Password", form, errs, "mb-3"),
+				input("password1", "password", "Password", form, errs),
 
 				Label(Class("block w-full pt-2"), For("password2"), Text("Password again")),
-				input("password2", "password", "Password again", form, errs, "mb-3"),
+				input("password2", "password", "Password again", form, errs),
 
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Button(Type("submit"), Class("font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Save")),

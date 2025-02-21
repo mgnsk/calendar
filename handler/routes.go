@@ -71,7 +71,7 @@ func Register(
 			echo.WrapMiddleware(NoCache),
 		)
 
-		h := NewAddEventHandler(db)
+		h := NewEditEventHandler(db)
 		h.Register(g)
 	}
 

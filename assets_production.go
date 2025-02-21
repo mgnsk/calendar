@@ -15,6 +15,11 @@ import (
 //go:embed app.css
 //go:embed node_modules/htmx.org/dist/htmx.min.js
 //go:embed node_modules/mark.js/dist/mark.min.js
+//go:embed node_modules/easymde/dist/easymde.min.js
+//go:embed node_modules/easymde/dist/easymde.min.css
+//go:embed node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css
+//go:embed node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2
+//go:embed node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.ttf
 var assetsFS embed.FS
 
 // GetAssetPath returns the asset path with appended
@@ -27,5 +32,5 @@ func GetAssetPath(name string) string {
 
 	sum := crc32.ChecksumIEEE(b)
 
-	return fmt.Sprintf("assets/%s?crc=%d", name, sum)
+	return fmt.Sprintf("/assets/%s?crc=%d", name, sum)
 }

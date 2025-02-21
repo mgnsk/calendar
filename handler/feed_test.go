@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -107,21 +108,24 @@ var _ = Describe("RSS feed output", func() {
 					"Items": HaveExactElements(
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event1.Title),
-							"Description":     Equal(event1.GetDescription()),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event1.GetDateString(), event1.Description)),
+							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event1.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event1.ID.String()),
 							"Link":            Equal(event1.URL),
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event2.Title),
-							"Description":     Equal(event2.GetDescription()),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event2.GetDateString(), event2.Description)),
+							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event2.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event2.ID.String()),
 							"Link":            Equal(event2.URL),
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event3.Title),
-							"Description":     Equal(event3.GetDescription()),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event3.GetDateString(), event3.Description)),
+							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event3.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event3.ID.String()),
 							"Link":            Equal(event3.URL),
@@ -241,8 +245,7 @@ var _ = Describe("iCal feed output", func() {
 					Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt, time.Second))
 
 					if target.EndAt.IsZero() {
-						_, err := ev.GetEndAt()
-						Expect(err).To(HaveOccurred())
+						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.StartAt.Add(time.Hour), time.Second))
 					} else {
 						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.EndAt, time.Second))
 					}
@@ -254,7 +257,7 @@ var _ = Describe("iCal feed output", func() {
 					Expect(url).To(HaveField("Value", target.URL))
 
 					desc := ev.GetProperty(ics.ComponentPropertyDescription)
-					Expect(desc).To(HaveField("Value", target.GetDescription()))
+					Expect(desc).To(HaveField("Value", target.Description))
 
 					return true, nil
 				}))

@@ -3,6 +3,7 @@ FROM node:23-bookworm AS assets
 WORKDIR /build
 
 COPY package.json package-lock.json ./
+ENV NODE_ENV=production
 RUN npm ci
 
 COPY tailwind.config.js tailwind.css ./

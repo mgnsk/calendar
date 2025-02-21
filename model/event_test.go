@@ -8,6 +8,7 @@ import (
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	. "github.com/mgnsk/calendar/pkg/testing"
+	"github.com/mgnsk/calendar/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -20,27 +21,25 @@ var _ = Describe("inserting events", func() {
 		)
 
 		JustBeforeEach(func(ctx SpecContext) {
-			By("inserting one existing tag", func() {
-				Expect(model.InsertTags(ctx, db, "tag1")).To(Succeed())
-			})
-
 			ev = &domain.Event{
 				ID:          snowflake.Generate(),
 				StartAt:     time.Now().Add(2 * time.Hour),
 				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
-				URL:         "",
+				URL:         "https://calendar.testing",
+				IsDraft:     false,
+				UserID:      snowflake.Generate(),
 			}
 
 			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
 		})
 
 		Specify("event is persisted", func(ctx SpecContext) {
-			result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+			By("asserting event can be retrieved", func() {
+				event := Must(model.GetEvent(ctx, db, ev.ID))
 
-			Expect(result).To(HaveExactElements(
-				SatisfyAll(
+				Expect(event).To(SatisfyAll(
 					HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
 					PointTo(MatchAllFields(Fields{
 						"ID":          Equal(ev.ID),
@@ -49,15 +48,153 @@ var _ = Describe("inserting events", func() {
 						"Title":       Equal(ev.Title),
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
+						"IsDraft":     BeFalse(),
+						"UserID":      Equal(ev.UserID),
 					})),
-				),
+				))
+			})
+
+			By("asserting event can be listed", func() {
+				result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, false, ""))
+
+				Expect(result).To(HaveExactElements(
+					SatisfyAll(
+						HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
+						PointTo(MatchAllFields(Fields{
+							"ID":          Equal(ev.ID),
+							"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
+							"EndAt":       BeZero(),
+							"Title":       Equal(ev.Title),
+							"Description": Equal(ev.Description),
+							"URL":         Equal(ev.URL),
+							"IsDraft":     BeFalse(),
+							"UserID":      Equal(ev.UserID),
+						})),
+					),
+				))
+			})
+		})
+	})
+})
+
+var _ = Describe("updating events", func() {
+	var (
+		ev *domain.Event
+	)
+
+	JustBeforeEach(func(ctx SpecContext) {
+		ev = &domain.Event{
+			ID:          snowflake.Generate(),
+			StartAt:     time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			EndAt:       time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC),
+			Title:       "Old title",
+			Description: "Old description",
+			URL:         "https://old.testing",
+			IsDraft:     false,
+			UserID:      snowflake.Generate(),
+		}
+
+		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting tags are created", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "old"),
+				HaveField("Name", "title"),
+			))
+		})
+	})
+
+	Specify("event can be updated", func(ctx SpecContext) {
+		ev.Title = "New title"
+		ev.Description = "New description"
+		ev.URL = "https://new.testing"
+		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
+		ev.EndAt = time.Date(2001, 1, 1, 1, 0, 0, 0, time.UTC)
+		ev.IsDraft = true
+
+		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting updated event was persisted", func() {
+			event := Must(model.GetEvent(ctx, db, ev.ID))
+
+			Expect(event).To(PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title":       Equal("New title"),
+				"Description": Equal("New description"),
+				"URL":         Equal("https://new.testing"),
+				"StartAt":     BeTemporally("~", ev.StartAt),
+				"EndAt":       BeTemporally("~", ev.EndAt),
+				"IsDraft":     BeTrue(),
+			})))
+		})
+
+		By("asserting tags are updated", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "new"),
+				HaveField("Name", "title"),
 			))
 		})
 	})
 })
 
-var _ = Describe("listing events", func() {
+var _ = Describe("deleting events", func() {
+	var (
+		ev *domain.Event
+	)
+
 	JustBeforeEach(func(ctx SpecContext) {
+		ev = &domain.Event{
+			ID:          snowflake.Generate(),
+			StartAt:     time.Now().Add(2 * time.Hour),
+			EndAt:       time.Time{},
+			Title:       "Old title",
+			Description: "Old description",
+			URL:         "",
+			UserID:      snowflake.Generate(),
+		}
+
+		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting tags are created", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+
+			Expect(tags).To(HaveExactElements(
+				HaveField("Name", "description"),
+				HaveField("Name", "old"),
+				HaveField("Name", "title"),
+			))
+		})
+	})
+
+	Specify("event can be deleted", func(ctx SpecContext) {
+		Expect(model.DeleteEvent(ctx, db, ev)).To(Succeed())
+
+		By("asserting event was deleted", func() {
+			Expect(model.GetEvent(ctx, db, ev.ID)).Error().To(MatchError(wreck.NotFound))
+		})
+
+		By("asserting tags are updated", func() {
+			tags := Must(model.ListTags(ctx, db, 0))
+			Expect(tags).To(BeEmpty())
+		})
+	})
+})
+
+var _ = Describe("listing events", func() {
+	var (
+		userID1 snowflake.ID
+		userID2 snowflake.ID
+	)
+
+	JustBeforeEach(func(ctx SpecContext) {
+		userID1 = snowflake.Generate()
+		userID2 = snowflake.Generate()
+
 		By("inserting events", func() {
 			events := []*domain.Event{
 				{
@@ -67,6 +204,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
+					UserID:      userID1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -75,6 +213,7 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
+					UserID:      userID1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -83,6 +222,17 @@ var _ = Describe("listing events", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
+					UserID:      userID2,
+				},
+				{
+					ID:          snowflake.Generate(),
+					StartAt:     time.Now().Add(1 * time.Hour),
+					EndAt:       time.Now().Add(2 * time.Hour),
+					Title:       "Event 4",
+					Description: "Desc 4",
+					URL:         "",
+					IsDraft:     true,
+					UserID:      userID2,
 				},
 			}
 
@@ -93,7 +243,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, false, ""))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -109,7 +259,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtDesc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtDesc).List(ctx, db, false, ""))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -125,7 +275,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in created at time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderCreatedAtDesc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderCreatedAtDesc).List(ctx, db, false, ""))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -146,7 +296,7 @@ var _ = Describe("listing events", func() {
 				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
 				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
 				WithOrder(0, model.OrderStartAtAsc).
-				List(ctx, db, ""),
+				List(ctx, db, false, ""),
 		)
 
 		Expect(result).To(HaveExactElements(
@@ -154,6 +304,34 @@ var _ = Describe("listing events", func() {
 				"Title": Equal("Event 2"),
 			})),
 		))
+	})
+
+	Specify("events can be filtered by user", func(ctx SpecContext) {
+		result := Must(
+			model.NewEventsQuery().
+				WithOrder(0, model.OrderStartAtAsc).
+				WithUserID(userID1).
+				List(ctx, db, false, ""),
+		)
+
+		Expect(result).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 2"),
+			})),
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Title": Equal("Event 1"),
+			})),
+		))
+	})
+
+	Specify("draft events can be included", func(ctx SpecContext) {
+		result := Must(
+			model.NewEventsQuery().
+				WithOrder(0, model.OrderStartAtAsc).
+				List(ctx, db, true, ""),
+		)
+
+		Expect(result).To(HaveLen(4))
 	})
 })
 
@@ -175,6 +353,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -183,6 +362,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event ÕÄÖÜ 😀😀😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -191,6 +371,7 @@ var _ = Describe("full text search", func() {
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
+					UserID:      snowflake.Generate(),
 				},
 			}
 
@@ -207,7 +388,7 @@ var _ = Describe("full text search", func() {
 					WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
 					WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
 					WithOrder(0, model.OrderStartAtAsc).
-					List(ctx, db, query),
+					List(ctx, db, false, query),
 			)
 
 			Expect(result).To(BeEmpty())
@@ -228,7 +409,7 @@ var _ = Describe("full text search", func() {
 					WithStartAtFrom(startTime).
 					WithStartAtUntil(endTime).
 					WithOrder(0, model.OrderStartAtAsc).
-					List(ctx, db, query),
+					List(ctx, db, false, query),
 			)
 
 			Expect(result).To(HaveExactElements(
@@ -267,6 +448,7 @@ var _ = Describe("concurrent insert", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",
+				UserID:      snowflake.Generate(),
 			}
 
 			wg.Add(1)
@@ -280,7 +462,7 @@ var _ = Describe("concurrent insert", func() {
 
 		wg.Wait()
 
-		events := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+		events := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, false, ""))
 		Expect(events).To(HaveLen(100))
 	})
 })

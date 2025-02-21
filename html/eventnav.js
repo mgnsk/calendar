@@ -1,3 +1,4 @@
+/* exported changeTab */
 function changeTab(link) {
   // Make all links inactive.
   document.querySelectorAll(".nav-link").forEach(function (el) {

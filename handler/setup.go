@@ -27,16 +27,16 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 	if s != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
-	} else {
-		s = domain.NewDefaultSettings()
 	}
+
+	s = domain.NewDefaultSettings()
 	csrf := c.Get("csrf").(string)
 
 	switch c.Request().Method {
 	case http.MethodGet:
 		form := url.Values{}
-		form.Set("title", s.Title)
-		form.Set("description", s.Description)
+		form.Set("pagetitle", s.Title)
+		form.Set("pagedesc", s.Description)
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
@@ -50,14 +50,14 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 		errs := url.Values{}
 
-		title := c.FormValue("title")
+		title := c.FormValue("pagetitle")
 		if title == "" {
-			errs.Set("title", "Title must be set")
+			errs.Set("pagetitle", "Title must be set")
 		}
 
-		desc := c.FormValue("desc")
-		if title == "" {
-			errs.Set("desc", "Description must be set")
+		desc := c.FormValue("pagedesc")
+		if desc == "" {
+			errs.Set("pagedesc", "Description must be set")
 		}
 
 		username := c.FormValue("username")

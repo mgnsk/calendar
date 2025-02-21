@@ -15,7 +15,7 @@ func LoginMain(form, errs url.Values, csrf string) Node {
 				Action("/login"),
 				Method("POST"),
 				input("username", "text", "Username", form, errs),
-				input("password", "password", "Password", form, errs, "my-3"),
+				input("password", "password", "Password", form, errs),
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Button(Type("submit"), Class("font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Login")),
 			),

@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/pkg/markdown"
 	"github.com/mgnsk/calendar/pkg/timestamp"
-	"github.com/yuin/goldmark"
 	. "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/components"
@@ -33,7 +32,7 @@ func EventsMain(csrf string) Node {
 }
 
 // EventListPartial renders the event list partial.
-func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
+func EventListPartial(user *domain.User, offset int64, events []*domain.Event, csrf string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no events found")),
@@ -42,7 +41,7 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 
 	return Group{
 		Map(events, func(ev *domain.Event) Node {
-			return eventCard(ev)
+			return EventCard(user, ev, csrf)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
@@ -60,8 +59,11 @@ func EventListPartial(offset int64, events []*domain.Event, csrf string) Node {
 	}
 }
 
-func eventCard(ev *domain.Event) Node {
+// EventCard renders the event card.
+func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 	inPast := ev.StartAt.Before(time.Now())
+
+	// TODO: draft status and edit button
 
 	return Div(
 		Classes{
@@ -88,6 +90,21 @@ func eventCard(ev *domain.Event) Node {
 				eventTitle(ev),
 				eventDate(ev),
 				eventDesc(ev),
+				If(user != nil && (user.Role == domain.Admin || user.ID == ev.UserID), Div(Class("mt-5 flex justify-between"),
+					A(Class("hover:underline text-amber-600 font-semibold"),
+						Href(fmt.Sprintf("/edit/%d", ev.ID)),
+						Text("EDIT"),
+					),
+					A(Class("hover:underline text-amber-600 font-semibold"),
+						hx.Post(fmt.Sprintf("/delete/%d", ev.ID)),
+						hx.Confirm("Are you sure?"),
+						hx.Vals(string(must(json.Marshal(map[string]string{
+							"csrf": csrf,
+						})))),
+						Href(fmt.Sprintf("/delete/%d", ev.ID)),
+						Text("DELETE"),
+					),
+				)),
 			),
 		),
 	)
@@ -95,20 +112,18 @@ func eventCard(ev *domain.Event) Node {
 
 func eventTitle(ev *domain.Event) Node {
 	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
-		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Text(ev.Title)),
+		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
 	)
 }
 
 func eventDesc(ev *domain.Event) Node {
-	var buf strings.Builder
-	if err := goldmark.Convert([]byte(ev.Description), &buf); err != nil {
-		// TODO: event must be validated.
+	html, err := markdown.Convert(ev.Description)
+	if err != nil {
 		panic(fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err))
 	}
 
 	return Div(Class("text-justify"),
-		// TODO: syntax error here
-		Div(Class("mt-2 text-gray-700"), Raw(buf.String())),
+		Div(Class("mt-2 text-gray-700 [&>p]:py-3 [&_a:hover]:underline"), Raw(html)),
 	)
 }
 
@@ -126,19 +141,4 @@ func eventDate(ev *domain.Event) Node {
 			Text(ev.GetDateString()),
 		),
 	}
-}
-
-func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {
-	var nodes []Node
-	for i, t := range ts {
-		nodes = append(nodes, cb(i, t))
-	}
-	return nodes
-}
-
-func must[V any](v V, err error) V {
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
