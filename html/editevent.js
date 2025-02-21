@@ -31,12 +31,11 @@ document.addEventListener("DOMContentLoaded", () => {
       "undo",
       "redo",
     ],
-    previewRender: function (plainText, preview) {
-      const csrfInput = document.querySelector('[name="csrf"]');
-      const titleInput = document.querySelector('[name="title"]');
-      if (!csrfInput || !titleInput) {
-        console.error("Cannot find elements");
-        return "Internal error";
+    previewRender: function (_, preview) {
+      const form = document.getElementById("edit-form");
+      if (!form) {
+        console.error("Unable to find edit-form");
+        return "Preview error";
       }
 
       (async function () {
@@ -46,11 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
             },
-            body: new URLSearchParams({
-              csrf: csrfInput.value,
-              title: titleInput.value,
-              desc: plainText,
-            }),
+            body: new URLSearchParams(new FormData(form)),
           });
 
           if (!response.ok) {

@@ -98,7 +98,7 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Title:          ev.Title,
 				Description:    ev.Description,
 				URL:            ev.URL,
-				IsDraft:        false, // TODO
+				IsDraft:        ev.IsDraft,
 			}).
 				Column(
 					"start_at_unix",

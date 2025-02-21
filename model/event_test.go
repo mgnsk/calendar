@@ -28,6 +28,7 @@ var _ = Describe("inserting events", func() {
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "https://calendar.testing",
+				IsDraft:     false,
 				UserID:      snowflake.Generate(),
 			}
 
@@ -89,6 +90,7 @@ var _ = Describe("updating events", func() {
 			Title:       "Old title",
 			Description: "Old description",
 			URL:         "https://old.testing",
+			IsDraft:     false,
 			UserID:      snowflake.Generate(),
 		}
 
@@ -111,6 +113,7 @@ var _ = Describe("updating events", func() {
 		ev.URL = "https://new.testing"
 		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 		ev.EndAt = time.Date(2001, 1, 1, 1, 0, 0, 0, time.UTC)
+		ev.IsDraft = true
 
 		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
 
@@ -123,6 +126,7 @@ var _ = Describe("updating events", func() {
 				"URL":         Equal("https://new.testing"),
 				"StartAt":     BeTemporally("~", ev.StartAt),
 				"EndAt":       BeTemporally("~", ev.EndAt),
+				"IsDraft":     BeTrue(),
 			})))
 		})
 

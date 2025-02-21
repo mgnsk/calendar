@@ -11,9 +11,8 @@ import (
 // EditEventMain render the edit event page main content.
 func EditEventMain(form, errs url.Values, eventID snowflake.ID, csrf string) Node {
 	return Main(
-		// TODO: start and end datetime fields and URL field
 		Div(Class("max-w-3xl mx-auto"),
-			Form(Class("w-full px-3 py-4 mx-auto"),
+			Form(ID("edit-form"), Class("w-full px-3 py-4 mx-auto"),
 				Method("POST"),
 				input("title", "text", "Title", form, errs),
 				input("url", "url", "URL", form, errs),
