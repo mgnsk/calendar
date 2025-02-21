@@ -64,3 +64,32 @@ func textarea(name string, form, errs url.Values, extraClasses ...string) Node {
 		),
 	}
 }
+
+func dateTimeLocalInput(name string, form, errs url.Values, extraClasses ...string) Node {
+	classes := Classes{
+		"border":          true,
+		"border-gray-200": true,
+		"w-1/2":           true,
+		"py-2":            true,
+		"px-3":            true,
+		"rounded":         true,
+		"bg-red-100":      errs.Has(name),
+	}
+
+	for _, class := range extraClasses {
+		classes[class] = true
+	}
+
+	return Group{
+		If(errs.Has(name), P(Class("text-red-500 text-sm italic"), Text(errs.Get(name)))),
+		Input(classes,
+			Name(name),
+			Type("datetime-local"),
+			Value(form.Get(name)),
+			Required(),
+		),
+	}
+}
+
+// DateTimeFormat is the datetime-local input format.
+const DateTimeFormat = "2006-01-02T15:04"

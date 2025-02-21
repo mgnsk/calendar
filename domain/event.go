@@ -27,6 +27,7 @@ func (e *Event) GetCreatedAt() time.Time {
 }
 
 // GetDateString returns a formatted string with event start and end times.
+// TODO: handle multi-day dates
 func (e *Event) GetDateString() string {
 	var buf strings.Builder
 	buf.WriteString(e.StartAt.Format("January _2, 2006 "))

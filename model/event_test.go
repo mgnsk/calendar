@@ -27,7 +27,7 @@ var _ = Describe("inserting events", func() {
 				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
-				URL:         "",
+				URL:         "https://calendar.testing",
 				UserID:      snowflake.Generate(),
 			}
 
@@ -84,11 +84,11 @@ var _ = Describe("updating events", func() {
 	JustBeforeEach(func(ctx SpecContext) {
 		ev = &domain.Event{
 			ID:          snowflake.Generate(),
-			StartAt:     time.Now().Add(2 * time.Hour),
-			EndAt:       time.Time{},
+			StartAt:     time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			EndAt:       time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC),
 			Title:       "Old title",
 			Description: "Old description",
-			URL:         "",
+			URL:         "https://old.testing",
 			UserID:      snowflake.Generate(),
 		}
 
@@ -108,6 +108,9 @@ var _ = Describe("updating events", func() {
 	Specify("event can be updated", func(ctx SpecContext) {
 		ev.Title = "New title"
 		ev.Description = "New description"
+		ev.URL = "https://new.testing"
+		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
+		ev.EndAt = time.Date(2001, 1, 1, 1, 0, 0, 0, time.UTC)
 
 		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
 
@@ -117,6 +120,9 @@ var _ = Describe("updating events", func() {
 			Expect(event).To(PointTo(MatchFields(IgnoreExtras, Fields{
 				"Title":       Equal("New title"),
 				"Description": Equal("New description"),
+				"URL":         Equal("https://new.testing"),
+				"StartAt":     BeTemporally("~", ev.StartAt),
+				"EndAt":       BeTemporally("~", ev.EndAt),
 			})))
 		})
 

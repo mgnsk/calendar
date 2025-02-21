@@ -123,7 +123,7 @@ func eventDesc(ev *domain.Event) Node {
 	}
 
 	return Div(Class("text-justify"),
-		Div(Class("mt-2 text-gray-700 [&>p]:py-3"), Raw(html)),
+		Div(Class("mt-2 text-gray-700 [&>p]:py-3 [&_a:hover]:underline"), Raw(html)),
 	)
 }
 

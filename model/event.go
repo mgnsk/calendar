@@ -84,11 +84,31 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 
 // UpdateEvent updates an event.
 func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
+	_, offset := ev.StartAt.Zone()
+
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		if err := sqlite.WithErrorChecking(
-			db.NewUpdate().Model((*Event)(nil)).
-				Set("title = ?", ev.Title).
-				Set("description = ?", ev.Description).
+			db.NewUpdate().Model(&Event{
+				StartAtUnix: ev.StartAt.Unix(),
+				EndAtUnix: sql.NullInt64{
+					Int64: ev.EndAt.Unix(),
+					Valid: !ev.EndAt.IsZero(),
+				},
+				TimezoneOffset: offset,
+				Title:          ev.Title,
+				Description:    ev.Description,
+				URL:            ev.URL,
+				IsDraft:        false, // TODO
+			}).
+				Column(
+					"start_at_unix",
+					"end_at_unix",
+					"tz_offset",
+					"title",
+					"description",
+					"url",
+					"is_draft",
+				).
 				Where("id = ?", ev.ID).
 				Exec(ctx),
 		); err != nil {

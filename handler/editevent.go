@@ -69,6 +69,13 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		form := url.Values{}
 		form.Set("title", ev.Title)
 		form.Set("desc", ev.Description)
+		form.Set("url", ev.URL)
+		if !ev.StartAt.IsZero() {
+			form.Set("start_at", ev.StartAt.Format(html.DateTimeFormat))
+		}
+		if !ev.EndAt.IsZero() {
+			form.Set("end_at", ev.EndAt.Format(html.DateTimeFormat))
+		}
 
 		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev.ID, csrf)).Render(c.Response())
 
@@ -81,12 +88,34 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 
 		title := strings.TrimSpace(c.FormValue("title"))
 		desc := strings.TrimSpace(c.FormValue("desc"))
+		eventURL := strings.TrimSpace(c.FormValue("url"))
+		startAtVal := strings.TrimSpace(c.FormValue("start_at"))
+		endAtVal := strings.TrimSpace(c.FormValue("end_at"))
 
-		if title == "" || desc == "" {
+		// TODO: improve form validation
+		if title == "" || desc == "" || eventURL == "" || startAtVal == "" || endAtVal == "" {
 			errs.Set("title", "Required")
 			errs.Set("desc", "Required")
+			errs.Set("url", "Required")
+			errs.Set("start_at", "Required")
+			errs.Set("end_at", "Required")
 		} else if _, err := markdown.Convert(desc); err != nil {
 			errs.Set("desc", "Invalid markdown")
+		}
+
+		u, err := url.Parse(eventURL)
+		if err != nil {
+			errs.Set("url", "Invalid URL")
+		}
+
+		startAt, err := time.Parse(html.DateTimeFormat, startAtVal)
+		if err != nil {
+			errs.Set("start_at", "Invalid start at datetime")
+		}
+
+		endAt, err := time.Parse(html.DateTimeFormat, endAtVal)
+		if err != nil {
+			errs.Set("end_at", "Invalid end at datetime")
 		}
 
 		if len(errs) > 0 {
@@ -101,11 +130,11 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 
 			if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
 				ID:          ev.ID,
-				StartAt:     time.Now(),
-				EndAt:       time.Now().Add(2 * time.Hour),
+				StartAt:     startAt,
+				EndAt:       endAt,
 				Title:       title,
 				Description: desc,
-				URL:         "",
+				URL:         u.String(),
 				IsDraft:     false, // TODO
 				UserID:      user.ID,
 			}); err != nil {
@@ -114,6 +143,9 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		} else {
 			ev.Title = title
 			ev.Description = desc
+			ev.URL = u.String()
+			ev.StartAt = startAt
+			ev.EndAt = endAt
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
 				return err
