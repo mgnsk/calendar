@@ -3,7 +3,6 @@ package markdown
 import (
 	"strings"
 
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -17,69 +16,61 @@ import (
 
 // Convert a markdown source to HTML.
 func Convert(source string) (string, error) {
-	transformer := &astTransformer{}
-
-	md := goldmark.New(
-		goldmark.WithExtensions(
-			extension.Strikethrough,
-			extension.NewLinkify(
-				extension.WithLinkifyAllowedProtocols([]string{
-					"http:",
-					"https:",
-				}),
-				extension.WithLinkifyURLRegexp(
-					xurls.Strict(),
-				),
-			),
-		),
-		goldmark.WithParserOptions(
-			parser.WithBlockParsers(
-				util.Prioritized(parser.NewParagraphParser(), 100),
-			),
-			parser.WithInlineParsers(
-				util.Prioritized(parser.NewLinkParser(), 100),
-				util.Prioritized(parser.NewAutoLinkParser(), 200),
-				util.Prioritized(parser.NewEmphasisParser(), 300),
-			),
-			parser.WithASTTransformers(
-				util.Prioritized(transformer, 100),
-			),
-		),
-		goldmark.WithRendererOptions(
-			html.WithHardWraps(),
-		),
-	)
-
 	var buf strings.Builder
 	if err := md.Convert([]byte(source), &buf); err != nil {
 		return "", err
 	}
 
-	if transformer.err != nil {
-		return "", transformer.err
-	}
-
 	return buf.String(), nil
 }
 
-type astTransformer struct {
-	err error
-}
+var md = goldmark.New(
+	goldmark.WithExtensions(
+		extension.Strikethrough,
+		extension.NewLinkify(
+			extension.WithLinkifyAllowedProtocols([]string{
+				"http:",
+				"https:",
+			}),
+			extension.WithLinkifyURLRegexp(
+				xurls.Strict(),
+			),
+		),
+	),
+	goldmark.WithParserOptions(
+		parser.WithBlockParsers(
+			util.Prioritized(parser.NewParagraphParser(), 100),
+		),
+		parser.WithInlineParsers(
+			util.Prioritized(parser.NewLinkParser(), 100),
+			util.Prioritized(parser.NewAutoLinkParser(), 200),
+			util.Prioritized(parser.NewEmphasisParser(), 300),
+		),
+		parser.WithASTTransformers(
+			util.Prioritized(astTransformer{}, 100),
+		),
+	),
+	goldmark.WithRendererOptions(
+		html.WithHardWraps(),
+	),
+)
 
-func (t *astTransformer) Transform(node *ast.Document, _ text.Reader, _ parser.Context) {
-	t.err = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+type astTransformer struct{}
+
+func (astTransformer) Transform(node *ast.Document, _ text.Reader, _ parser.Context) {
+	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 
-		switch v := n.(type) {
+		switch n := n.(type) {
 		case *ast.Link:
-			v.SetAttributeString("target", "_blank")
-			v.SetAttributeString("rel", "noopener")
+			n.SetAttributeString("target", "_blank")
+			n.SetAttributeString("rel", "noopener")
 
 		case *ast.AutoLink:
-			v.SetAttributeString("target", "_blank")
-			v.SetAttributeString("rel", "noopener")
+			n.SetAttributeString("target", "_blank")
+			n.SetAttributeString("rel", "noopener")
 
 		case *ast.Document:
 		case *ast.Paragraph:
@@ -90,7 +81,7 @@ func (t *astTransformer) Transform(node *ast.Document, _ text.Reader, _ parser.C
 		case *ast.HTMLBlock:
 
 		default:
-			return 0, wreck.InvalidValue.New("Invalid markdown")
+			n.Parent().RemoveChild(n.Parent(), n)
 		}
 
 		return ast.WalkContinue, nil
