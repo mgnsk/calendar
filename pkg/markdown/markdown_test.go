@@ -41,6 +41,12 @@ var _ = Describe("rendering markdown", func() {
 			`https://calendar.testing`,
 			`<p><a href="https://calendar.testing" target="_blank" rel="noopener">https://calendar.testing</a></p>`,
 		),
+
+		// Any elements not specifically allowed are forbidden.
+		Entry("forbidden element is ignored",
+			"```Text```",
+			`<p></p>`,
+		),
 	)
 
 	DescribeTable("XSS mitigation",
@@ -75,19 +81,6 @@ href="javascript:alert('xss')">you</a>`,
 			`[Link](" onclick="alert('xss')")`,
 			`<p>[Link](&quot; onclick=&quot;alert('xss')&quot;)</p>`,
 		),
-	)
-
-	DescribeTable("forbidden markdown elements",
-		func(source string) {
-			_, err := markdown.Convert(source)
-			Expect(err).To(HaveOccurred())
-		},
-
-		Entry("code block",
-			"```Text```",
-		),
-
-		// Any elements not specifically allowed are forbidden.
 	)
 
 	DescribeTable("linebreaks",
