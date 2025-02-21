@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,75 +24,7 @@ type EditEventHandler struct {
 	db *bun.DB
 }
 
-// Add event handles adding events.
-func (h *EditEventHandler) Add(c echo.Context) error {
-	user := loadUser(c)
-	if user == nil {
-		return wreck.Forbidden.New("Must be logged in")
-	}
-
-	s := loadSettings(c)
-	csrf := c.Get("csrf").(string)
-
-	switch c.Request().Method {
-	case http.MethodGet:
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
-
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(nil, nil, nil, csrf)).Render(c.Response())
-
-	case http.MethodPost:
-		form, err := c.FormParams()
-		if err != nil {
-			return err
-		}
-		errs := url.Values{}
-
-		// TODO: form validation framework
-		title := strings.TrimSpace(c.FormValue("title"))
-		desc := strings.TrimSpace(c.FormValue("desc"))
-
-		if title == "" || desc == "" {
-			errs.Set("title", "Required")
-			errs.Set("desc", "Required")
-
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, nil, csrf)).Render(c.Response())
-		}
-
-		if _, err := markdown.Convert(desc); err != nil {
-			errs.Set("desc", "Invalid markdown")
-
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, nil, csrf)).Render(c.Response())
-		}
-
-		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
-			ID:          snowflake.Generate(),
-			StartAt:     time.Now(),
-			EndAt:       time.Now().Add(2 * time.Hour),
-			Title:       title,
-			Description: desc,
-			URL:         "",
-			IsDraft:     false, // TODO
-			UserID:      user.ID,
-		}); err != nil {
-			return err
-		}
-
-		// TODO: add success flash message
-		return c.Redirect(http.StatusSeeOther, "/")
-
-	default:
-		panic("unhandled method")
-	}
-}
-
-// Edit handles editing events.
+// Edit handles adding and editing events.
 func (h *EditEventHandler) Edit(c echo.Context) error {
 	user := loadUser(c)
 	if user == nil {
@@ -111,13 +44,21 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		return wreck.InvalidValue.New("Invalid event_id path param", err)
 	}
 
-	ev, err := model.GetEvent(c.Request().Context(), h.db, snowflake.ID(id))
-	if err != nil {
-		return err
-	}
+	var ev *domain.Event
 
-	if user.Role != domain.Admin && user.ID != ev.UserID {
-		return wreck.Forbidden.New("Non-admin users can only edit own events")
+	if id == 0 {
+		ev = &domain.Event{}
+	} else {
+		event, err := model.GetEvent(c.Request().Context(), h.db, snowflake.ID(id))
+		if err != nil {
+			return err
+		}
+
+		if user.Role != domain.Admin && user.ID != event.UserID {
+			return wreck.Forbidden.New("Non-admin users can only edit own events")
+		}
+
+		ev = event
 	}
 
 	switch c.Request().Method {
@@ -129,7 +70,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		form.Set("title", ev.Title)
 		form.Set("desc", ev.Description)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev, csrf)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev.ID, csrf)).Render(c.Response())
 
 	case http.MethodPost:
 		form, err := c.FormParams()
@@ -144,34 +85,46 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		if title == "" || desc == "" {
 			errs.Set("title", "Required")
 			errs.Set("desc", "Required")
-
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev, csrf)).Render(c.Response())
-		}
-
-		if _, err := markdown.Convert(desc); err != nil {
+		} else if _, err := markdown.Convert(desc); err != nil {
 			errs.Set("desc", "Invalid markdown")
+		}
 
+		if len(errs) > 0 {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev.ID, csrf)).Render(c.Response())
 		}
 
-		ev.Title = title
-		ev.Description = desc
+		if ev.ID == 0 {
+			ev.ID = snowflake.Generate()
 
-		if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
-			return err
+			if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
+				ID:          ev.ID,
+				StartAt:     time.Now(),
+				EndAt:       time.Now().Add(2 * time.Hour),
+				Title:       title,
+				Description: desc,
+				URL:         "",
+				IsDraft:     false, // TODO
+				UserID:      user.ID,
+			}); err != nil {
+				return err
+			}
+		} else {
+			ev.Title = title
+			ev.Description = desc
+
+			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
+				return err
+			}
 		}
 
 		// TODO: add success flash message
-		return c.Redirect(http.StatusSeeOther, "/")
+		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
 
 	default:
-		panic("unhandled method")
+		return wreck.NotFound.New("Not found")
 	}
 }
 
@@ -247,9 +200,6 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 
 // Register the handler.
 func (h *EditEventHandler) Register(g *echo.Group) {
-	g.GET("/add", h.Add)
-	g.POST("/add", h.Add)
-
 	g.GET("/edit/:event_id", h.Edit)
 	g.POST("/edit/:event_id", h.Edit)
 

@@ -31,7 +31,7 @@ func UserNav(user *domain.User, path, csrf string) Node {
 						// If(user.Role == domain.Admin,
 						// 	A(Class("inline-block p-2"), Href("/users"), Text("Users")),
 						// ),
-						A(Class("inline-block p-2"), Href("/add"), Text("Add event")),
+						A(Class("inline-block p-2"), Href("/edit/0"), Text("Add event")),
 						A(Class("inline-block p-2"), Href("/logout"), Text("Logout")),
 					),
 				}
