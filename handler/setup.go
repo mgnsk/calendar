@@ -27,9 +27,9 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 	if s != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
-	} else {
-		s = domain.NewDefaultSettings()
 	}
+
+	s = domain.NewDefaultSettings()
 	csrf := c.Get("csrf").(string)
 
 	switch c.Request().Method {

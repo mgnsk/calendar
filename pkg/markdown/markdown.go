@@ -66,7 +66,7 @@ type astTransformer struct {
 	err error
 }
 
-func (t *astTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
+func (t *astTransformer) Transform(node *ast.Document, _ text.Reader, _ parser.Context) {
 	t.err = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
