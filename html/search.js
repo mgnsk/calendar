@@ -1,3 +1,5 @@
+/* global Mark */
+
 const punct = ":;.,-–—‒_(){}[]!'\"+=".split("");
 
 async function highlightResults(node) {

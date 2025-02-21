@@ -1,0 +1,32 @@
+---
+name: Lint go code
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  golint:
+    name: Lint go code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Revive Action
+        uses: docker://morphy/revive-action:v2
+        with:
+          config: revive.toml
+
+  eslint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install modules
+        run: npm ci
+
+      - name: Run ESLint
+        run: eslint

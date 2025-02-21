@@ -1,3 +1,5 @@
+/* global EasyMDE */
+
 document.addEventListener("DOMContentLoaded", (event) => {
   const el = document.querySelector('textarea[name="desc"]');
   if (el) {
