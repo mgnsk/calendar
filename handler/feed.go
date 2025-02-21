@@ -2,14 +2,17 @@ package handler
 
 import (
 	"encoding/xml"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/uptrace/bun"
 )
@@ -47,13 +50,16 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 		event.SetModifiedAt(ev.GetCreatedAt())
 
 		event.SetStartAt(ev.StartAt)
-		if !ev.EndAt.IsZero() {
+		if ev.EndAt.IsZero() {
+			// Default to 1 hour event duration.
+			event.SetEndAt(ev.StartAt.Add(time.Hour))
+		} else {
 			event.SetEndAt(ev.EndAt)
 		}
 
 		event.SetSummary(ev.Title)
 		event.SetURL(ev.URL)
-		event.SetDescription(ev.GetDescription())
+		event.SetDescription(ev.Description)
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/calendar; charset=utf-8")
@@ -81,10 +87,16 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 	}
 
 	for _, ev := range events {
+		var htmlContent strings.Builder
+		if err := html.EventCard(nil, ev, "").Render(&htmlContent); err != nil {
+			return err
+		}
+
 		feed.Add(&feeds.Item{
 			Title:       ev.Title,
 			Link:        &feeds.Link{Href: ev.URL},
-			Description: ev.GetDescription(),
+			Description: fmt.Sprintf("%s\n\n%s", ev.GetDateString(), ev.Description),
+			Content:     htmlContent.String(),
 			Id:          ev.ID.String(),
 			IsPermaLink: "false",
 			Updated:     ev.GetCreatedAt(),
