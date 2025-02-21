@@ -142,11 +142,3 @@ func eventDate(ev *domain.Event) Node {
 		),
 	}
 }
-
-func mapIndexed[T any](ts []T, cb func(int, T) Node) Group {
-	var nodes []Node
-	for i, t := range ts {
-		nodes = append(nodes, cb(i, t))
-	}
-	return nodes
-}
