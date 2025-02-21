@@ -22,6 +22,6 @@ dev:
 
 .PHONY: lint
 lint:
-	@npx concurrently --raw=true -n revive,eslint -c green,yellow \
+	@npx concurrently --raw=true --group \
 		"revive -max_open_files=64 -formatter=stylish -exclude=./vendor/... -config=revive.toml ./..." \
 		"eslint"
