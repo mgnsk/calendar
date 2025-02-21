@@ -74,8 +74,6 @@ func run() error {
 		return wreck.Internal.New("error migrating database", err)
 	}
 
-	model.RegisterModels(db)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	g, ctx := errgroup.WithContext(ctx)
 	quit := make(chan os.Signal, 1)

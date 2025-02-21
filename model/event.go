@@ -27,17 +27,12 @@ type Event struct {
 	IsDraft        bool          `bun:"is_draft"`
 	UserID         snowflake.ID  `bun:"user_id"`
 
-	// TODO: unused but only defined for relation table?
-	Tags []*Tag `bun:"m2m:events_tags,join:Event=Tag"`
-
 	bun.BaseModel `bun:"events"`
 }
 
 type eventToTag struct {
 	TagID   snowflake.ID `bun:"tag_id"`
-	Tag     *Tag         `bun:"rel:belongs-to,join:tag_id=id"`
 	EventID snowflake.ID `bun:"event_id"`
-	Event   *Event       `bun:"rel:belongs-to,join:event_id=id"`
 
 	bun.BaseModel `bun:"events_tags"`
 }
@@ -73,7 +68,6 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			URL:            ev.URL,
 			IsDraft:        ev.IsDraft,
 			UserID:         ev.UserID,
-			Tags:           nil,
 		}).Exec(ctx)); err != nil {
 			return err
 		}

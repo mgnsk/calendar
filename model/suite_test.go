@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -21,8 +20,6 @@ var _ = BeforeEach(func() {
 	DeferCleanup(func() error {
 		return calendar.MigrateDown(db.DB)
 	})
-
-	model.RegisterModels(db)
 })
 
 func TestSuite(t *testing.T) {
