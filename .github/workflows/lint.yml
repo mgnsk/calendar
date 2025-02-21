@@ -6,36 +6,37 @@ on:
     branches-ignore:
       - main
 
+permissions:
+  # Default permissions (matching what would be set if the permissions section was missing at all)
+  contents: read
+  packages: read
+
+  # Need to add these 2 for eslint-annotate-action
+  pull-requests: read
+  checks: write
+
 jobs:
   golint:
     name: Lint Go code
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Run Revive Action
-        uses: docker://morphy/revive-action:v2
+        uses: docker://morphy/revive-action@sha256:28eca8b53427f9f1b0c8d44236b057be4bf62c9118c98223285c0558192f0257
         with:
           config: revive.toml
 
   eslint:
     name: Lint Javascript code
-    permissions:
-      # Default permissions (matching what would be set if the permissions section was missing at all)
-      contents: read
-      packages: read
-
-      # Need to add these 2 for eslint-annotate-action
-      pull-requests: read
-      checks: write
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a
         with:
           node-version: 23
           cache: 'npm'
@@ -54,10 +55,10 @@ jobs:
         # See https://eslint.org/docs/user-guide/command-line-interface#options
         run: npm run lint:report
         # Continue to the next step even if this fails
-        continue-on-error: true
+        # continue-on-error: true
 
       - name: Annotate Code Linting Results
-        uses: ataylorme/eslint-annotate-action@v3
+        uses: ataylorme/eslint-annotate-action@d57a1193d4c59cbfbf3f86c271f42612f9dbd9e9
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           report-json: "eslint_report.json"
