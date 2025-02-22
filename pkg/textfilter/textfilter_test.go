@@ -30,6 +30,18 @@ func TestPrepareFTSSearchStrings(t *testing.T) {
 			source:   `"one one" "two two"`,
 			expected: []string{`"one one"`, `"two two"`},
 		},
+		{
+			source:   `a AND b`,
+			expected: []string{`"a"`, `AND`, `"b"`},
+		},
+		{
+			source:   `AND AND a`,
+			expected: []string{`"a"`},
+		},
+		{
+			source:   `a AND AND`,
+			expected: []string{`"a"`},
+		},
 	} {
 		t.Run(tc.source, func(t *testing.T) {
 			result := textfilter.PrepareFTSSearchStrings(tc.source)

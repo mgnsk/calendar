@@ -395,6 +395,8 @@ var _ = Describe("full text search", func() {
 		},
 		Entry("multiple exact match at least one", `"Desc 2" "unknown@email.testing"`), // Defaults to AND operator.
 		Entry("only AND operator", "AND"),
+		Entry("multiple operators prefix", "AND AND Desc"),
+		Entry("multiple operators suffix", "Desc AND AND"),
 		Entry("unused AND operator", "AND something"),
 		Entry("backslash", `aou\`),
 		Entry("spaces", "Desc \t \u00a0  3"),
