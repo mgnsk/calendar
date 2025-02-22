@@ -13,9 +13,30 @@ func EnsureQuoted(s string) string {
 }
 
 // PrepareFTSSearchStrings prepares an SQLITE FTS search string of quoted words.
-func PrepareFTSSearchStrings(s string) []string {
+func PrepareFTSSearchStrings(s string) (quoted []string) {
 	fields := splitString(s)
-	quoted := make([]string, 0, len(fields))
+
+first:
+	for len(fields) > 0 {
+		switch first := fields[0]; first {
+		case "AND", "OR", "NOT":
+			fields = fields[1:]
+
+		default:
+			break first
+		}
+	}
+
+last:
+	for len(fields) > 0 {
+		switch last := fields[len(fields)-1]; last {
+		case "AND", "OR", "NOT":
+			fields = fields[:len(fields)-1]
+
+		default:
+			break last
+		}
+	}
 
 	for _, field := range fields {
 		switch field {
@@ -25,26 +46,6 @@ func PrepareFTSSearchStrings(s string) []string {
 		default:
 			quoted = append(quoted, EnsureQuoted(field))
 		}
-	}
-
-	// Remove unused FTS5 operators.
-
-	if len(quoted) == 0 {
-		return nil
-	}
-
-	switch first := quoted[0]; first {
-	case "AND", "OR", "NOT":
-		quoted = quoted[1:]
-	}
-
-	if len(quoted) == 0 {
-		return nil
-	}
-
-	switch last := quoted[len(quoted)-1]; last {
-	case "AND", "OR", "NOT":
-		quoted = quoted[:len(quoted)-1]
 	}
 
 	return quoted
