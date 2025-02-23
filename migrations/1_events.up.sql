@@ -6,6 +6,8 @@ CREATE TABLE `events` (
   `description` text NOT NULL,
   `url` text NOT NULL,
   `location` text NOT NULL,
+  `latitude` text NOT NULL,
+  `longitude` text NOT NULL,
   `is_draft` tinyint NOT NULL,
   `user_id` bigint unsigned NOT NULL
 );

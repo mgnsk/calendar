@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   $('[name="location"]').autocomplete({
-    source(request, response) {
+    source: function (request, response) {
       const query = request.term.trim();
       if (!query) {
         response([]);
@@ -94,6 +94,13 @@ document.addEventListener("DOMContentLoaded", () => {
         .finally(function () {
           $("#location-spinner").css("opacity", "0");
         });
+    },
+    select: function (_, ui) {
+      const lat = ui.item.y;
+      const long = ui.item.x;
+
+      $('[name="latitude"]').val(lat);
+      $('[name="longitude"]').val(long);
     },
     delay: 500,
     minLength: 3,

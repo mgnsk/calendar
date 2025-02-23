@@ -1,9 +1,13 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/contract"
@@ -57,8 +61,10 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			req.Title = ev.Title
 			req.Description = ev.Description
 			req.URL = ev.URL
-			req.StartAt = contract.NewDateTime(ev.StartAt)
+			req.StartAt = ev.StartAt.Format(contract.FormDateTimeLayout)
 			req.Location = ev.Location
+			req.Latitude = ev.Latitude
+			req.Longitude = ev.Longitude
 		}
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -74,12 +80,19 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(req, errs, csrf)).Render(c.Response())
 		}
 
+		startAt, err := parseTimeInLocation(c.Request().Context(), req)
+		if err != nil {
+			return err
+		}
+
 		if ev != nil {
-			ev.StartAt = req.StartAt.Time()
+			ev.StartAt = startAt
 			ev.Title = req.Title
 			ev.Description = req.Description
 			ev.URL = req.URL
 			ev.Location = req.Location
+			ev.Latitude = req.Latitude
+			ev.Longitude = req.Longitude
 			// TODO: draft
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
@@ -94,11 +107,13 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 
 		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
 			ID:          eventID,
-			StartAt:     req.StartAt.Time(),
+			StartAt:     startAt,
 			Title:       req.Title,
 			Description: req.Description,
 			URL:         req.URL,
 			Location:    req.Location,
+			Latitude:    req.Latitude,
+			Longitude:   req.Longitude,
 			IsDraft:     false, // TODO
 			UserID:      user.ID,
 		}); err != nil {
@@ -165,12 +180,19 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 		return err
 	}
 
+	startAt, err := parseTimeInLocation(c.Request().Context(), req)
+	if err != nil {
+		return err
+	}
+
 	ev := &domain.Event{
-		StartAt:     req.StartAt.Time(),
+		StartAt:     startAt,
 		Title:       req.Title,
 		Description: req.Description,
 		URL:         req.URL,
 		Location:    req.Location,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
 		IsDraft:     false, // TODO
 	}
 
@@ -196,4 +218,75 @@ func NewEditEventHandler(db *bun.DB) *EditEventHandler {
 	return &EditEventHandler{
 		db: db,
 	}
+}
+
+func getLocation(ctx context.Context, req contract.EditEventForm) (string, error) {
+	u, err := url.Parse("https://api.geotimezone.com/public/timezone")
+	if err != nil {
+		panic(err)
+	}
+
+	q := url.Values{}
+	q.Set("latitude", strconv.FormatFloat(req.Latitude, 'f', -1, 64))
+	q.Set("longitude", strconv.FormatFloat(req.Longitude, 'f', -1, 64))
+
+	u.RawQuery = q.Encode()
+
+	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", err
+	}
+
+	r = r.WithContext(ctx)
+
+	res, err := http.DefaultClient.Do(r)
+	if err != nil {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	var timezoneResponse struct {
+		IANATimezone string `json:"iana_timezone"`
+	}
+
+	dec := json.NewDecoder(res.Body)
+	if err := dec.Decode(&timezoneResponse); err != nil {
+		return "", err
+	}
+
+	return timezoneResponse.IANATimezone, nil
+}
+
+func parseTimeInLocation(ctx context.Context, req contract.EditEventForm) (time.Time, error) {
+	ianaTimezone, err := getLocation(ctx, req)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if ianaTimezone == "" {
+		// If timezone not found, fall back to user timezone.
+		ianaTimezone = req.UserTimezone
+	}
+
+	var loc *time.Location
+
+	if ianaTimezone == "" {
+		// if user timezone also not found, fall back to UTC.
+		loc = time.UTC
+	} else {
+		l, err := time.LoadLocation(ianaTimezone)
+		if err != nil {
+			return time.Time{}, wreck.InvalidValue.New("Invalid location timezone", err)
+		}
+
+		loc = l
+	}
+
+	ts, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
+	if err != nil {
+		return time.Time{}, wreck.InvalidValue.New("Invalid value", err)
+	}
+
+	return ts, nil
 }
