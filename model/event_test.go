@@ -24,7 +24,6 @@ var _ = Describe("inserting events", func() {
 			ev = &domain.Event{
 				ID:          snowflake.Generate(),
 				StartAt:     time.Now().Add(2 * time.Hour),
-				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "https://calendar.testing",
@@ -44,7 +43,6 @@ var _ = Describe("inserting events", func() {
 					PointTo(MatchAllFields(Fields{
 						"ID":          Equal(ev.ID),
 						"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
-						"EndAt":       BeZero(),
 						"Title":       Equal(ev.Title),
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
@@ -63,7 +61,6 @@ var _ = Describe("inserting events", func() {
 						PointTo(MatchAllFields(Fields{
 							"ID":          Equal(ev.ID),
 							"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
-							"EndAt":       BeZero(),
 							"Title":       Equal(ev.Title),
 							"Description": Equal(ev.Description),
 							"URL":         Equal(ev.URL),
@@ -86,7 +83,6 @@ var _ = Describe("updating events", func() {
 		ev = &domain.Event{
 			ID:          snowflake.Generate(),
 			StartAt:     time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-			EndAt:       time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC),
 			Title:       "Old title",
 			Description: "Old description",
 			URL:         "https://old.testing",
@@ -112,7 +108,6 @@ var _ = Describe("updating events", func() {
 		ev.Description = "New description"
 		ev.URL = "https://new.testing"
 		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
-		ev.EndAt = time.Date(2001, 1, 1, 1, 0, 0, 0, time.UTC)
 		ev.IsDraft = true
 
 		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
@@ -125,7 +120,6 @@ var _ = Describe("updating events", func() {
 				"Description": Equal("New description"),
 				"URL":         Equal("https://new.testing"),
 				"StartAt":     BeTemporally("~", ev.StartAt),
-				"EndAt":       BeTemporally("~", ev.EndAt),
 				"IsDraft":     BeTrue(),
 			})))
 		})
@@ -151,7 +145,6 @@ var _ = Describe("deleting events", func() {
 		ev = &domain.Event{
 			ID:          snowflake.Generate(),
 			StartAt:     time.Now().Add(2 * time.Hour),
-			EndAt:       time.Time{},
 			Title:       "Old title",
 			Description: "Old description",
 			URL:         "",
@@ -200,7 +193,6 @@ var _ = Describe("listing events", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(3 * time.Hour),
-					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
@@ -209,7 +201,6 @@ var _ = Describe("listing events", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(2 * time.Hour),
-					EndAt:       time.Time{},
 					Title:       "Event 2",
 					Description: "Desc 2",
 					URL:         "",
@@ -218,7 +209,6 @@ var _ = Describe("listing events", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(1 * time.Hour),
-					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
@@ -227,7 +217,6 @@ var _ = Describe("listing events", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(1 * time.Hour),
-					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 4",
 					Description: "Desc 4",
 					URL:         "",
@@ -349,7 +338,6 @@ var _ = Describe("full text search", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(3 * time.Hour),
-					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1",
 					URL:         "",
@@ -358,7 +346,6 @@ var _ = Describe("full text search", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     startTime,
-					EndAt:       time.Time{},
 					Title:       "Event ÕÄÖÜ 😀😀😀",
 					Description: "Desc 2 some@email.testing, https://outlink.testing",
 					URL:         "",
@@ -367,7 +354,6 @@ var _ = Describe("full text search", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(1 * time.Hour),
-					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3",
 					URL:         "",
@@ -446,7 +432,6 @@ var _ = Describe("concurrent insert", func() {
 			ev := &domain.Event{
 				ID:          snowflake.Generate(),
 				StartAt:     time.Now().Add(2 * time.Hour),
-				EndAt:       time.Time{},
 				Title:       "Event Title ÕÄÖÜ 1",
 				Description: "Desc 1",
 				URL:         "",

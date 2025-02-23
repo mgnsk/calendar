@@ -50,12 +50,8 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 		event.SetModifiedAt(ev.GetCreatedAt())
 
 		event.SetStartAt(ev.StartAt)
-		if ev.EndAt.IsZero() {
-			// Default to 1 hour event duration.
-			event.SetEndAt(ev.StartAt.Add(time.Hour))
-		} else {
-			event.SetEndAt(ev.EndAt)
-		}
+		// Default to 1 hour event duration.
+		event.SetEndAt(ev.StartAt.Add(time.Hour))
 
 		event.SetSummary(ev.Title)
 		event.SetURL(ev.URL)

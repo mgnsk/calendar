@@ -64,7 +64,6 @@ var _ = Describe("listing tags", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(3 * time.Hour),
-					EndAt:       time.Time{},
 					Title:       "Event 1",
 					Description: "Desc 1 tag1",
 					URL:         "",
@@ -72,7 +71,6 @@ var _ = Describe("listing tags", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(2 * time.Hour),
-					EndAt:       time.Time{},
 					Title:       "Event 2",
 					Description: "Desc 2 tag1 tag2",
 					URL:         "",
@@ -80,7 +78,6 @@ var _ = Describe("listing tags", func() {
 				{
 					ID:          snowflake.Generate(),
 					StartAt:     time.Now().Add(1 * time.Hour),
-					EndAt:       time.Now().Add(2 * time.Hour),
 					Title:       "Event 3",
 					Description: "Desc 3 tag3",
 					URL:         "",

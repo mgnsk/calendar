@@ -243,12 +243,7 @@ var _ = Describe("iCal feed output", func() {
 				matchers = append(matchers, MakeMatcher(func(ev *ics.VEvent) (bool, error) {
 					Expect(Must(ev.GetLastModifiedAt())).To(BeTemporally("~", time.Now(), time.Second))
 					Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt, time.Second))
-
-					if target.EndAt.IsZero() {
-						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.StartAt.Add(time.Hour), time.Second))
-					} else {
-						Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.EndAt, time.Second))
-					}
+					Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.StartAt.Add(time.Hour), time.Second))
 
 					summary := ev.GetProperty(ics.ComponentPropertySummary)
 					Expect(summary).To(HaveField("Value", target.Title))
