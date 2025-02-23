@@ -17,7 +17,14 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				input("title", "text", "Title", form.Title, errs.Get("title"), true),
 				input("url", "url", "URL", form.URL, errs.Get("url"), false),
 				dateTimeLocalInput("start_at", form.StartAt.String(), errs.Get("start_at"), true),
-				input("location", "text", "Location", form.Location, errs.Get("location"), true),
+
+				Div(Class("relative"),
+					input("location", "text", "Location", form.Location, errs.Get("location"), true),
+					Div(ID("location-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2"),
+						spinner(2),
+					),
+				),
+
 				textarea("desc", form.Description, errs.Get("desc"), true),
 
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
