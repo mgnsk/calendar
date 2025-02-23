@@ -28,6 +28,8 @@ var _ = Describe("inserting events", func() {
 				Description: "Desc 1",
 				URL:         "https://calendar.testing",
 				Location:    "hash",
+				Latitude:    1,
+				Longitude:   1,
 				IsDraft:     false,
 				UserID:      snowflake.Generate(),
 			}
@@ -48,6 +50,8 @@ var _ = Describe("inserting events", func() {
 						"Description": Equal(ev.Description),
 						"URL":         Equal(ev.URL),
 						"Location":    Equal("hash"),
+						"Latitude":    Equal(float64(1)),
+						"Longitude":   Equal(float64(1)),
 						"IsDraft":     BeFalse(),
 						"UserID":      Equal(ev.UserID),
 					})),
@@ -67,6 +71,8 @@ var _ = Describe("inserting events", func() {
 							"Description": Equal(ev.Description),
 							"URL":         Equal(ev.URL),
 							"Location":    Equal("hash"),
+							"Latitude":    Equal(float64(1)),
+							"Longitude":   Equal(float64(1)),
 							"IsDraft":     BeFalse(),
 							"UserID":      Equal(ev.UserID),
 						})),
@@ -90,6 +96,8 @@ var _ = Describe("updating events", func() {
 			Description: "Old description",
 			URL:         "https://old.testing",
 			Location:    "old",
+			Latitude:    1,
+			Longitude:   1,
 			IsDraft:     false,
 			UserID:      snowflake.Generate(),
 		}
@@ -113,6 +121,8 @@ var _ = Describe("updating events", func() {
 		ev.URL = "https://new.testing"
 		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
 		ev.Location = "new"
+		ev.Latitude = 2
+		ev.Longitude = 2
 		ev.IsDraft = true
 
 		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
@@ -126,6 +136,8 @@ var _ = Describe("updating events", func() {
 				"URL":         Equal("https://new.testing"),
 				"StartAt":     BeTemporally("~", ev.StartAt),
 				"Location":    Equal("new"),
+				"Latitude":    Equal(float64(2)),
+				"Longitude":   Equal(float64(2)),
 				"IsDraft":     BeTrue(),
 			})))
 		})

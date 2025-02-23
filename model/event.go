@@ -23,6 +23,8 @@ type Event struct {
 	Description    string       `bun:"description"`
 	URL            string       `bun:"url"`
 	Location       string       `bun:"location"`
+	Latitude       float64      `bun:"latitude"`
+	Longitude      float64      `bun:"longitude"`
 
 	IsDraft bool         `bun:"is_draft"`
 	UserID  snowflake.ID `bun:"user_id"`
@@ -63,6 +65,8 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Description:    ev.Description,
 			URL:            ev.URL,
 			Location:       ev.Location,
+			Latitude:       ev.Latitude,
+			Longitude:      ev.Longitude,
 			IsDraft:        ev.IsDraft,
 			UserID:         ev.UserID,
 		}).Exec(ctx)); err != nil {
@@ -86,6 +90,8 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Description:    ev.Description,
 				URL:            ev.URL,
 				Location:       ev.Location,
+				Latitude:       ev.Latitude,
+				Longitude:      ev.Longitude,
 				IsDraft:        ev.IsDraft,
 			}).
 				Column(
@@ -95,6 +101,8 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 					"description",
 					"url",
 					"location",
+					"latitude",
+					"longitude",
 					"is_draft",
 				).
 				Where("id = ?", ev.ID).
@@ -343,6 +351,8 @@ func eventToDomain(ev *Event) *domain.Event {
 		Description: ev.Description,
 		URL:         ev.URL,
 		Location:    ev.Location,
+		Latitude:    ev.Latitude,
+		Longitude:   ev.Longitude,
 		IsDraft:     ev.IsDraft,
 		UserID:      ev.UserID,
 	}

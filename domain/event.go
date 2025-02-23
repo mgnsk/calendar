@@ -17,6 +17,8 @@ type Event struct {
 	Description string
 	URL         string
 	Location    string
+	Latitude    float64
+	Longitude   float64
 	IsDraft     bool
 	UserID      snowflake.ID
 }
