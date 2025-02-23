@@ -23,36 +23,36 @@ func submitButton(text string) Node {
 	)
 }
 
-func input(name, typ, placeholder string, value, err string) Node {
+func input(name, typ, placeholder string, value, err string, required bool) Node {
 	return withErrors(err,
 		Input(baseInputClasses(err != ""),
 			Name(name),
 			Type(typ),
 			Placeholder(placeholder),
 			Value(value),
-			Required(),
+			If(required, Required()),
 		),
 	)
 }
 
-func textarea(name string, value, err string) Node {
+func textarea(name string, value, err string, required bool) Node {
 	return withErrors(err,
 		Textarea(baseInputClasses(err != ""),
 			Name(name),
 			Text(value),
 			Rows("3"),
-			Required(),
+			If(required, Required()),
 		),
 	)
 }
 
-func dateTimeLocalInput(name string, value, err string) Node {
+func dateTimeLocalInput(name string, value, err string, required bool) Node {
 	return withErrors(err,
 		Input(baseInputClasses(err != ""),
 			Name(name),
 			Type("datetime-local"),
 			Value(value),
-			Required(),
+			If(required, Required()),
 		),
 	)
 }

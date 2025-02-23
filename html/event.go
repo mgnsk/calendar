@@ -113,7 +113,12 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 
 func eventTitle(ev *domain.Event) Node {
 	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
-		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
+		If(ev.URL != "",
+			A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
+		),
+		If(ev.URL == "",
+			Text(ev.Title),
+		),
 	)
 }
 

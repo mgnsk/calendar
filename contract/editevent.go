@@ -29,10 +29,10 @@ func (r *EditEventForm) Validate() url.Values {
 		errs.Set("desc", "Required")
 	}
 
-	if r.URL == "" {
-		errs.Set("url", "Required")
-	} else if _, err := url.Parse(r.URL); err != nil {
-		errs.Set("url", "Invalid URL")
+	if r.URL != "" {
+		if _, err := url.Parse(r.URL); err != nil {
+			errs.Set("url", "Invalid URL")
+		}
 	}
 
 	if r.StartAt.value.IsZero() {

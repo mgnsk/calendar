@@ -15,19 +15,19 @@ func SetupMain(form contract.SetupForm, errs url.Values, csrf string) Node {
 			Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
 				Method("POST"),
 				Label(Class("block w-full pt-2"), For("title"), Text("Title")),
-				input("pagetitle", "text", "Title", form.Title, errs.Get("pagetitle")),
+				input("pagetitle", "text", "Title", form.Title, errs.Get("pagetitle"), true),
 
 				Label(Class("block w-full pt-2"), For("desc"), Text("Description")),
-				textarea("pagedesc", form.Description, errs.Get("pagedesc")),
+				textarea("pagedesc", form.Description, errs.Get("pagedesc"), false),
 
 				Label(Class("block w-full pt-2"), For("username"), Text("Username")),
-				input("username", "text", "Username", form.Username, errs.Get("username")),
+				input("username", "text", "Username", form.Username, errs.Get("username"), true),
 
 				Label(Class("block w-full pt-2"), For("password1"), Text("Password")),
-				input("password1", "password", "Password", form.Password1, errs.Get("password1")),
+				input("password1", "password", "Password", form.Password1, errs.Get("password1"), true),
 
 				Label(Class("block w-full pt-2"), For("password2"), Text("Password again")),
-				input("password2", "password", "Password again", form.Password2, errs.Get("password2")),
+				input("password2", "password", "Password again", form.Password2, errs.Get("password2"), true),
 
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 
