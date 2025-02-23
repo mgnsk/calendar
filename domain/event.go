@@ -13,7 +13,6 @@ import (
 type Event struct {
 	ID          snowflake.ID
 	StartAt     time.Time
-	EndAt       time.Time
 	Title       string
 	Description string
 	URL         string
@@ -36,15 +35,6 @@ func (e *Event) GetDateString() string {
 		buf.WriteString(e.StartAt.Format("3PM"))
 	} else {
 		buf.WriteString(e.StartAt.Format("3:04PM"))
-	}
-
-	if !e.EndAt.IsZero() {
-		buf.WriteString("-")
-		if e.EndAt.Minute() == 0 {
-			buf.WriteString(e.EndAt.Format("3PM"))
-		} else {
-			buf.WriteString(e.EndAt.Format("3:04PM"))
-		}
 	}
 
 	return buf.String()

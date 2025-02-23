@@ -10,22 +10,23 @@ import (
 )
 
 func submitButton(text string) Node {
-	return Button(Class("mt-3 font-bold py-2 px-4 rounded border border-gray-200 block mx-auto w-full hover:cursor-pointer hover:bg-amber-600/5"),
+	classes := baseInputClasses("", nil)
+	maps.Copy(classes, Classes{
+		"mt-3":                 true,
+		"font-bold":            true,
+		"hover:cursor-pointer": true,
+		"hover:bg-amber-600/5": true,
+	})
+
+	return Button(classes,
 		Type("submit"),
 		Text(text),
 	)
 }
 
 func input(name, typ, placeholder string, form, errs url.Values) Node {
-	classes := baseInputClasses(name, errs)
-	maps.Copy(classes, Classes{
-		"block":   true,
-		"w-full":  true,
-		"mx-auto": true,
-	})
-
 	return withErrors(name, errs,
-		Input(classes,
+		Input(baseInputClasses(name, errs),
 			Name(name),
 			Type(typ),
 			Placeholder(placeholder),
@@ -36,15 +37,8 @@ func input(name, typ, placeholder string, form, errs url.Values) Node {
 }
 
 func textarea(name string, form, errs url.Values) Node {
-	classes := baseInputClasses(name, errs)
-	maps.Copy(classes, Classes{
-		"block":   true,
-		"w-full":  true,
-		"mx-auto": true,
-	})
-
 	return withErrors(name, errs,
-		Textarea(classes,
+		Textarea(baseInputClasses(name, errs),
 			Name(name),
 			Text(form.Get(name)),
 			Rows("3"),
@@ -54,13 +48,8 @@ func textarea(name string, form, errs url.Values) Node {
 }
 
 func dateTimeLocalInput(name string, form, errs url.Values) Node {
-	classes := baseInputClasses(name, errs)
-	maps.Copy(classes, Classes{
-		"w-1/2": true,
-	})
-
 	return withErrors(name, errs,
-		Input(classes,
+		Input(baseInputClasses(name, errs),
 			Name(name),
 			Type("datetime-local"),
 			Value(form.Get(name)),
@@ -78,6 +67,9 @@ func baseInputClasses(name string, errs url.Values) Classes {
 		"rounded":         true,
 		"bg-red-100":      errs.Has(name),
 		"mb-3":            true,
+		"block":           true,
+		"w-full":          true,
+		"mx-auto":         true,
 	}
 }
 

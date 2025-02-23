@@ -237,7 +237,6 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 	event1 := &domain.Event{
 		ID:          snowflake.Generate(),
 		StartAt:     ts.Add(-48 * time.Hour),
-		EndAt:       time.Time{},
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
@@ -247,7 +246,6 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 	event2 := &domain.Event{
 		ID:      snowflake.Generate(),
 		StartAt: ts.Add(-12 * time.Hour),
-		EndAt:   time.Time{},
 		Title:   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec placerat nec enim sed pretium.",
 		Description: `
 😀😀😀
@@ -269,7 +267,6 @@ Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at fini
 	event3 := &domain.Event{
 		ID:          snowflake.Generate(),
 		StartAt:     ts,
-		EndAt:       ts.Add(2 * time.Hour),
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 3",
 		URL:         "https://event3.testing",

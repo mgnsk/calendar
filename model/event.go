@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -17,15 +16,14 @@ import (
 
 // Event is the event database model.
 type Event struct {
-	ID             snowflake.ID  `bun:"id,pk"`
-	StartAtUnix    int64         `bun:"start_at_unix"`
-	EndAtUnix      sql.NullInt64 `bun:"end_at_unix"`
-	TimezoneOffset int           `bun:"tz_offset"`
-	Title          string        `bun:"title"`
-	Description    string        `bun:"description"`
-	URL            string        `bun:"url"`
-	IsDraft        bool          `bun:"is_draft"`
-	UserID         snowflake.ID  `bun:"user_id"`
+	ID             snowflake.ID `bun:"id,pk"`
+	StartAtUnix    int64        `bun:"start_at_unix"`
+	TimezoneOffset int          `bun:"tz_offset"`
+	Title          string       `bun:"title"`
+	Description    string       `bun:"description"`
+	URL            string       `bun:"url"`
+	IsDraft        bool         `bun:"is_draft"`
+	UserID         snowflake.ID `bun:"user_id"`
 
 	bun.BaseModel `bun:"events"`
 }
@@ -56,12 +54,8 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		if err := sqlite.WithErrorChecking(db.NewInsert().Model(&Event{
-			ID:          ev.ID,
-			StartAtUnix: ev.StartAt.Unix(),
-			EndAtUnix: sql.NullInt64{
-				Int64: ev.EndAt.Unix(),
-				Valid: !ev.EndAt.IsZero(),
-			},
+			ID:             ev.ID,
+			StartAtUnix:    ev.StartAt.Unix(),
 			TimezoneOffset: offset,
 			Title:          ev.Title,
 			Description:    ev.Description,
@@ -83,11 +77,7 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		if err := sqlite.WithErrorChecking(
 			db.NewUpdate().Model(&Event{
-				StartAtUnix: ev.StartAt.Unix(),
-				EndAtUnix: sql.NullInt64{
-					Int64: ev.EndAt.Unix(),
-					Valid: !ev.EndAt.IsZero(),
-				},
+				StartAtUnix:    ev.StartAt.Unix(),
 				TimezoneOffset: offset,
 				Title:          ev.Title,
 				Description:    ev.Description,
@@ -96,7 +86,6 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			}).
 				Column(
 					"start_at_unix",
-					"end_at_unix",
 					"tz_offset",
 					"title",
 					"description",
@@ -343,14 +332,8 @@ func eventToDomain(ev *Event) *domain.Event {
 	zone := time.FixedZone("", ev.TimezoneOffset)
 
 	return &domain.Event{
-		ID:      snowflake.ID(ev.ID),
-		StartAt: time.Unix(ev.StartAtUnix, 0).In(zone),
-		EndAt: func() time.Time {
-			if ev.EndAtUnix.Valid {
-				return time.Unix(ev.EndAtUnix.Int64, 0).In(zone)
-			}
-			return time.Time{}
-		}(),
+		ID:          snowflake.ID(ev.ID),
+		StartAt:     time.Unix(ev.StartAtUnix, 0).In(zone),
 		Title:       ev.Title,
 		Description: ev.Description,
 		URL:         ev.URL,

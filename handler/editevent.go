@@ -73,9 +73,6 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		if !ev.StartAt.IsZero() {
 			form.Set("start_at", ev.StartAt.Format(html.DateTimeFormat))
 		}
-		if !ev.EndAt.IsZero() {
-			form.Set("end_at", ev.EndAt.Format(html.DateTimeFormat))
-		}
 
 		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev.ID, csrf)).Render(c.Response())
 
@@ -99,7 +96,6 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
 				ID:          ev.ID,
 				StartAt:     data.StartAt,
-				EndAt:       data.EndAt,
 				Title:       data.Title,
 				Description: data.Description,
 				URL:         data.URL,
@@ -113,7 +109,6 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			ev.Description = data.Description
 			ev.URL = data.URL
 			ev.StartAt = data.StartAt
-			ev.EndAt = data.EndAt
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
 				return err
@@ -213,17 +208,15 @@ func parseEvent(c echo.Context) (*domain.Event, url.Values) {
 	desc := strings.TrimSpace(c.FormValue("desc"))
 	eventURL := strings.TrimSpace(c.FormValue("url"))
 	startAtVal := strings.TrimSpace(c.FormValue("start_at"))
-	endAtVal := strings.TrimSpace(c.FormValue("end_at"))
 
 	errs := url.Values{}
 
 	// TODO: improve form validation
-	if title == "" || desc == "" || eventURL == "" || startAtVal == "" || endAtVal == "" {
+	if title == "" || desc == "" || eventURL == "" || startAtVal == "" {
 		errs.Set("title", "Required")
 		errs.Set("desc", "Required")
 		errs.Set("url", "Required")
 		errs.Set("start_at", "Required")
-		errs.Set("end_at", "Required")
 	} else if _, err := markdown.Convert(desc); err != nil {
 		errs.Set("desc", "Invalid markdown")
 		// TODO: refactor, the preview handler
@@ -241,15 +234,9 @@ func parseEvent(c echo.Context) (*domain.Event, url.Values) {
 		errs.Set("start_at", "Invalid start at datetime")
 	}
 
-	endAt, err := time.Parse(html.DateTimeFormat, endAtVal)
-	if err != nil {
-		errs.Set("end_at", "Invalid end at datetime")
-	}
-
 	ev := &domain.Event{
 		ID:          0,
 		StartAt:     startAt,
-		EndAt:       endAt,
 		Title:       title,
 		Description: desc,
 		URL:         u.String(),
