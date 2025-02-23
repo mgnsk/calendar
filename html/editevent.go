@@ -25,7 +25,7 @@ func EditEventMain(form, errs url.Values, eventID snowflake.ID, csrf string) Nod
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Input(Type("hidden"), Name("event_id"), Value(eventID.String())),
 				// TODO: save draft button
-				Button(Type("submit"), Class("mt-3 font-bold py-2 px-4 rounded border block mx-auto w-full hover:bg-amber-600 hover:bg-opacity-5"), Text("Publish")),
+				submitButton("Publish"),
 			),
 		),
 	)

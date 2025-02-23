@@ -9,6 +9,13 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
+func submitButton(text string) Node {
+	return Button(Class("mt-3 font-bold py-2 px-4 rounded border border-gray-200 block mx-auto w-full hover:cursor-pointer hover:bg-amber-600/5"),
+		Type("submit"),
+		Text(text),
+	)
+}
+
 func input(name, typ, placeholder string, form, errs url.Values) Node {
 	classes := baseInputClasses(name, errs)
 	maps.Copy(classes, Classes{

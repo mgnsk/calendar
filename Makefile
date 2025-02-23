@@ -13,11 +13,11 @@ setup:
 
 .PHONY: dev
 dev:
-	npx tailwindcss -i tailwind.css -o app.css
-	npx concurrently -n tailwind,go,browser -c blue,green,yellow \
-		"tailwindcss -i tailwind.css -o app.css --watch" \
+	npx @tailwindcss/cli -i tailwind.css -o app.css
+	npx concurrently -n tailwind,go,browser -c blue,green,yellow --kill-others-on-fail \
+		"npx @tailwindcss/cli -i tailwind.css -o app.css --watch" \
 		"air -c .air.toml" \
-		"wait-on tcp:calendar.testing:8443 && open-cli https://calendar.testing:8443"
+		"npx wait-on tcp:calendar.testing:8443 && npx open-cli https://calendar.testing:8443"
 
 
 .PHONY: lint
