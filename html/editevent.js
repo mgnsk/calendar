@@ -2,9 +2,9 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   const el = document.querySelector('textarea[name="desc"]');
-  const eventIdInput = document.querySelector('[name="event_id"]');
+  const cacheKeyInput = document.querySelector('[name="easymde_cache_key"]');
 
-  if (!el || !eventIdInput) {
+  if (!el || !cacheKeyInput) {
     console.error("Required elements not found");
     return;
   }
@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     autosave: {
       enabled: true,
       delay: 1000,
-      uniqueId: `desc-${eventIdInput.value}`,
+      uniqueId: cacheKeyInput.value,
     },
     forceSync: true,
     promptURLs: true,

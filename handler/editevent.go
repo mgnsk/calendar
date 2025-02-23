@@ -3,16 +3,13 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/markdown"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
@@ -34,22 +31,15 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 	s := loadSettings(c)
 	csrf := c.Get("csrf").(string)
 
-	eventID := c.Param("event_id")
-	if eventID == "" {
-		return wreck.InvalidValue.New("Expected event_id path param")
-	}
-
-	id, err := strconv.ParseInt(eventID, 10, 64)
-	if err != nil {
-		return wreck.InvalidValue.New("Invalid event_id path param", err)
+	req := contract.EditEventForm{}
+	if err := c.Bind(&req); err != nil {
+		return err
 	}
 
 	var ev *domain.Event
 
-	if id == 0 {
-		ev = &domain.Event{}
-	} else {
-		event, err := model.GetEvent(c.Request().Context(), h.db, snowflake.ID(id))
+	if req.EventID > 0 {
+		event, err := model.GetEvent(c.Request().Context(), h.db, req.EventID)
 		if err != nil {
 			return err
 		}
@@ -63,60 +53,57 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 
 	switch c.Request().Method {
 	case http.MethodGet:
+		if ev != nil {
+			req.Title = ev.Title
+			req.Description = ev.Description
+			req.URL = ev.URL
+			req.StartAt = contract.NewDateTime(ev.StartAt)
+		}
+
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		form := url.Values{}
-		form.Set("title", ev.Title)
-		form.Set("desc", ev.Description)
-		form.Set("url", ev.URL)
-		if !ev.StartAt.IsZero() {
-			form.Set("start_at", ev.StartAt.Format(html.DateTimeFormat))
-		}
-
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, nil, ev.ID, csrf)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(req, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
-		form, err := c.FormParams()
-		if err != nil {
-			return err
-		}
-
-		data, errs := parseEvent(c)
-		if len(errs) > 0 {
+		if errs := req.Validate(); len(errs) > 0 {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(form, errs, ev.ID, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(req, errs, csrf)).Render(c.Response())
 		}
 
-		if ev.ID == 0 {
-			ev.ID = snowflake.Generate()
-
-			if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
-				ID:          ev.ID,
-				StartAt:     data.StartAt,
-				Title:       data.Title,
-				Description: data.Description,
-				URL:         data.URL,
-				IsDraft:     data.IsDraft,
-				UserID:      user.ID,
-			}); err != nil {
-				return err
-			}
-		} else {
-			ev.Title = data.Title
-			ev.Description = data.Description
-			ev.URL = data.URL
-			ev.StartAt = data.StartAt
+		if ev != nil {
+			ev.StartAt = req.StartAt.Time()
+			ev.Title = req.Title
+			ev.Description = req.Description
+			ev.URL = req.URL
+			// TODO: draft
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
 				return err
 			}
+
+			// TODO: add success flash message
+			return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
+		}
+
+		eventID := snowflake.Generate()
+
+		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
+			ID:          eventID,
+			StartAt:     req.StartAt.Time(),
+			Title:       req.Title,
+			Description: req.Description,
+			URL:         req.URL,
+			IsDraft:     false, // TODO
+			UserID:      user.ID,
+		}); err != nil {
+			return err
 		}
 
 		// TODO: add success flash message
-		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
+		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", eventID))
 
 	default:
 		return wreck.NotFound.New("Not found")
@@ -170,10 +157,17 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
-	ev, errs := parseEvent(c)
-	if errs.Has("description") {
-		// TODO: dependency on parseEvent internals, see comment there.
-		return wreck.InvalidValue.New("Invalid markdown")
+	req := contract.EditEventForm{}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	ev := &domain.Event{
+		StartAt:     req.StartAt.Time(),
+		Title:       req.Title,
+		Description: req.Description,
+		URL:         req.URL,
+		IsDraft:     false, // TODO
 	}
 
 	csrf := c.Get("csrf").(string)
@@ -198,51 +192,4 @@ func NewEditEventHandler(db *bun.DB) *EditEventHandler {
 	return &EditEventHandler{
 		db: db,
 	}
-}
-
-// parseEvent parses an event from form input.
-// TODO: consider defining new types (EditEventRequest?) and using
-// some form binding library instead of manually using domain.Event here.
-func parseEvent(c echo.Context) (*domain.Event, url.Values) {
-	title := strings.TrimSpace(c.FormValue("title"))
-	desc := strings.TrimSpace(c.FormValue("desc"))
-	eventURL := strings.TrimSpace(c.FormValue("url"))
-	startAtVal := strings.TrimSpace(c.FormValue("start_at"))
-
-	errs := url.Values{}
-
-	// TODO: improve form validation
-	if title == "" || desc == "" || eventURL == "" || startAtVal == "" {
-		errs.Set("title", "Required")
-		errs.Set("desc", "Required")
-		errs.Set("url", "Required")
-		errs.Set("start_at", "Required")
-	} else if _, err := markdown.Convert(desc); err != nil {
-		errs.Set("desc", "Invalid markdown")
-		// TODO: refactor, the preview handler
-		// needs to preview as much as possible partially valid event.
-		return nil, errs
-	}
-
-	u, err := url.Parse(eventURL)
-	if err != nil {
-		errs.Set("url", "Invalid URL")
-	}
-
-	startAt, err := time.Parse(html.DateTimeFormat, startAtVal)
-	if err != nil {
-		errs.Set("start_at", "Invalid start at datetime")
-	}
-
-	ev := &domain.Event{
-		ID:          0,
-		StartAt:     startAt,
-		Title:       title,
-		Description: desc,
-		URL:         u.String(),
-		IsDraft:     false, // TODO
-		UserID:      0,     // TODO: not used
-	}
-
-	return ev, errs
 }
