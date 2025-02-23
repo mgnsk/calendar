@@ -39,6 +39,10 @@ func (r *EditEventForm) Validate() url.Values {
 		errs.Set("start_at", "Required")
 	}
 
+	if r.Location == "" {
+		errs.Set("location", "Required")
+	}
+
 	return errs
 }
 
