@@ -6,9 +6,9 @@ COPY package.json package-lock.json ./
 ENV NODE_ENV=production
 RUN npm ci
 
-COPY tailwind.config.js tailwind.css ./
+COPY tailwind.css ./
 COPY html ./html
-RUN npx tailwindcss -i tailwind.css -o app.css --minify
+RUN npx @tailwindcss/cli -i tailwind.css -o app.css --minify
 
 
 FROM golang:1.23-bookworm AS build

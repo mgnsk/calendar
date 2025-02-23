@@ -87,17 +87,18 @@ func EventNav(user *domain.User, path, csrf string) Node {
 	}
 
 	return Div(Class("max-w-3xl mx-auto"),
-		Ul(Class("flex border-b"),
+		Ul(Class("flex border-b border-gray-200"),
 			Map(links, func(link eventNavLink) Node {
 				return Li(Classes{
-					"flex":           true,
-					"items-baseline": true,
-					"mr-1":           true,
-					"-mb-px":         link.Active,
-					"border-l":       link.Active,
-					"border-t":       link.Active,
-					"border-r":       link.Active,
-					"rounded-t":      link.Active,
+					"flex":            true,
+					"items-baseline":  true,
+					"mr-1":            true,
+					"border-gray-200": true,
+					"-mb-px":          link.Active,
+					"border-l":        link.Active,
+					"border-t":        link.Active,
+					"border-r":        link.Active,
+					"rounded-t":       link.Active,
 				},
 					A(
 						Classes{
@@ -130,11 +131,9 @@ func EventNav(user *domain.User, path, csrf string) Node {
 					),
 				)
 			}),
-			Li(Class("flex items-baseline ml-auto border-l border-t border-r rounded-t"),
+			Li(Class("flex items-baseline ml-auto border-l border-t border-r border-gray-200 rounded-t"),
 				Div(Class("relative"),
 					Input(Classes{
-						// "border":          true,
-						// "border-gray-200": true,
 						"block":   true,
 						"w-full":  true,
 						"mx-auto": true,
