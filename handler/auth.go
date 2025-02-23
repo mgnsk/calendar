@@ -43,12 +43,9 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		if err != nil {
 			return err
 		}
-		errs := url.Values{}
-
-		username := c.FormValue("username")
-		password := c.FormValue("password")
 
 		invalidLogin := func() error {
+			errs := url.Values{}
 			errs.Set("username", "Invalid username or password")
 			errs.Set("password", "Invalid username or password")
 
@@ -58,16 +55,12 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 			return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(form, errs, csrf)).Render(c.Response())
 		}
 
-		if username == "" || password == "" {
-			return invalidLogin()
-		}
-
 		// Grace timeout for login failures so we always fail in constant time
 		// regardless of whether user does not exist or invalid password provided.
 		ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
 		defer cancel()
 
-		user, err := model.GetUser(ctx, h.db, username)
+		user, err := model.GetUser(ctx, h.db, form.Get("username"))
 		if err != nil {
 			if errors.Is(err, wreck.NotFound) {
 				<-ctx.Done()
@@ -76,7 +69,7 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 			return err
 		}
 
-		if err := user.VerifyPassword(password); err != nil {
+		if err := user.VerifyPassword(form.Get("password")); err != nil {
 			if errors.Is(err, wreck.InvalidValue) {
 				<-ctx.Done()
 				return invalidLogin()

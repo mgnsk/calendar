@@ -18,9 +18,6 @@ func Register(
 	baseURL *url.URL,
 ) {
 	g := e.Group("",
-		echo.WrapMiddleware(sm.LoadAndSave),
-		LoadSettingsMiddleware(db),
-		LoadUserMiddleware(db, sm),
 		middleware.CSRFWithConfig(middleware.CSRFConfig{
 			TokenLength:    32,
 			TokenLookup:    "form:csrf",
@@ -33,6 +30,9 @@ func Register(
 			CookieHTTPOnly: true,
 			CookieSameSite: http.SameSiteStrictMode,
 		}),
+		echo.WrapMiddleware(sm.LoadAndSave),
+		LoadSettingsMiddleware(db),
+		LoadUserMiddleware(db, sm),
 	)
 
 	// Setup.

@@ -50,27 +50,27 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 		errs := url.Values{}
 
-		title := c.FormValue("pagetitle")
+		title := form.Get("pagetitle")
 		if title == "" {
 			errs.Set("pagetitle", "Title must be set")
 		}
 
-		desc := c.FormValue("pagedesc")
+		desc := form.Get("pagedesc")
 		if desc == "" {
 			errs.Set("pagedesc", "Description must be set")
 		}
 
-		username := c.FormValue("username")
+		username := form.Get("username")
 		if username == "" {
 			errs.Set("username", "Username must be set")
 		}
 
-		password1 := c.FormValue("password1")
+		password1 := form.Get("password1")
 		if password1 == "" {
 			errs.Set("password1", "Password must be set")
 		}
 
-		password2 := c.FormValue("password2")
+		password2 := form.Get("password2")
 		if password2 == "" {
 			errs.Set("password2", "Password must be set")
 		}
@@ -89,17 +89,17 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		s.Title = title
 		s.Description = desc
 
+		user := &domain.User{
+			ID:       snowflake.Generate(),
+			Username: username,
+			Role:     domain.Admin,
+		}
+		user.SetPassword(password1)
+
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
 			if err := model.InsertSettings(ctx, tx, s); err != nil {
 				return err
 			}
-
-			user := &domain.User{
-				ID:       snowflake.Generate(),
-				Username: username,
-				Role:     domain.Admin,
-			}
-			user.SetPassword(password1)
 
 			return model.InsertUser(ctx, tx, user)
 		}); err != nil {
@@ -112,7 +112,7 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 
 		// Then make the privilege-level change.
-		h.sm.Put(c.Request().Context(), "username", username)
+		h.sm.Put(c.Request().Context(), "username", user.Username)
 
 		return c.Redirect(http.StatusSeeOther, "/")
 
