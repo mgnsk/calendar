@@ -19,10 +19,6 @@ func (f *SetupForm) Validate() url.Values {
 		errs.Set("pagetitle", "Title must be set")
 	}
 
-	if f.Description == "" {
-		errs.Set("pagedesc", "Description must be set")
-	}
-
 	if f.Username == "" {
 		errs.Set("username", "Username must be set")
 	}

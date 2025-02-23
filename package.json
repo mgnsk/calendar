@@ -5,6 +5,10 @@
     "@tailwindcss/cli": "^4.0.8",
     "easymde": "^2.19.0",
     "htmx.org": "^1.9.12",
+    "jquery": "^3.7.1",
+    "jquery-ui": "^1.14.1",
+    "leaflet": "^1.9.4",
+    "leaflet-geosearch": "^4.2.0",
     "mark.js": "^8.11.1",
     "tailwindcss": "^4.0.8"
   },

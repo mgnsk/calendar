@@ -16,6 +16,7 @@ type Event struct {
 	Title       string
 	Description string
 	URL         string
+	Location    string
 	IsDraft     bool
 	UserID      snowflake.ID
 }
@@ -44,7 +45,7 @@ func (e *Event) GetDateString() string {
 // A word is defined as having at least 3 characters.
 func (e *Event) GetTags() []string {
 	var words []string
-	for _, source := range []string{e.Title, e.Description} {
+	for _, source := range []string{e.Title, e.Description, e.Location} {
 		words = append(words, textfilter.GetTags(source)...)
 	}
 

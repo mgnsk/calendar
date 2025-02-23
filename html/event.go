@@ -3,6 +3,7 @@ package html
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -88,6 +89,7 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 			Div(Class("col-span-7 sm:col-span-6"),
 				eventTitle(ev),
 				eventDate(ev),
+				eventLocation(ev),
 				eventDesc(ev),
 				If(user != nil && (user.Role == domain.Admin || user.ID == ev.UserID), Div(Class("mt-5 flex justify-between"),
 					A(Class("hover:underline text-amber-600 font-semibold"),
@@ -111,8 +113,34 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 
 func eventTitle(ev *domain.Event) Node {
 	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
-		A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
+		If(ev.URL != "",
+			A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
+		),
+		If(ev.URL == "",
+			Text(ev.Title),
+		),
 	)
+}
+
+func eventLocation(ev *domain.Event) Node {
+	return Iff(ev.Location != "", func() Node {
+		u, err := url.Parse("http://maps.google.com")
+		if err != nil {
+			panic(err)
+		}
+
+		q := url.Values{}
+		q.Set("q", ev.Location)
+
+		u.RawQuery = q.Encode()
+
+		return A(Class("hover:underline"), Rel("noopener noreferrer"), Target("_blank"), Href(u.String()),
+			Div(Class("block mt-2 tracking-wide text-sm text-gray-400"),
+				I(Class("fa fa-location-arrow pr-1"), Aria("hidden", "true")),
+				Text(ev.Location),
+			),
+		)
+	})
 }
 
 func eventDesc(ev *domain.Event) Node {

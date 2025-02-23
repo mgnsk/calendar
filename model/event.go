@@ -22,8 +22,10 @@ type Event struct {
 	Title          string       `bun:"title"`
 	Description    string       `bun:"description"`
 	URL            string       `bun:"url"`
-	IsDraft        bool         `bun:"is_draft"`
-	UserID         snowflake.ID `bun:"user_id"`
+	Location       string       `bun:"location"`
+
+	IsDraft bool         `bun:"is_draft"`
+	UserID  snowflake.ID `bun:"user_id"`
 
 	bun.BaseModel `bun:"events"`
 }
@@ -60,6 +62,7 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Title:          ev.Title,
 			Description:    ev.Description,
 			URL:            ev.URL,
+			Location:       ev.Location,
 			IsDraft:        ev.IsDraft,
 			UserID:         ev.UserID,
 		}).Exec(ctx)); err != nil {
@@ -82,6 +85,7 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Title:          ev.Title,
 				Description:    ev.Description,
 				URL:            ev.URL,
+				Location:       ev.Location,
 				IsDraft:        ev.IsDraft,
 			}).
 				Column(
@@ -90,6 +94,7 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 					"title",
 					"description",
 					"url",
+					"location",
 					"is_draft",
 				).
 				Where("id = ?", ev.ID).
@@ -337,6 +342,7 @@ func eventToDomain(ev *Event) *domain.Event {
 		Title:       ev.Title,
 		Description: ev.Description,
 		URL:         ev.URL,
+		Location:    ev.Location,
 		IsDraft:     ev.IsDraft,
 		UserID:      ev.UserID,
 	}

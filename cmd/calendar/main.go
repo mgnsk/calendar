@@ -160,7 +160,7 @@ func run() error {
 			XSSProtection:         "1; mode=block",
 			ContentTypeNosniff:    "nosniff",
 			XFrameOptions:         "SAMEORIGIN",
-			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'",
+			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.openstreetmap.org; connect-src 'self' *.openstreetmap.org",
 			HSTSPreloadEnabled:    false,
 		}),
 		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
@@ -240,6 +240,7 @@ func insertTestData(ctx context.Context, db *bun.DB) error {
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 1",
 		URL:         "https://event1.testing",
+		Location:    "My Cool Club",
 	}
 
 	ts = getRandBaseTime().Truncate(15 * time.Minute)
@@ -259,7 +260,8 @@ Ut consectetur nulla quam, a tristique nibh volutpat quis. Praesent consequat mi
 
 Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at finibus arcu neque eu nunc. Ut consectetur semper nulla id elementum. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Curabitur laoreet lorem nec magna tempor venenatis. Vestibulum gravida in velit in mollis. Ut sodales tempus lectus sed malesuada. Nullam lacinia lacus non neque vehicula, et suscipit nunc dignissim. Aliquam et augue at lectus pellentesque suscipit eu a arcu. Nam vitae justo eros. Donec lacinia posuere molestie. Morbi id eros efficitur, dictum odio eget, congue lacus. Ut vel erat eu nisi iaculis tincidunt. Sed et ante ornare, vulputate massa et, posuere nibh. Integer scelerisque interdum tristique. Ut dapibus, elit sed imperdiet malesuada, eros augue sagittis nisi, at ultrices lacus neque ac nunc. In accumsan nec orci ut maximus.
 		`,
-		URL: "https://event2.testing",
+		URL:      "https://event2.testing",
+		Location: "My Cool Club",
 	}
 
 	ts = getRandBaseTime().Truncate(15 * time.Minute)
@@ -270,6 +272,7 @@ Donec consectetur, erat vel egestas fringilla, justo leo tincidunt enim, at fini
 		Title:       fmt.Sprintf("Event %d", n),
 		Description: "Desc 3",
 		URL:         "https://event3.testing",
+		Location:    "My Cool Club",
 	}
 
 	for _, ev := range []*domain.Event{event1, event2, event3} {

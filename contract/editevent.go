@@ -14,6 +14,7 @@ type EditEventForm struct {
 	Description string       `form:"desc"`
 	URL         string       `form:"url"`
 	StartAt     DateTime     `form:"start_at"`
+	Location    string       `form:"location"`
 }
 
 // Validate the form.
@@ -28,14 +29,18 @@ func (r *EditEventForm) Validate() url.Values {
 		errs.Set("desc", "Required")
 	}
 
-	if r.URL == "" {
-		errs.Set("url", "Required")
-	} else if _, err := url.Parse(r.URL); err != nil {
-		errs.Set("url", "Invalid URL")
+	if r.URL != "" {
+		if _, err := url.Parse(r.URL); err != nil {
+			errs.Set("url", "Invalid URL")
+		}
 	}
 
 	if r.StartAt.value.IsZero() {
 		errs.Set("start_at", "Required")
+	}
+
+	if r.Location == "" {
+		errs.Set("location", "Required")
 	}
 
 	return errs
