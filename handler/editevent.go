@@ -246,6 +246,10 @@ func getLocation(ctx context.Context, req contract.EditEventForm) (string, error
 
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusOK {
+		return "", wreck.Internal.New(fmt.Sprintf("Unable to reach geotimezone API: status %d", res.StatusCode))
+	}
+
 	var timezoneResponse struct {
 		IANATimezone string `json:"iana_timezone"`
 	}
