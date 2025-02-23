@@ -16,6 +16,7 @@ type Event struct {
 	Title       string
 	Description string
 	URL         string
+	Location    string
 	IsDraft     bool
 	UserID      snowflake.ID
 }

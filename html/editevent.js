@@ -1,11 +1,12 @@
 /* global EasyMDE */
+/* global GeoSearch */
+/* global $ */
 
 document.addEventListener("DOMContentLoaded", () => {
   const el = document.querySelector('textarea[name="desc"]');
   const cacheKeyInput = document.querySelector('[name="easymde_cache_key"]');
 
   if (!el || !cacheKeyInput) {
-    console.error("Required elements not found");
     return;
   }
 
@@ -64,5 +65,22 @@ document.addEventListener("DOMContentLoaded", () => {
       })();
       return "Loading...";
     },
+  });
+
+  $('[name="location"]').autocomplete({
+    source(request, response) {
+      const providerform = new GeoSearch.OpenStreetMapProvider({
+        params: {
+          limit: 5,
+        },
+      });
+      return providerform
+        .search({ query: request.term })
+        .then(function (results) {
+          response(results);
+        });
+    },
+    delay: 500,
+    minLength: 3,
   });
 });

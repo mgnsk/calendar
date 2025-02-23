@@ -58,6 +58,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			req.Description = ev.Description
 			req.URL = ev.URL
 			req.StartAt = contract.NewDateTime(ev.StartAt)
+			req.Location = ev.Location
 		}
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
@@ -78,6 +79,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			ev.Title = req.Title
 			ev.Description = req.Description
 			ev.URL = req.URL
+			ev.Location = req.Location
 			// TODO: draft
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
@@ -96,6 +98,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			Title:       req.Title,
 			Description: req.Description,
 			URL:         req.URL,
+			Location:    req.Location,
 			IsDraft:     false, // TODO
 			UserID:      user.ID,
 		}); err != nil {
@@ -167,6 +170,7 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 		Title:       req.Title,
 		Description: req.Description,
 		URL:         req.URL,
+		Location:    req.Location,
 		IsDraft:     false, // TODO
 	}
 

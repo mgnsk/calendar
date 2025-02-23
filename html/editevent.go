@@ -17,7 +17,9 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				input("title", "text", "Title", form.Title, errs.Get("title")),
 				input("url", "url", "URL", form.URL, errs.Get("url")),
 				dateTimeLocalInput("start_at", form.StartAt.String(), errs.Get("start_at")),
+				input("location", "text", "Location", form.Location, errs.Get("location")),
 				textarea("desc", form.Description, errs.Get("desc")),
+
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Input(Type("hidden"), Name("easymde_cache_key"), Value(form.EventID.String())),
 				// TODO: save draft button

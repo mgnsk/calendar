@@ -14,6 +14,7 @@ type EditEventForm struct {
 	Description string       `form:"desc"`
 	URL         string       `form:"url"`
 	StartAt     DateTime     `form:"start_at"`
+	Location    string       `form:"location"`
 }
 
 // Validate the form.
