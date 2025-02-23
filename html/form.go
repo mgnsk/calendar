@@ -56,7 +56,9 @@ func textarea(name string, form, errs url.Values) Node {
 func dateTimeLocalInput(name string, form, errs url.Values) Node {
 	classes := baseInputClasses(name, errs)
 	maps.Copy(classes, Classes{
-		"w-1/2": true,
+		"block":   true,
+		"w-full":  true,
+		"mx-auto": true,
 	})
 
 	return withErrors(name, errs,
