@@ -7,8 +7,25 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      modules:
+      npm-deps:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      production-dependencies:
         dependency-type: production
-        applies-to: version-updates
-    commit-message:
-      prefix: "deps"
+      dev-dependencies:
+        dependency-type: development
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-deps:
+        patterns:
+          - "*"
