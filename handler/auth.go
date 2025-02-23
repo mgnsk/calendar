@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/wreck"
@@ -36,30 +37,23 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(nil, nil, csrf)).Render(c.Response())
+		return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(contract.LoginForm{}, nil, csrf)).Render(c.Response())
 
 	case http.MethodPost:
-		form, err := c.FormParams()
-		if err != nil {
+		req := contract.LoginForm{}
+		if err := c.Bind(&req); err != nil {
 			return err
 		}
-		errs := url.Values{}
 
-		username := c.FormValue("username")
-		password := c.FormValue("password")
-
-		invalidLogin := func() error {
-			errs.Set("username", "Invalid username or password")
-			errs.Set("password", "Invalid username or password")
-
+		invalidLogin := func(errs url.Values) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(req, errs, csrf)).Render(c.Response())
 		}
 
-		if username == "" || password == "" {
-			return invalidLogin()
+		if errs := req.Validate(); len(errs) > 0 {
+			return invalidLogin(errs)
 		}
 
 		// Grace timeout for login failures so we always fail in constant time
@@ -67,19 +61,25 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
 		defer cancel()
 
-		user, err := model.GetUser(ctx, h.db, username)
+		user, err := model.GetUser(ctx, h.db, req.Username)
 		if err != nil {
 			if errors.Is(err, wreck.NotFound) {
 				<-ctx.Done()
-				return invalidLogin()
+				errs := url.Values{}
+				errs.Set("username", "Invalid username or password")
+				errs.Set("password", "Invalid username or password")
+				return invalidLogin(errs)
 			}
 			return err
 		}
 
-		if err := user.VerifyPassword(password); err != nil {
+		if err := user.VerifyPassword(req.Password); err != nil {
 			if errors.Is(err, wreck.InvalidValue) {
 				<-ctx.Done()
-				return invalidLogin()
+				errs := url.Values{}
+				errs.Set("username", "Invalid username or password")
+				errs.Set("password", "Invalid username or password")
+				return invalidLogin(errs)
 			}
 			return err
 		}
