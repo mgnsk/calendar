@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"net/url"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
@@ -65,7 +67,21 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 			Username: form.Username,
 			Role:     domain.Admin,
 		}
-		user.SetPassword(form.Password1)
+
+		if err := user.SetPassword(form.Password1); err != nil {
+			if errors.Is(err, wreck.InvalidValue) {
+				errs := url.Values{}
+				errs.Set("password1", err.Error())
+				errs.Set("password2", err.Error())
+
+				c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+				c.Response().WriteHeader(200)
+
+				return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, errs, csrf)).Render(c.Response())
+			}
+
+			return err
+		}
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
 			if err := model.InsertSettings(ctx, tx, s); err != nil {
