@@ -94,7 +94,14 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 	s := loadSettings(c)
 	csrf := c.Get("csrf").(string)
 
-	return html.Page(s.Title, user, c.Path(), csrf, html.TagsMain(csrf)).Render(c.Response())
+	return html.Page(html.PageProps{
+		Title:        s.Title,
+		User:         user,
+		Path:         c.Path(),
+		CSRF:         csrf,
+		Children:     html.TagsMain(csrf),
+		FlashSuccess: "",
+	}).Render(c.Response())
 }
 
 func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
@@ -140,7 +147,14 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 	s := loadSettings(c)
 	csrf := c.Get("csrf").(string)
 
-	return html.Page(s.Title, user, c.Path(), csrf, html.EventsMain(csrf)).Render(c.Response())
+	return html.Page(html.PageProps{
+		Title:        s.Title,
+		User:         user,
+		Path:         c.Path(),
+		CSRF:         csrf,
+		Children:     html.EventsMain(csrf),
+		FlashSuccess: "",
+	}).Render(c.Response())
 }
 
 // Register the handler.

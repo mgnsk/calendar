@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -23,6 +24,7 @@ import (
 // EditEventHandler handles adding and editing events.
 type EditEventHandler struct {
 	db *bun.DB
+	sm *scs.SessionManager
 }
 
 // Edit handles adding and editing events.
@@ -55,6 +57,9 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		ev = event
 	}
 
+	// Note: Pop must be before writing headers.
+	successMessage := h.sm.PopString(c.Request().Context(), "flash-success")
+
 	switch c.Request().Method {
 	case http.MethodGet:
 		if ev != nil {
@@ -70,14 +75,28 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(req, nil, csrf)).Render(c.Response())
+		return html.Page(html.PageProps{
+			Title:        s.Title,
+			User:         user,
+			Path:         c.Path(),
+			CSRF:         csrf,
+			Children:     html.EditEventMain(req, nil, csrf),
+			FlashSuccess: successMessage,
+		}).Render(c.Response())
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.EditEventMain(req, errs, csrf)).Render(c.Response())
+			return html.Page(html.PageProps{
+				Title:        s.Title,
+				User:         user,
+				Path:         c.Path(),
+				CSRF:         csrf,
+				Children:     html.EditEventMain(req, errs, csrf),
+				FlashSuccess: successMessage,
+			}).Render(c.Response())
 		}
 
 		startAt, err := parseTimeInLocation(c.Request().Context(), req)
@@ -99,7 +118,8 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 				return err
 			}
 
-			// TODO: add success flash message
+			h.sm.Put(c.Request().Context(), "flash-success", "Event updated")
+
 			return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
 		}
 
@@ -120,7 +140,8 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			return err
 		}
 
-		// TODO: add success flash message
+		h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+
 		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", eventID))
 
 	default:
@@ -159,7 +180,8 @@ func (h *EditEventHandler) Delete(c echo.Context) error {
 			return err
 		}
 
-		// TODO: add success flash message
+		h.sm.Put(c.Request().Context(), "flash-success", "Event deleted")
+
 		hxhttp.SetRefresh(c.Response().Header())
 
 		return nil
@@ -214,9 +236,10 @@ func (h *EditEventHandler) Register(g *echo.Group) {
 }
 
 // NewEditEventHandler creates a new edit event handler.
-func NewEditEventHandler(db *bun.DB) *EditEventHandler {
+func NewEditEventHandler(db *bun.DB, sm *scs.SessionManager) *EditEventHandler {
 	return &EditEventHandler{
 		db: db,
+		sm: sm,
 	}
 }
 

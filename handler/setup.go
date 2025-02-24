@@ -44,7 +44,14 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, nil, csrf)).Render(c.Response())
+		return html.Page(html.PageProps{
+			Title:        s.Title,
+			User:         nil,
+			Path:         c.Path(),
+			CSRF:         csrf,
+			Children:     html.SetupMain(form, nil, csrf),
+			FlashSuccess: "",
+		}).Render(c.Response())
 
 	case http.MethodPost:
 		form := contract.SetupForm{}
@@ -56,7 +63,14 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, errs, csrf)).Render(c.Response())
+			return html.Page(html.PageProps{
+				Title:        s.Title,
+				User:         nil,
+				Path:         c.Path(),
+				CSRF:         csrf,
+				Children:     html.SetupMain(form, errs, csrf),
+				FlashSuccess: "",
+			}).Render(c.Response())
 		}
 
 		s.Title = form.Title
@@ -77,7 +91,14 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 				c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 				c.Response().WriteHeader(200)
 
-				return html.Page(s.Title, nil, c.Path(), csrf, html.SetupMain(form, errs, csrf)).Render(c.Response())
+				return html.Page(html.PageProps{
+					Title:        s.Title,
+					User:         nil,
+					Path:         c.Path(),
+					CSRF:         csrf,
+					Children:     html.SetupMain(form, errs, csrf),
+					FlashSuccess: "",
+				}).Render(c.Response())
 			}
 
 			return err
