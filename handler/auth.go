@@ -37,7 +37,14 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(contract.LoginForm{}, nil, csrf)).Render(c.Response())
+		return html.Page(html.PageProps{
+			Title:        s.Title,
+			User:         user,
+			Path:         c.Path(),
+			CSRF:         csrf,
+			Children:     html.LoginMain(contract.LoginForm{}, nil, csrf),
+			FlashSuccess: "",
+		}).Render(c.Response())
 
 	case http.MethodPost:
 		req := contract.LoginForm{}
@@ -49,7 +56,14 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 			c.Response().WriteHeader(200)
 
-			return html.Page(s.Title, user, c.Path(), csrf, html.LoginMain(req, errs, csrf)).Render(c.Response())
+			return html.Page(html.PageProps{
+				Title:        s.Title,
+				User:         user,
+				Path:         c.Path(),
+				CSRF:         csrf,
+				Children:     html.LoginMain(contract.LoginForm{}, errs, csrf),
+				FlashSuccess: "",
+			}).Render(c.Response())
 		}
 
 		if errs := req.Validate(); len(errs) > 0 {

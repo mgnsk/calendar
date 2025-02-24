@@ -21,10 +21,20 @@ var eventNavScript string
 //go:embed editevent.js
 var editEventScript string
 
+// PageProps is props for page.
+type PageProps struct {
+	Title        string
+	User         *domain.User
+	Path         string
+	CSRF         string
+	Children     Node
+	FlashSuccess string
+}
+
 // Page renders a page.
-func Page(mainTitle string, user *domain.User, path, csrf string, children ...Node) Node {
+func Page(props PageProps) Node {
 	return HTML5(HTML5Props{
-		Title:    mainTitle,
+		Title:    props.Title,
 		Language: "en",
 		Head: []Node{
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
@@ -48,11 +58,40 @@ func Page(mainTitle string, user *domain.User, path, csrf string, children ...No
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
-			UserNav(user, path, csrf),
-			Group(children),
+			UserNav(props.User, props.Path, props.CSRF),
+			props.Children,
 			loadingSpinner(),
+			If(props.FlashSuccess != "", flashMessage(true, props.FlashSuccess)),
 		},
 	})
+}
+
+func flashMessage(success bool, message string) Node {
+	return Div(
+		Div(ID("alert"), Classes{
+			"absolute":        true,
+			"bottom-5":        true,
+			"right-5":         true,
+			"bg-teal-100":     success,
+			"bg-red-100":      !success,
+			"border-t-4":      true,
+			"border-teal-500": success,
+			"border-red-500":  !success,
+			"rounded-b":       true,
+			"text-teal-900":   success,
+			"text-red-900":    !success,
+			"px-4":            true,
+			"py-3":            true,
+			"shadow-md":       true,
+		},
+			Role("alert"),
+			Div(Class("flex items-center"),
+				I(Class("fa fa-info-circle pr-1"), Aria("hidden", "true")),
+				P(Class("font-bold"), Text(message)),
+			),
+		),
+		Script(Raw(`setTimeout(() => document.getElementById("alert").remove(), 5000)`)),
+	)
 }
 
 var faFontStyle string
