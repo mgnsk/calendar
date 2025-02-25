@@ -31,7 +31,6 @@ func Register(
 			CookieSameSite: http.SameSiteStrictMode,
 		}),
 		echo.WrapMiddleware(sm.LoadAndSave),
-		SetContextMiddleware(db, sm),
 	)
 
 	// Setup.

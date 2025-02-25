@@ -93,22 +93,22 @@ func run() error {
 		return nil
 	})
 
-	// if *isDemo {
-	// 	g.Go(func() error {
-	// 		n := 1000
-	// 		slog.Info(fmt.Sprintf("running in demo mode, inserting %d testdata", n))
-	// 		for i := range n {
-	// 			if err := insertTestData(ctx, db); err != nil {
-	// 				return err
-	// 			}
-	// 			if i%1000 == 0 {
-	// 				slog.Info(fmt.Sprintf("inserting testdata %d%% complete", int(float64(i)/float64(n)*100)))
-	// 			}
-	// 		}
-	// 		slog.Info("finished inserting testdata")
-	// 		return nil
-	// 	})
-	// }
+	if *isDemo {
+		g.Go(func() error {
+			n := 1000
+			slog.Info(fmt.Sprintf("running in demo mode, inserting %d testdata", n))
+			for i := range n {
+				if err := insertTestData(ctx, db); err != nil {
+					return err
+				}
+				if i%1000 == 0 {
+					slog.Info(fmt.Sprintf("inserting testdata %d%% complete", int(float64(i)/float64(n)*100)))
+				}
+			}
+			slog.Info("finished inserting testdata")
+			return nil
+		})
+	}
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)

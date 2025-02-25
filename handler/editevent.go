@@ -28,9 +28,8 @@ type EditEventHandler struct {
 }
 
 // Edit handles adding and editing events.
-func (h *EditEventHandler) Edit(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.User == nil {
+func (h *EditEventHandler) Edit(c *Context) error {
+	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
@@ -47,7 +46,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			return err
 		}
 
-		if rc.User.Role != domain.Admin && rc.User.ID != event.UserID {
+		if c.User.Role != domain.Admin && c.User.ID != event.UserID {
 			return wreck.Forbidden.New("Non-admin users can only edit own events")
 		}
 
@@ -66,14 +65,14 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			req.Longitude = ev.Longitude
 		}
 
-		return RenderPage(c, rc,
-			html.EditEventMain(req, nil, rc.CSRF),
+		return RenderPage(c,
+			html.EditEventMain(req, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c, rc,
-				html.EditEventMain(req, errs, rc.CSRF),
+			return RenderPage(c,
+				html.EditEventMain(req, errs, c.CSRF),
 			)
 		}
 
@@ -113,7 +112,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			Latitude:    req.Latitude,
 			Longitude:   req.Longitude,
 			IsDraft:     false, // TODO
-			UserID:      rc.User.ID,
+			UserID:      c.User.ID,
 		}); err != nil {
 			return err
 		}
@@ -128,28 +127,25 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 }
 
 // Delete handles deleting events.
-func (h *EditEventHandler) Delete(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.User == nil {
+func (h *EditEventHandler) Delete(c *Context) error {
+	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
-	eventID := c.Param("event_id")
-	if eventID == "" {
-		return wreck.InvalidValue.New("Expected event_id path param")
+	var req struct {
+		EventID snowflake.ID `param:"event_id"`
 	}
 
-	id, err := strconv.ParseInt(eventID, 10, 64)
-	if err != nil {
-		return wreck.InvalidValue.New("Invalid event_id path param", err)
+	if err := c.c.Bind(&req); err != nil {
+		return err
 	}
 
-	ev, err := model.GetEvent(c.Request().Context(), h.db, snowflake.ID(id))
+	ev, err := model.GetEvent(c.Request().Context(), h.db, req.EventID)
 	if err != nil {
 		return err
 	}
 
-	if rc.User.Role != domain.Admin && rc.User.ID != ev.UserID {
+	if c.User.Role != domain.Admin && c.User.ID != ev.UserID {
 		return wreck.Forbidden.New("Non-admin users can only edit own events")
 	}
 
@@ -169,9 +165,8 @@ func (h *EditEventHandler) Delete(c echo.Context) error {
 }
 
 // Preview returns a preview of the event.
-func (h *EditEventHandler) Preview(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.User == nil {
+func (h *EditEventHandler) Preview(c *Context) error {
+	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
@@ -198,17 +193,17 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
-	return html.EventCard(nil, ev, rc.CSRF).Render(c.Response())
+	return html.EventCard(nil, ev, c.CSRF).Render(c.Response())
 }
 
 // Register the handler.
 func (h *EditEventHandler) Register(g *echo.Group) {
-	g.GET("/edit/:event_id", h.Edit)
-	g.POST("/edit/:event_id", h.Edit)
+	g.GET("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
+	g.POST("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
 
-	g.POST("/delete/:event_id", h.Delete)
+	g.POST("/delete/:event_id", Wrap(h.db, h.sm, h.Delete))
 
-	g.POST("/preview", h.Preview)
+	g.POST("/preview", Wrap(h.db, h.sm, h.Preview))
 }
 
 // NewEditEventHandler creates a new edit event handler.

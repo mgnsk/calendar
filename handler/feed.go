@@ -24,14 +24,12 @@ type FeedHandler struct {
 }
 
 // HandleRSS handles RSS feeds.
-func (h *FeedHandler) HandleRSS(c echo.Context) error {
+func (h *FeedHandler) HandleRSS(c *Context) error {
 	return h.handleRSSFeed(c, "rss")
 }
 
 // HandleICal handles iCal feeds.
-func (h *FeedHandler) HandleICal(c echo.Context) error {
-	rc := GetContext(c)
-
+func (h *FeedHandler) HandleICal(c *Context) error {
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
@@ -40,7 +38,7 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(rc.Settings.Title)
+	cal.SetDescription(c.Settings.Title)
 	cal.SetUrl(h.baseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
@@ -68,16 +66,14 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 	return cal.SerializeTo(c.Response())
 }
 
-func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
-	rc := GetContext(c)
-
+func (h *FeedHandler) handleRSSFeed(c *Context, _ string) error {
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
 	}
 
 	feed := &feeds.Feed{
-		Title: rc.Settings.Title,
+		Title: c.Settings.Title,
 		Link:  &feeds.Link{Rel: "self", Href: h.baseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}
@@ -121,7 +117,7 @@ func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
 	return e.Encode(x)
 }
 
-func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
+func (h *FeedHandler) getEvents(c *Context) ([]*domain.Event, error) {
 	return model.NewEventsQuery().
 		WithStartAtFrom(time.Now()).
 		WithOrder(0, model.OrderCreatedAtAsc).
@@ -131,8 +127,8 @@ func (h *FeedHandler) getEvents(c echo.Context) ([]*domain.Event, error) {
 
 // Register the handler.
 func (h *FeedHandler) Register(g *echo.Group) {
-	g.GET("/feed", h.HandleRSS)
-	g.GET("/ical", h.HandleICal)
+	g.GET("/feed", Wrap(h.db, nil, h.HandleRSS))
+	g.GET("/ical", Wrap(h.db, nil, h.HandleICal))
 }
 
 // NewFeedHandler creates a new feed handler.

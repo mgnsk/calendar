@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +27,7 @@ type EventsHandler struct {
 }
 
 // Latest handles latest events.
-func (h *EventsHandler) Latest(c echo.Context) error {
+func (h *EventsHandler) Latest(c *Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery(),
@@ -37,7 +36,7 @@ func (h *EventsHandler) Latest(c echo.Context) error {
 }
 
 // Upcoming handles upcoming events.
-func (h *EventsHandler) Upcoming(c echo.Context) error {
+func (h *EventsHandler) Upcoming(c *Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery().WithStartAtFrom(time.Now()),
@@ -46,7 +45,7 @@ func (h *EventsHandler) Upcoming(c echo.Context) error {
 }
 
 // Past handles past events.
-func (h *EventsHandler) Past(c echo.Context) error {
+func (h *EventsHandler) Past(c *Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery().WithStartAtUntil(time.Now()),
@@ -55,23 +54,20 @@ func (h *EventsHandler) Past(c echo.Context) error {
 }
 
 // MyEvents handles current user events.
-func (h *EventsHandler) MyEvents(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.User == nil {
+func (h *EventsHandler) MyEvents(c *Context) error {
+	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
 	return h.events(
 		c,
-		model.NewEventsQuery().WithUserID(rc.User.ID),
+		model.NewEventsQuery().WithUserID(c.User.ID),
 		model.OrderCreatedAtDesc,
 	)
 }
 
 // Tags handles tags.
-func (h *EventsHandler) Tags(c echo.Context) error {
-	rc := GetContext(c)
-
+func (h *EventsHandler) Tags(c *Context) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
 		if err != nil {
@@ -87,27 +83,35 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.TagListPartial(tags, rc.CSRF).Render(c.Response())
+		return html.TagListPartial(tags, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c, rc,
-		html.TagsMain(rc.CSRF),
+	return RenderPage(c,
+		html.TagsMain(c.CSRF),
 	)
 }
 
-func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
-	rc := GetContext(c)
-
+func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
+		var req struct {
+			Offset *int64 `form:"offset"`
+			LastID *int64 `form:"last_id"`
+			Search string `form:"search"`
+		}
+
+		if err := c.c.Bind(&req); err != nil {
+			return err
+		}
+
 		var cursor int64
 
 		if strings.HasPrefix(c.Path(), "/upcoming") || strings.HasPrefix(c.Path(), "/past") {
-			if offset := getIntForm("offset", c); offset != nil {
-				cursor = *offset + EventLimitPerPage
+			if req.Offset != nil {
+				cursor = *req.Offset + EventLimitPerPage
 			}
 		} else {
-			if lastID := getIntForm("last_id", c); lastID != nil {
-				cursor = *lastID
+			if req.LastID != nil {
+				cursor = *req.LastID
 			}
 		}
 
@@ -120,7 +124,7 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db, false, c.FormValue("search"))
+		events, err = query.List(c.Request().Context(), h.db, false, req.Search)
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
@@ -129,30 +133,30 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(rc.User, cursor, events, rc.CSRF).Render(c.Response())
+		return html.EventListPartial(c.User, cursor, events, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c, rc,
-		html.EventsMain(rc.CSRF),
+	return RenderPage(c,
+		html.EventsMain(c.CSRF),
 	)
 }
 
 // Register the handler.
 func (h *EventsHandler) Register(g *echo.Group) {
-	g.GET("/", h.Latest)
-	g.POST("/", h.Latest) // Fox htmx.
+	g.GET("/", Wrap(h.db, h.sm, h.Latest))
+	g.POST("/", Wrap(h.db, h.sm, h.Latest)) // Fox htmx.
 
-	g.GET("/upcoming", h.Upcoming)
-	g.POST("/upcoming", h.Upcoming) // Fox htmx.
+	g.GET("/upcoming", Wrap(h.db, h.sm, h.Upcoming))
+	g.POST("/upcoming", Wrap(h.db, h.sm, h.Upcoming)) // Fox htmx.
 
-	g.GET("/past", h.Past)
-	g.POST("/past", h.Past) // For htmx.
+	g.GET("/past", Wrap(h.db, h.sm, h.Past))
+	g.POST("/past", Wrap(h.db, h.sm, h.Past)) // For htmx.
 
-	g.GET("/tags", h.Tags)
-	g.POST("/tags", h.Tags) // Fox htmx.
+	g.GET("/tags", Wrap(h.db, h.sm, h.Tags))
+	g.POST("/tags", Wrap(h.db, h.sm, h.Tags)) // Fox htmx.
 
-	g.GET("/my-events", h.MyEvents)
-	g.POST("/my-events", h.MyEvents) // Fox htmx.
+	g.GET("/my-events", Wrap(h.db, h.sm, h.MyEvents))
+	g.POST("/my-events", Wrap(h.db, h.sm, h.MyEvents)) // Fox htmx.
 }
 
 // NewEventsHandler creates a new events handler.
@@ -161,12 +165,4 @@ func NewEventsHandler(db *bun.DB, sm *scs.SessionManager) *EventsHandler {
 		db: db,
 		sm: sm,
 	}
-}
-
-func getIntForm(key string, c echo.Context) *int64 {
-	if val := c.FormValue(key); val != "" {
-		v, _ := strconv.ParseInt(c.FormValue(key), 10, 64)
-		return &v
-	}
-	return nil
 }

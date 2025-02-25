@@ -23,16 +23,15 @@ type AuthenticationHandler struct {
 }
 
 // Login handles login page.
-func (h *AuthenticationHandler) Login(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.User != nil {
+func (h *AuthenticationHandler) Login(c *Context) error {
+	if c.User != nil {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
 	switch c.Request().Method {
 	case http.MethodGet:
-		return RenderPage(c, rc,
-			html.LoginMain(contract.LoginForm{}, nil, rc.CSRF),
+		return RenderPage(c,
+			html.LoginMain(contract.LoginForm{}, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
@@ -42,8 +41,8 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		}
 
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c, rc,
-				html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+			return RenderPage(c,
+				html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 			)
 		}
 
@@ -61,8 +60,8 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c, rc,
-					html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+				return RenderPage(c,
+					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
 			return err
@@ -76,8 +75,8 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c, rc,
-					html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+				return RenderPage(c,
+					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
 			return err
@@ -108,8 +107,8 @@ func (h *AuthenticationHandler) Logout(c echo.Context) error {
 
 // Register the handler.
 func (h *AuthenticationHandler) Register(g *echo.Group) {
-	g.GET("/login", h.Login)
-	g.POST("/login", h.Login)
+	g.GET("/login", Wrap(h.db, h.sm, h.Login))
+	g.POST("/login", Wrap(h.db, h.sm, h.Login))
 
 	g.GET("/logout", h.Logout)
 }

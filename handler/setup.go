@@ -24,24 +24,23 @@ type SetupHandler struct {
 }
 
 // Setup handles the setup page.
-func (h *SetupHandler) Setup(c echo.Context) error {
-	rc := GetContext(c)
-	if rc.Settings != nil {
+func (h *SetupHandler) Setup(c *Context) error {
+	if c.Settings != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
 	}
 
-	rc.Settings = domain.NewDefaultSettings()
+	c.Settings = domain.NewDefaultSettings()
 
 	switch c.Request().Method {
 	case http.MethodGet:
 		form := contract.SetupForm{
-			Title:       rc.Settings.Title,
-			Description: rc.Settings.Description,
+			Title:       c.Settings.Title,
+			Description: c.Settings.Description,
 		}
 
-		return RenderPage(c, rc,
-			html.SetupMain(form, nil, rc.CSRF),
+		return RenderPage(c,
+			html.SetupMain(form, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
@@ -51,13 +50,13 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			return RenderPage(c, rc,
-				html.SetupMain(form, errs, rc.CSRF),
+			return RenderPage(c,
+				html.SetupMain(form, errs, c.CSRF),
 			)
 		}
 
-		rc.Settings.Title = form.Title
-		rc.Settings.Description = form.Description
+		c.Settings.Title = form.Title
+		c.Settings.Description = form.Description
 
 		user := &domain.User{
 			ID:       snowflake.Generate(),
@@ -71,8 +70,8 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return RenderPage(c, rc,
-					html.SetupMain(form, errs, rc.CSRF),
+				return RenderPage(c,
+					html.SetupMain(form, errs, c.CSRF),
 				)
 			}
 
@@ -80,7 +79,7 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.InsertSettings(ctx, tx, rc.Settings); err != nil {
+			if err := model.InsertSettings(ctx, tx, c.Settings); err != nil {
 				return err
 			}
 
@@ -106,8 +105,8 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 
 // Register the handler.
 func (h *SetupHandler) Register(g *echo.Group) {
-	g.GET("/setup", h.Setup)
-	g.POST("/setup", h.Setup)
+	g.GET("/setup", Wrap(h.db, h.sm, h.Setup))
+	g.POST("/setup", Wrap(h.db, h.sm, h.Setup))
 }
 
 // NewSetupHandler creates a new setup handler.
