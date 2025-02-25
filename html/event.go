@@ -32,6 +32,9 @@ func EventsMain(csrf string) Node {
 	)
 }
 
+// EventLimitPerPage specifies maximum number of events per page.
+const EventLimitPerPage = 25
+
 // EventListPartial renders the event list partial.
 func EventListPartial(user *domain.User, offset int64, events []*domain.Event, csrf string) Node {
 	if len(events) == 0 {
@@ -50,7 +53,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"csrf":    csrf,
 				"last_id": events[len(events)-1].ID.String(),
-				"offset":  strconv.FormatInt(offset, 10),
+				"offset":  strconv.FormatInt(offset+EventLimitPerPage, 10),
 			})))),
 			hx.Trigger("intersect once"),
 			hx.Target("#load-more"),

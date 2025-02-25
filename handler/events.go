@@ -17,9 +17,6 @@ import (
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
 
-// EventLimitPerPage specifies maximum number of events per page.
-const EventLimitPerPage = 25
-
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
 	db *bun.DB
@@ -94,8 +91,8 @@ func (h *EventsHandler) Tags(c *Context) error {
 func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		var req struct {
-			Offset *int64 `form:"offset"`
-			LastID *int64 `form:"last_id"`
+			Offset int64  `form:"offset"`
+			LastID int64  `form:"last_id"`
 			Search string `form:"search"`
 		}
 
@@ -105,19 +102,20 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 
 		var cursor int64
 
-		if strings.HasPrefix(c.Path(), "/upcoming") || strings.HasPrefix(c.Path(), "/past") {
-			if req.Offset != nil {
-				cursor = *req.Offset + EventLimitPerPage
-			}
-		} else {
-			if req.LastID != nil {
-				cursor = *req.LastID
-			}
+		switch c.Path() {
+		case "/", "/my-events":
+			cursor = req.LastID
+
+		case "/upcoming", "/past":
+			cursor = req.Offset
+
+		default:
+			return wreck.NotFound.New("Not found")
 		}
 
 		query = query.
 			WithOrder(cursor, order).
-			WithLimit(EventLimitPerPage)
+			WithLimit(html.EventLimitPerPage)
 
 		var (
 			events []*domain.Event

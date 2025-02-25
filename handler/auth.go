@@ -98,7 +98,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 }
 
 // Logout handles logout page.
-func (h *AuthenticationHandler) Logout(c echo.Context) error {
+func (h *AuthenticationHandler) Logout(c *Context) error {
 	if err := h.sm.Destroy(c.Request().Context()); err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (h *AuthenticationHandler) Register(g *echo.Group) {
 	g.GET("/login", Wrap(h.db, h.sm, h.Login))
 	g.POST("/login", Wrap(h.db, h.sm, h.Login))
 
-	g.GET("/logout", h.Logout)
+	g.GET("/logout", Wrap(h.db, h.sm, h.Logout))
 }
 
 // NewAuthenticationHandler creates a new authentication handler.
