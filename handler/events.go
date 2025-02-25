@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
@@ -23,6 +24,7 @@ const EventLimitPerPage = 25
 // EventsHandler handles event pages rendering.
 type EventsHandler struct {
 	db *bun.DB
+	sm *scs.SessionManager
 }
 
 // Latest handles latest events.
@@ -54,21 +56,21 @@ func (h *EventsHandler) Past(c echo.Context) error {
 
 // MyEvents handles current user events.
 func (h *EventsHandler) MyEvents(c echo.Context) error {
-	user := loadUser(c)
-	if user == nil {
+	rc := GetContext(c)
+	if rc.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
 	return h.events(
 		c,
-		model.NewEventsQuery().WithUserID(user.ID),
+		model.NewEventsQuery().WithUserID(rc.User.ID),
 		model.OrderCreatedAtDesc,
 	)
 }
 
 // Tags handles tags.
 func (h *EventsHandler) Tags(c echo.Context) error {
-	user := loadUser(c)
+	rc := GetContext(c)
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
@@ -85,27 +87,16 @@ func (h *EventsHandler) Tags(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
 
-		return html.TagListPartial(tags, c.Get("csrf").(string)).Render(c.Response())
+		return html.TagListPartial(tags, rc.CSRF).Render(c.Response())
 	}
 
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-	c.Response().WriteHeader(200)
-
-	s := loadSettings(c)
-	csrf := c.Get("csrf").(string)
-
-	return html.Page(html.PageProps{
-		Title:        s.Title,
-		User:         user,
-		Path:         c.Path(),
-		CSRF:         csrf,
-		Children:     html.TagsMain(csrf),
-		FlashSuccess: "",
-	}).Render(c.Response())
+	return RenderPage(c, rc,
+		html.TagsMain(rc.CSRF),
+	)
 }
 
 func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
-	user := loadUser(c)
+	rc := GetContext(c)
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		var cursor int64
@@ -138,23 +129,12 @@ func (h *EventsHandler) events(c echo.Context, query model.EventsQueryBuilder, o
 
 		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 		c.Response().WriteHeader(200)
-		return html.EventListPartial(user, cursor, events, c.Get("csrf").(string)).Render(c.Response())
+		return html.EventListPartial(rc.User, cursor, events, rc.CSRF).Render(c.Response())
 	}
 
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-	c.Response().WriteHeader(200)
-
-	s := loadSettings(c)
-	csrf := c.Get("csrf").(string)
-
-	return html.Page(html.PageProps{
-		Title:        s.Title,
-		User:         user,
-		Path:         c.Path(),
-		CSRF:         csrf,
-		Children:     html.EventsMain(csrf),
-		FlashSuccess: "",
-	}).Render(c.Response())
+	return RenderPage(c, rc,
+		html.EventsMain(rc.CSRF),
+	)
 }
 
 // Register the handler.
@@ -176,11 +156,10 @@ func (h *EventsHandler) Register(g *echo.Group) {
 }
 
 // NewEventsHandler creates a new events handler.
-func NewEventsHandler(
-	db *bun.DB,
-) *EventsHandler {
+func NewEventsHandler(db *bun.DB, sm *scs.SessionManager) *EventsHandler {
 	return &EventsHandler{
 		db: db,
+		sm: sm,
 	}
 }
 

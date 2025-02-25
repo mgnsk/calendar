@@ -30,17 +30,17 @@ func (h *FeedHandler) HandleRSS(c echo.Context) error {
 
 // HandleICal handles iCal feeds.
 func (h *FeedHandler) HandleICal(c echo.Context) error {
+	rc := GetContext(c)
+
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
 	}
 
-	settings := loadSettings(c)
-
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(settings.Title)
+	cal.SetDescription(rc.Settings.Title)
 	cal.SetUrl(h.baseURL.JoinPath("/ical").String())
 
 	for _, ev := range events {
@@ -69,15 +69,15 @@ func (h *FeedHandler) HandleICal(c echo.Context) error {
 }
 
 func (h *FeedHandler) handleRSSFeed(c echo.Context, _ string) error {
+	rc := GetContext(c)
+
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
 	}
 
-	settings := loadSettings(c)
-
 	feed := &feeds.Feed{
-		Title: settings.Title,
+		Title: rc.Settings.Title,
 		Link:  &feeds.Link{Rel: "self", Href: h.baseURL.JoinPath(c.Path()).String()},
 		Image: nil,
 	}

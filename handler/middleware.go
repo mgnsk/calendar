@@ -7,16 +7,36 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/wreck"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
 
-// LoadSettingsMiddleware loads settings or redirects to setup page.
-func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
+// GetContext extracts the custom context.
+func GetContext(c echo.Context) Context {
+	return c.Get("context").(Context)
+}
+
+// Context is the request context.
+type Context struct {
+	Session  *scs.SessionManager
+	User     *domain.User
+	Settings *domain.Settings
+	CSRF     string
+}
+
+// SetContextMiddleware sets custom request context.
+// Must be registered after session and CSRF middleware.
+func SetContextMiddleware(db *bun.DB, sm *scs.SessionManager) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			ctx := Context{
+				Session: sm,
+				CSRF:    c.Get("csrf").(string),
+			}
+
 			settings, err := model.GetSettings(c.Request().Context(), db)
 			if err != nil {
 				if !errors.Is(err, wreck.NotFound) {
@@ -24,39 +44,27 @@ func LoadSettingsMiddleware(db *bun.DB) echo.MiddlewareFunc {
 				}
 			}
 
-			if settings != nil {
-				c.Set("settings", settings)
+			if settings == nil && c.Path() != "/setup" {
+				return c.Redirect(http.StatusSeeOther, "/setup")
 			}
 
-			if c.Path() == "/setup" {
-				return next(c)
-			}
+			ctx.Settings = settings
 
-			if settings != nil {
-				return next(c)
-			}
-
-			return c.Redirect(http.StatusSeeOther, "/setup")
-		}
-	}
-}
-
-// LoadUserMiddleware loads the current user.
-func LoadUserMiddleware(db *bun.DB, sm *scs.SessionManager) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			username := sm.GetString(c.Request().Context(), "username")
-			if username != "" {
+			if username := sm.GetString(c.Request().Context(), "username"); username != "" {
 				user, err := model.GetUser(c.Request().Context(), db, username)
 				if err != nil {
 					if !errors.Is(err, wreck.NotFound) {
 						return err
 					}
-				} else {
-					c.Set("user", user)
+				}
+
+				if user != nil {
+					ctx.User = user
 					slogecho.AddCustomAttributes(c, slog.String("username", username))
 				}
 			}
+
+			c.Set("context", ctx)
 
 			return next(c)
 		}

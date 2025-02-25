@@ -50,12 +50,11 @@ func HandleError(err error, c echo.Context) error {
 	slogecho.AddCustomAttributes(c, slog.String("error", err.Error()))
 	c.Response().Status = code
 
-	user := loadUser(c)
 	errText := fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID)
 
 	return html.Page(html.PageProps{
 		Title:        "Error",
-		User:         user,
+		User:         nil,
 		Path:         c.Path(),
 		CSRF:         "",
 		Children:     html.ErrorMain(errText),

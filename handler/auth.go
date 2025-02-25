@@ -24,27 +24,16 @@ type AuthenticationHandler struct {
 
 // Login handles login page.
 func (h *AuthenticationHandler) Login(c echo.Context) error {
-	user := loadUser(c)
-	if user != nil {
+	rc := GetContext(c)
+	if rc.User != nil {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
-	s := loadSettings(c)
-	csrf := c.Get("csrf").(string)
-
 	switch c.Request().Method {
 	case http.MethodGet:
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
-
-		return html.Page(html.PageProps{
-			Title:        s.Title,
-			User:         user,
-			Path:         c.Path(),
-			CSRF:         csrf,
-			Children:     html.LoginMain(contract.LoginForm{}, nil, csrf),
-			FlashSuccess: "",
-		}).Render(c.Response())
+		return RenderPage(c, rc,
+			html.LoginMain(contract.LoginForm{}, nil, rc.CSRF),
+		)
 
 	case http.MethodPost:
 		req := contract.LoginForm{}
@@ -52,22 +41,10 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 			return err
 		}
 
-		invalidLogin := func(errs url.Values) error {
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(html.PageProps{
-				Title:        s.Title,
-				User:         user,
-				Path:         c.Path(),
-				CSRF:         csrf,
-				Children:     html.LoginMain(contract.LoginForm{}, errs, csrf),
-				FlashSuccess: "",
-			}).Render(c.Response())
-		}
-
 		if errs := req.Validate(); len(errs) > 0 {
-			return invalidLogin(errs)
+			return RenderPage(c, rc,
+				html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+			)
 		}
 
 		// Grace timeout for login failures so we always fail in constant time
@@ -79,10 +56,14 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		if err != nil {
 			if errors.Is(err, wreck.NotFound) {
 				<-ctx.Done()
+
 				errs := url.Values{}
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
-				return invalidLogin(errs)
+
+				return RenderPage(c, rc,
+					html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+				)
 			}
 			return err
 		}
@@ -90,10 +71,14 @@ func (h *AuthenticationHandler) Login(c echo.Context) error {
 		if err := user.VerifyPassword(req.Password); err != nil {
 			if errors.Is(err, wreck.InvalidValue) {
 				<-ctx.Done()
+
 				errs := url.Values{}
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
-				return invalidLogin(errs)
+
+				return RenderPage(c, rc,
+					html.LoginMain(contract.LoginForm{}, errs, rc.CSRF),
+				)
 			}
 			return err
 		}

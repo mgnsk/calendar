@@ -31,8 +31,7 @@ func Register(
 			CookieSameSite: http.SameSiteStrictMode,
 		}),
 		echo.WrapMiddleware(sm.LoadAndSave),
-		LoadSettingsMiddleware(db),
-		LoadUserMiddleware(db, sm),
+		SetContextMiddleware(db, sm),
 	)
 
 	// Setup.
@@ -61,7 +60,7 @@ func Register(
 			echo.WrapMiddleware(NoCache),
 		)
 
-		h := NewEventsHandler(db)
+		h := NewEventsHandler(db, sm)
 		h.Register(g)
 	}
 

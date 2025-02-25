@@ -29,13 +29,10 @@ type EditEventHandler struct {
 
 // Edit handles adding and editing events.
 func (h *EditEventHandler) Edit(c echo.Context) error {
-	user := loadUser(c)
-	if user == nil {
+	rc := GetContext(c)
+	if rc.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
-
-	s := loadSettings(c)
-	csrf := c.Get("csrf").(string)
 
 	req := contract.EditEventForm{}
 	if err := c.Bind(&req); err != nil {
@@ -50,15 +47,12 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			return err
 		}
 
-		if user.Role != domain.Admin && user.ID != event.UserID {
+		if rc.User.Role != domain.Admin && rc.User.ID != event.UserID {
 			return wreck.Forbidden.New("Non-admin users can only edit own events")
 		}
 
 		ev = event
 	}
-
-	// Note: Pop must be before writing headers.
-	successMessage := h.sm.PopString(c.Request().Context(), "flash-success")
 
 	switch c.Request().Method {
 	case http.MethodGet:
@@ -72,31 +66,15 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			req.Longitude = ev.Longitude
 		}
 
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
-
-		return html.Page(html.PageProps{
-			Title:        s.Title,
-			User:         user,
-			Path:         c.Path(),
-			CSRF:         csrf,
-			Children:     html.EditEventMain(req, nil, csrf),
-			FlashSuccess: successMessage,
-		}).Render(c.Response())
+		return RenderPage(c, rc,
+			html.EditEventMain(req, nil, rc.CSRF),
+		)
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(html.PageProps{
-				Title:        s.Title,
-				User:         user,
-				Path:         c.Path(),
-				CSRF:         csrf,
-				Children:     html.EditEventMain(req, errs, csrf),
-				FlashSuccess: successMessage,
-			}).Render(c.Response())
+			return RenderPage(c, rc,
+				html.EditEventMain(req, errs, rc.CSRF),
+			)
 		}
 
 		startAt, err := parseTimeInLocation(c.Request().Context(), req)
@@ -135,7 +113,7 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 			Latitude:    req.Latitude,
 			Longitude:   req.Longitude,
 			IsDraft:     false, // TODO
-			UserID:      user.ID,
+			UserID:      rc.User.ID,
 		}); err != nil {
 			return err
 		}
@@ -151,8 +129,8 @@ func (h *EditEventHandler) Edit(c echo.Context) error {
 
 // Delete handles deleting events.
 func (h *EditEventHandler) Delete(c echo.Context) error {
-	user := loadUser(c)
-	if user == nil {
+	rc := GetContext(c)
+	if rc.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
@@ -171,7 +149,7 @@ func (h *EditEventHandler) Delete(c echo.Context) error {
 		return err
 	}
 
-	if user.Role != domain.Admin && user.ID != ev.UserID {
+	if rc.User.Role != domain.Admin && rc.User.ID != ev.UserID {
 		return wreck.Forbidden.New("Non-admin users can only edit own events")
 	}
 
@@ -192,8 +170,8 @@ func (h *EditEventHandler) Delete(c echo.Context) error {
 
 // Preview returns a preview of the event.
 func (h *EditEventHandler) Preview(c echo.Context) error {
-	user := loadUser(c)
-	if user == nil {
+	rc := GetContext(c)
+	if rc.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
@@ -218,11 +196,9 @@ func (h *EditEventHandler) Preview(c echo.Context) error {
 		IsDraft:     false, // TODO
 	}
 
-	csrf := c.Get("csrf").(string)
-
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 	c.Response().WriteHeader(200)
-	return html.EventCard(nil, ev, csrf).Render(c.Response())
+	return html.EventCard(nil, ev, rc.CSRF).Render(c.Response())
 }
 
 // Register the handler.
