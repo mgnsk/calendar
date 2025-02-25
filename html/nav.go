@@ -11,7 +11,7 @@ import (
 )
 
 // UserNav renders the user navigation.
-func UserNav(user *domain.User, path, csrf string) Node {
+func UserNav(user *domain.User, children Node) Node {
 	return Nav(Class("sticky top-0 bg-white max-w-3xl mx-auto"),
 		Style("z-index: 1;"), // TODO: why tailwind z-1 not working?
 		Ul(Class("flex justify-between font-semibold flex-row space-x-8 mb-5"),
@@ -43,7 +43,7 @@ func UserNav(user *domain.User, path, csrf string) Node {
 				),
 			),
 		),
-		If(path == "/" || path == "/upcoming" || path == "/past" || path == "/tags" || path == "/my-events", EventNav(user, path, csrf)),
+		children,
 	)
 }
 
