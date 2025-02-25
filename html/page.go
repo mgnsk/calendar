@@ -69,7 +69,7 @@ func Page(props PageProps) Node {
 func flashMessage(success bool, message string) Node {
 	return Div(
 		Div(ID("alert"), Classes{
-			"absolute":        true,
+			"fixed":           true,
 			"bottom-5":        true,
 			"right-5":         true,
 			"bg-teal-100":     success,

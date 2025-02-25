@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/pkg/markdown"
 	"github.com/mgnsk/calendar/pkg/timestamp"
@@ -50,7 +51,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"csrf":    csrf,
 				"last_id": events[len(events)-1].ID.String(),
-				"offset":  strconv.FormatInt(offset, 10),
+				"offset":  strconv.FormatInt(offset+contract.EventLimitPerPage, 10),
 			})))),
 			hx.Trigger("intersect once"),
 			hx.Target("#load-more"),

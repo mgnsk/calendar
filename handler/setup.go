@@ -24,34 +24,24 @@ type SetupHandler struct {
 }
 
 // Setup handles the setup page.
-func (h *SetupHandler) Setup(c echo.Context) error {
-	s := loadSettings(c)
-	if s != nil {
+func (h *SetupHandler) Setup(c *Context) error {
+	if c.Settings != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
 	}
 
-	s = domain.NewDefaultSettings()
-	csrf := c.Get("csrf").(string)
+	c.Settings = domain.NewDefaultSettings()
 
 	switch c.Request().Method {
 	case http.MethodGet:
 		form := contract.SetupForm{
-			Title:       s.Title,
-			Description: s.Description,
+			Title:       c.Settings.Title,
+			Description: c.Settings.Description,
 		}
 
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
-
-		return html.Page(html.PageProps{
-			Title:        s.Title,
-			User:         nil,
-			Path:         c.Path(),
-			CSRF:         csrf,
-			Children:     html.SetupMain(form, nil, csrf),
-			FlashSuccess: "",
-		}).Render(c.Response())
+		return RenderPage(c,
+			html.SetupMain(form, nil, c.CSRF),
+		)
 
 	case http.MethodPost:
 		form := contract.SetupForm{}
@@ -60,21 +50,13 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-			c.Response().WriteHeader(200)
-
-			return html.Page(html.PageProps{
-				Title:        s.Title,
-				User:         nil,
-				Path:         c.Path(),
-				CSRF:         csrf,
-				Children:     html.SetupMain(form, errs, csrf),
-				FlashSuccess: "",
-			}).Render(c.Response())
+			return RenderPage(c,
+				html.SetupMain(form, errs, c.CSRF),
+			)
 		}
 
-		s.Title = form.Title
-		s.Description = form.Description
+		c.Settings.Title = form.Title
+		c.Settings.Description = form.Description
 
 		user := &domain.User{
 			ID:       snowflake.Generate(),
@@ -88,24 +70,16 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-				c.Response().WriteHeader(200)
-
-				return html.Page(html.PageProps{
-					Title:        s.Title,
-					User:         nil,
-					Path:         c.Path(),
-					CSRF:         csrf,
-					Children:     html.SetupMain(form, errs, csrf),
-					FlashSuccess: "",
-				}).Render(c.Response())
+				return RenderPage(c,
+					html.SetupMain(form, errs, c.CSRF),
+				)
 			}
 
 			return err
 		}
 
 		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.InsertSettings(ctx, tx, s); err != nil {
+			if err := model.InsertSettings(ctx, tx, c.Settings); err != nil {
 				return err
 			}
 
@@ -131,8 +105,8 @@ func (h *SetupHandler) Setup(c echo.Context) error {
 
 // Register the handler.
 func (h *SetupHandler) Register(g *echo.Group) {
-	g.GET("/setup", h.Setup)
-	g.POST("/setup", h.Setup)
+	g.GET("/setup", Wrap(h.db, h.sm, h.Setup))
+	g.POST("/setup", Wrap(h.db, h.sm, h.Setup))
 }
 
 // NewSetupHandler creates a new setup handler.
