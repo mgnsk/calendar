@@ -50,11 +50,11 @@ func (c *Context) Bind(dst any) error {
 	return c.c.Bind(dst)
 }
 
-// HandlerFunc defines a function to serve HTTP requests, using the custom context.
-type HandlerFunc func(*Context) error
+// Func defines a function to serve HTTP requests, using the custom context.
+type Func func(*Context) error
 
 // Wrap a HandlerFunc with echo.HandlerFunc.
-func Wrap(db *bun.DB, sm *scs.SessionManager, next HandlerFunc) echo.HandlerFunc {
+func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		ctx := &Context{
 			c:       c,

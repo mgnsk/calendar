@@ -132,9 +132,7 @@ func (h *EditEventHandler) Delete(c *Context) error {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
-	var req struct {
-		EventID snowflake.ID `param:"event_id"`
-	}
+	req := contract.DeleteEventRequest{}
 
 	if err := c.c.Bind(&req); err != nil {
 		return err

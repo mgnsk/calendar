@@ -9,6 +9,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
@@ -90,11 +91,7 @@ func (h *EventsHandler) Tags(c *Context) error {
 
 func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		var req struct {
-			Offset int64  `form:"offset"`
-			LastID int64  `form:"last_id"`
-			Search string `form:"search"`
-		}
+		req := contract.ListEventsRequest{}
 
 		if err := c.c.Bind(&req); err != nil {
 			return err
@@ -115,7 +112,7 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 
 		query = query.
 			WithOrder(cursor, order).
-			WithLimit(html.EventLimitPerPage)
+			WithLimit(contract.EventLimitPerPage)
 
 		var (
 			events []*domain.Event
