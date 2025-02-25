@@ -58,10 +58,15 @@ func SetContextMiddleware(db *bun.DB, sm *scs.SessionManager) echo.MiddlewareFun
 					}
 				}
 
-				if user != nil {
-					ctx.User = user
-					slogecho.AddCustomAttributes(c, slog.String("username", username))
+				if user == nil {
+					if err := sm.Destroy(c.Request().Context()); err != nil {
+						return err
+					}
+					return c.Redirect(http.StatusSeeOther, "/")
 				}
+
+				ctx.User = user
+				slogecho.AddCustomAttributes(c, slog.String("username", username))
 			}
 
 			c.Set("context", ctx)
