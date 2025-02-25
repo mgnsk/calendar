@@ -56,10 +56,15 @@ type Func func(*Context) error
 // Wrap a HandlerFunc with echo.HandlerFunc.
 func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		var csrf string
+		if v, ok := c.Get("csrf").(string); ok {
+			csrf = v
+		}
+
 		ctx := &Context{
 			c:       c,
 			Session: sm,
-			CSRF:    c.Get("csrf").(string),
+			CSRF:    csrf,
 		}
 
 		settings, err := model.GetSettings(c.Request().Context(), db)
