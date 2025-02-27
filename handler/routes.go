@@ -30,13 +30,13 @@ func Register(
 			CookieHTTPOnly: true,
 			CookieSameSite: http.SameSiteStrictMode,
 		}),
-		echo.WrapMiddleware(sm.LoadAndSave),
 	)
 
 	// Setup.
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+			echo.WrapMiddleware(sm.LoadAndSave),
 		)
 
 		h := NewSetupHandler(db, sm)
@@ -47,6 +47,7 @@ func Register(
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+			echo.WrapMiddleware(sm.LoadAndSave),
 		)
 
 		h := NewAuthenticationHandler(db, sm)
@@ -57,6 +58,7 @@ func Register(
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+			echo.WrapMiddleware(sm.LoadAndSave),
 		)
 
 		h := NewEventsHandler(db, sm)
@@ -67,6 +69,7 @@ func Register(
 	{
 		g := g.Group("",
 			echo.WrapMiddleware(NoCache),
+			echo.WrapMiddleware(sm.LoadAndSave),
 		)
 
 		h := NewEditEventHandler(db, sm)

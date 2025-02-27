@@ -122,8 +122,8 @@ func run() error {
 	sm := scs.New()
 	sm.Store = store
 	sm.HashTokenInStore = true
-	sm.Lifetime = 24 * time.Hour
-	// sm.IdleTimeout = 20 * time.Minute // TODO
+	sm.Lifetime = 12 * 30 * 24 * time.Hour // 12 months
+	sm.IdleTimeout = 30 * 24 * time.Hour   // 30 days
 	sm.Cookie.Name = "session_id"
 	sm.Cookie.Domain = ""
 	sm.Cookie.HttpOnly = true
@@ -154,8 +154,6 @@ func run() error {
 			WithRequestID: true,
 		}),
 		middleware.Recover(), // Recover from all panics to always have your server up.
-		handler.ErrorHandler(),
-		middleware.RequestID(),
 		middleware.SecureWithConfig(middleware.SecureConfig{
 			XSSProtection:         "1; mode=block",
 			ContentTypeNosniff:    "nosniff",
@@ -163,6 +161,8 @@ func run() error {
 			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.openstreetmap.org; connect-src 'self' *.openstreetmap.org",
 			HSTSPreloadEnabled:    false,
 		}),
+		handler.ErrorHandler(),
+		middleware.RequestID(),
 		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
 		middleware.BodyLimit("1M"),
 		middleware.ContextTimeout(time.Minute),
@@ -186,7 +186,7 @@ func run() error {
 				return wreck.Internal.New("error running server", err)
 			}
 		} else {
-			e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.DomainName)
+			e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.Host)
 			// Cache certificates to avoid issues with rate limits (https://letsencrypt.org/docs/rate-limits)
 			e.AutoTLSManager.Cache = autocert.DirCache(cfg.CacheDir)
 			if err := e.StartAutoTLS(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
