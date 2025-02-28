@@ -25,8 +25,8 @@ services:
       # CACHE_DIR specifies directory for Let's Encrypt cache files.
       - CACHE_DIR=/cache
 
-      # DOMAIN_NAME specifies the public domain name. May be a subdomain.
-      - DOMAIN_NAME=calendar.testing
+      # HOST specifies the public hostname.
+      - HOST=calendar.testing
 
     volumes:
       - calendar-database:/database

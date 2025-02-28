@@ -2,6 +2,7 @@ package html
 
 import (
 	_ "embed"
+	"fmt"
 	"strings"
 	"text/template"
 
@@ -37,6 +38,7 @@ func Page(props PageProps) Node {
 		Title:    props.Title,
 		Language: "en",
 		Head: []Node{
+			Link(Rel("alternate"), Type("application/rss+xml"), Title(fmt.Sprintf("RSS feed for %s", props.Title)), Href("/feed")),
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css"))),

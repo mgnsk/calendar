@@ -13,7 +13,7 @@ type Config struct {
 	ListenAddr  string
 	DatabaseDir string
 	CacheDir    string
-	DomainName  string
+	Host        string
 	Development bool
 
 	BaseURL *url.URL
@@ -25,7 +25,7 @@ func LoadConfig() (*Config, error) {
 		ListenAddr:  cmp.Or(os.Getenv("LISTEN_ADDR"), ":443"),
 		DatabaseDir: os.Getenv("DATABASE_DIR"),
 		CacheDir:    os.Getenv("CACHE_DIR"),
-		DomainName:  os.Getenv("DOMAIN_NAME"),
+		Host:        os.Getenv("HOST"),
 		Development: os.Getenv("MODE") == "development",
 	}
 
@@ -43,13 +43,13 @@ func LoadConfig() (*Config, error) {
 		errs = append(errs, fmt.Errorf("cache_dir: is required"))
 	}
 
-	if c.DomainName == "" {
-		errs = append(errs, fmt.Errorf("domain_name: is required"))
+	if c.Host == "" {
+		errs = append(errs, fmt.Errorf("host: is required"))
 	}
 
-	u, err := url.Parse(fmt.Sprintf("https://%s", c.DomainName))
+	u, err := url.Parse(fmt.Sprintf("https://%s", c.Host))
 	if err != nil {
-		errs = append(errs, fmt.Errorf("domain_name: invalid domain name"))
+		errs = append(errs, fmt.Errorf("host: invalid host"))
 	}
 
 	if len(errs) > 0 {
