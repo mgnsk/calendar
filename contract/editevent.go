@@ -8,15 +8,15 @@ import (
 
 // EditEventForm is an edit event form.
 type EditEventForm struct {
-	EventID      snowflake.ID `param:"event_id"`
-	Title        string       `form:"title"`
-	Description  string       `form:"desc"`
-	URL          string       `form:"url"`
-	StartAt      string       `form:"start_at"`
-	Location     string       `form:"location"`
-	Latitude     float64      `form:"latitude"`
-	Longitude    float64      `form:"longitude"`
-	UserTimezone string       `form:"user_timezone"`
+	EventID        snowflake.ID `param:"event_id"`
+	Title          string       `form:"title"`
+	Description    string       `form:"desc"`
+	URL            string       `form:"url"`
+	StartAt        string       `form:"start_at"`
+	Location       string       `form:"location"`
+	Latitude       float64      `form:"latitude"`
+	Longitude      float64      `form:"longitude"`
+	TimezoneOffset int          `form:"timezone_offset"`
 }
 
 // Validate the form.

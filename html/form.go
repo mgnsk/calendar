@@ -23,7 +23,7 @@ func submitButton(text string) Node {
 	)
 }
 
-func input(name, typ, placeholder string, value, err string, required bool) Node {
+func input(name, typ, placeholder string, value, err string, required, autocomplete bool) Node {
 	return withErrors(err,
 		Input(baseInputClasses(err != ""),
 			Name(name),
@@ -31,28 +31,31 @@ func input(name, typ, placeholder string, value, err string, required bool) Node
 			Placeholder(placeholder),
 			Value(value),
 			If(required, Required()),
+			If(!autocomplete, AutoComplete("off")),
 		),
 	)
 }
 
-func textarea(name string, value, err string, required bool) Node {
+func textarea(name string, value, err string, required, autocomplete bool) Node {
 	return withErrors(err,
 		Textarea(baseInputClasses(err != ""),
 			Name(name),
 			Text(value),
 			Rows("3"),
 			If(required, Required()),
+			If(!autocomplete, AutoComplete("off")),
 		),
 	)
 }
 
-func dateTimeLocalInput(name string, value, err string, required bool) Node {
+func dateTimeLocalInput(name string, value, err string, required, autocomplete bool) Node {
 	return withErrors(err,
 		Input(baseInputClasses(err != ""),
 			Name(name),
 			Type("datetime-local"),
 			Value(value),
 			If(required, Required()),
+			If(!autocomplete, AutoComplete("off")),
 		),
 	)
 }

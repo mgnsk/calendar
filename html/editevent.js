@@ -14,9 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
     element: el,
     autoDownloadFontAwesome: false,
     autosave: {
-      enabled: true,
-      delay: 1000,
-      uniqueId: cacheKeyInput.value,
+      enabled: false,
+      // delay: 1000,
+      // uniqueId: cacheKeyInput.value,
     },
     forceSync: true,
     promptURLs: true,
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
             body: new URLSearchParams(new FormData(form)),
           });
 
-          if (!response.ok) {
+          if (!response.ok || response.status !== 200) {
             throw new Error(
               `Preview failed: ${response.status} - ${response.statusText}`,
             );
@@ -80,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const providerform = new GeoSearch.OpenStreetMapProvider({
         params: {
           limit: 5,
+          "accept-language": "en",
         },
       });
       return providerform
@@ -95,14 +96,42 @@ document.addEventListener("DOMContentLoaded", () => {
           $("#location-spinner").css("opacity", "0");
         });
     },
-    select: function (_, ui) {
+    select: async function (_, ui) {
+      $("#location-spinner").css("opacity", "1");
+
       const lat = ui.item.y;
       const long = ui.item.x;
 
       $('[name="latitude"]').val(lat);
       $('[name="longitude"]').val(long);
+
+      const params = new URLSearchParams();
+      params.set("latitude", lat);
+      params.set("longitude", long);
+      params.set(
+        "user_timezone",
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
+
+      try {
+        const response = await fetch("/gettimezone?" + params.toString());
+
+        if (!response.ok || response.status !== 200) {
+          throw new Error(
+            `Fetching timezone failed: ${response.status} - ${response.statusText}`,
+          );
+        }
+
+        const json = await response.json();
+
+        $('[name="timezone_offset"]').val(json["timezone_offset"]);
+      } catch (error) {
+        alert(`Fetching timezone failed: ${error}`);
+      } finally {
+        $("#location-spinner").css("opacity", "0");
+      }
     },
-    delay: 500,
+    delay: 1000,
     minLength: 3,
   });
 });

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/alexedwards/scs/v2"
@@ -63,6 +62,8 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			req.Location = ev.Location
 			req.Latitude = ev.Latitude
 			req.Longitude = ev.Longitude
+			_, offset := ev.StartAt.Zone()
+			req.TimezoneOffset = offset
 		}
 
 		return RenderPage(c,
@@ -76,9 +77,10 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			)
 		}
 
-		startAt, err := parseTimeInLocation(c.Request().Context(), req)
+		loc := time.FixedZone("", req.TimezoneOffset)
+		startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
 		if err != nil {
-			return err
+			return wreck.InvalidValue.New("Invalid value", err)
 		}
 
 		if ev != nil {
@@ -173,9 +175,10 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		return err
 	}
 
-	startAt, err := parseTimeInLocation(c.Request().Context(), req)
+	loc := time.FixedZone("", req.TimezoneOffset)
+	startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
 	if err != nil {
-		return err
+		return wreck.InvalidValue.New("Invalid value", err)
 	}
 
 	ev := &domain.Event{
@@ -194,52 +197,47 @@ func (h *EditEventHandler) Preview(c *Context) error {
 	return html.EventCard(nil, ev, c.CSRF).Render(c.Response())
 }
 
-// Register the handler.
-func (h *EditEventHandler) Register(g *echo.Group) {
-	g.GET("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
-	g.POST("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
-
-	g.POST("/delete/:event_id", Wrap(h.db, h.sm, h.Delete))
-
-	g.POST("/preview", Wrap(h.db, h.sm, h.Preview))
-}
-
-// NewEditEventHandler creates a new edit event handler.
-func NewEditEventHandler(db *bun.DB, sm *scs.SessionManager) *EditEventHandler {
-	return &EditEventHandler{
-		db: db,
-		sm: sm,
+// GetTimezone returns timezone offset by geo coordinates.
+func (h *EditEventHandler) GetTimezone(c *Context) error {
+	if c.User == nil {
+		return wreck.Forbidden.New("Must be logged in")
 	}
-}
 
-func getLocation(ctx context.Context, req contract.EditEventForm) (string, error) {
+	req := contract.GetTimezoneRequest{}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
 	u, err := url.Parse("https://api.geotimezone.com/public/timezone")
 	if err != nil {
 		panic(err)
 	}
 
 	q := url.Values{}
-	q.Set("latitude", strconv.FormatFloat(req.Latitude, 'f', -1, 64))
-	q.Set("longitude", strconv.FormatFloat(req.Longitude, 'f', -1, 64))
+	q.Set("latitude", req.Latitude)
+	q.Set("longitude", req.Longitude)
 
 	u.RawQuery = q.Encode()
 
 	r, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return "", err
+		return err
 	}
+
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 10*time.Second)
+	defer cancel()
 
 	r = r.WithContext(ctx)
 
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return "", wreck.Internal.New(fmt.Sprintf("Unable to reach geotimezone API: status %d", res.StatusCode))
+		return wreck.Internal.New(fmt.Sprintf("Unable to reach geotimezone API: status %d", res.StatusCode))
 	}
 
 	var timezoneResponse struct {
@@ -248,17 +246,10 @@ func getLocation(ctx context.Context, req contract.EditEventForm) (string, error
 
 	dec := json.NewDecoder(res.Body)
 	if err := dec.Decode(&timezoneResponse); err != nil {
-		return "", err
+		return err
 	}
 
-	return timezoneResponse.IANATimezone, nil
-}
-
-func parseTimeInLocation(ctx context.Context, req contract.EditEventForm) (time.Time, error) {
-	ianaTimezone, err := getLocation(ctx, req)
-	if err != nil {
-		return time.Time{}, err
-	}
+	ianaTimezone := timezoneResponse.IANATimezone
 
 	if ianaTimezone == "" {
 		// If timezone not found, fall back to user timezone.
@@ -273,16 +264,34 @@ func parseTimeInLocation(ctx context.Context, req contract.EditEventForm) (time.
 	} else {
 		l, err := time.LoadLocation(ianaTimezone)
 		if err != nil {
-			return time.Time{}, wreck.InvalidValue.New("Invalid location timezone", err)
+			return wreck.InvalidValue.New("Invalid location timezone", err)
 		}
 
 		loc = l
 	}
 
-	ts, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
-	if err != nil {
-		return time.Time{}, wreck.InvalidValue.New("Invalid value", err)
-	}
+	_, offset := time.Now().In(loc).Zone()
 
-	return ts, nil
+	return c.c.JSON(http.StatusOK, contract.GetTimezoneResponse{
+		TimezoneOffset: offset,
+	})
+}
+
+// Register the handler.
+func (h *EditEventHandler) Register(g *echo.Group) {
+	g.GET("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
+	g.POST("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
+
+	g.POST("/delete/:event_id", Wrap(h.db, h.sm, h.Delete))
+
+	g.POST("/preview", Wrap(h.db, h.sm, h.Preview))
+	g.GET("/gettimezone", Wrap(h.db, h.sm, h.GetTimezone))
+}
+
+// NewEditEventHandler creates a new edit event handler.
+func NewEditEventHandler(db *bun.DB, sm *scs.SessionManager) *EditEventHandler {
+	return &EditEventHandler{
+		db: db,
+		sm: sm,
+	}
 }
