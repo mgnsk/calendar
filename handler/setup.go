@@ -99,7 +99,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
-		panic("unhandled method")
+		return wreck.NotFound.New("Not found")
 	}
 }
 

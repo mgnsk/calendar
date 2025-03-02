@@ -77,10 +77,9 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			)
 		}
 
-		loc := time.FixedZone("", req.TimezoneOffset)
-		startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
+		startAt, err := req.ParseStartAt()
 		if err != nil {
-			return wreck.InvalidValue.New("Invalid value", err)
+			return err
 		}
 
 		if ev != nil {
@@ -175,10 +174,9 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		return err
 	}
 
-	loc := time.FixedZone("", req.TimezoneOffset)
-	startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
+	startAt, err := req.ParseStartAt()
 	if err != nil {
-		return wreck.InvalidValue.New("Invalid value", err)
+		return err
 	}
 
 	ev := &domain.Event{
