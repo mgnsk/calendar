@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/html"
 	. "maragu.dev/gomponents"
@@ -9,10 +10,11 @@ import (
 // RenderPage renders a HTML page.
 func RenderPage(
 	c *Context,
+	sm *scs.SessionManager,
 	content Node,
 ) error {
 	// Note: Pop must be before writing headers.
-	successMessage := c.Session.PopString(c.Request().Context(), "flash-success")
+	successMessage := sm.PopString(c.Request().Context(), "flash-success")
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
 

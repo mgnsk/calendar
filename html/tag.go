@@ -6,7 +6,6 @@ import (
 	"maps"
 
 	"github.com/aybabtme/uniplot/histogram"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/samber/lo"
 	. "maragu.dev/gomponents"
@@ -129,8 +128,6 @@ func calcHistogram(tags []*domain.Tag) (histogram.Histogram, []Classes) {
 	counts := lo.Map(tags, func(tag *domain.Tag, _ int) float64 {
 		return float64(tag.EventCount)
 	})
-
-	spew.Dump(classes)
 
 	hist := histogram.Hist(len(classes), counts)
 

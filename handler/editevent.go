@@ -66,13 +66,13 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			req.TimezoneOffset = offset
 		}
 
-		return RenderPage(c,
+		return RenderPage(c, h.sm,
 			html.EditEventMain(req, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c,
+			return RenderPage(c, h.sm,
 				html.EditEventMain(req, errs, c.CSRF),
 			)
 		}

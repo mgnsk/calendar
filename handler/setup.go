@@ -39,7 +39,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 			Description: c.Settings.Description,
 		}
 
-		return RenderPage(c,
+		return RenderPage(c, h.sm,
 			html.SetupMain(form, nil, c.CSRF),
 		)
 
@@ -50,7 +50,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			return RenderPage(c,
+			return RenderPage(c, h.sm,
 				html.SetupMain(form, errs, c.CSRF),
 			)
 		}
@@ -70,7 +70,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return RenderPage(c,
+				return RenderPage(c, h.sm,
 					html.SetupMain(form, errs, c.CSRF),
 				)
 			}

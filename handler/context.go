@@ -18,7 +18,6 @@ import (
 type Context struct {
 	echo.Context
 
-	Session  *scs.SessionManager
 	User     *domain.User
 	Settings *domain.Settings
 	CSRF     string
@@ -37,7 +36,6 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 
 		ctx := &Context{
 			Context: c,
-			Session: sm,
 			CSRF:    csrf,
 		}
 
