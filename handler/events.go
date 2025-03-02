@@ -93,7 +93,7 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		req := contract.ListEventsRequest{}
 
-		if err := c.c.Bind(&req); err != nil {
+		if err := c.Bind(&req); err != nil {
 			return err
 		}
 

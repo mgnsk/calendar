@@ -135,12 +135,12 @@ func run() error {
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if err := handler.HandleError(err, c); err != nil {
-			panic(err)
+			slog.Error("error handling error", slog.String("error", err.Error()))
 		}
 	}
 	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
 		if err := handler.HandleError(err, e.NewContext(r, w)); err != nil {
-			panic(err)
+			slog.Error("error handling error", slog.String("error", err.Error()))
 		}
 	}
 

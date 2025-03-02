@@ -136,7 +136,7 @@ func (h *EditEventHandler) Delete(c *Context) error {
 
 	req := contract.DeleteEventRequest{}
 
-	if err := c.c.Bind(&req); err != nil {
+	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
@@ -272,7 +272,7 @@ func (h *EditEventHandler) GetTimezone(c *Context) error {
 
 	_, offset := time.Now().In(loc).Zone()
 
-	return c.c.JSON(http.StatusOK, contract.GetTimezoneResponse{
+	return c.JSON(http.StatusOK, contract.GetTimezoneResponse{
 		TimezoneOffset: offset,
 	})
 }

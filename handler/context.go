@@ -16,38 +16,12 @@ import (
 
 // Context is the request context.
 type Context struct {
-	c echo.Context
+	echo.Context
 
 	Session  *scs.SessionManager
 	User     *domain.User
 	Settings *domain.Settings
 	CSRF     string
-}
-
-// Request returns the current request.
-func (c *Context) Request() *http.Request {
-	return c.c.Request()
-}
-
-// Response returns the current response.
-func (c *Context) Response() http.ResponseWriter {
-	return c.c.Response().Writer
-}
-
-// Redirect redirects the request to a provided URL with status code.
-func (c *Context) Redirect(code int, url string) error {
-	return c.c.Redirect(code, url)
-}
-
-// Path returns the registered path for the handler.
-func (c *Context) Path() string {
-	return c.c.Path()
-}
-
-// Bind binds path params, query params and the request body into provided type `dst`. The default binder
-// binds body based on Content-Type header.
-func (c *Context) Bind(dst any) error {
-	return c.c.Bind(dst)
 }
 
 // Func defines a function to serve HTTP requests, using the custom context.
@@ -62,7 +36,7 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 		}
 
 		ctx := &Context{
-			c:       c,
+			Context: c,
 			Session: sm,
 			CSRF:    csrf,
 		}
