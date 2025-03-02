@@ -30,7 +30,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 
 	switch c.Request().Method {
 	case http.MethodGet:
-		return RenderPage(c,
+		return RenderPage(c, h.sm,
 			html.LoginMain(contract.LoginForm{}, nil, c.CSRF),
 		)
 
@@ -41,7 +41,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 		}
 
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c,
+			return RenderPage(c, h.sm,
 				html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 			)
 		}
@@ -60,7 +60,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c,
+				return RenderPage(c, h.sm,
 					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
@@ -75,7 +75,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c,
+				return RenderPage(c, h.sm,
 					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
@@ -93,7 +93,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
-		panic("unhandled method")
+		return wreck.NotFound.New("Not found")
 	}
 }
 

@@ -135,12 +135,12 @@ func run() error {
 	e := echo.New()
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if err := handler.HandleError(err, c); err != nil {
-			panic(err)
+			slog.Error("error handling error", slog.String("error", err.Error()))
 		}
 	}
 	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
 		if err := handler.HandleError(err, e.NewContext(r, w)); err != nil {
-			panic(err)
+			slog.Error("error handling error", slog.String("error", err.Error()))
 		}
 	}
 
@@ -166,12 +166,72 @@ func run() error {
 		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
 		middleware.BodyLimit("1M"),
 		middleware.ContextTimeout(time.Minute),
+		middleware.CSRFWithConfig(middleware.CSRFConfig{
+			TokenLength:    32,
+			TokenLookup:    "form:csrf",
+			ContextKey:     "csrf",
+			CookieName:     "_csrf",
+			CookieDomain:   "",
+			CookiePath:     "/",
+			CookieMaxAge:   86400,
+			CookieSecure:   true,
+			CookieHTTPOnly: true,
+			CookieSameSite: http.SameSiteStrictMode,
+		}),
 	)
 
 	// Static assets.
 	calendar.RegisterAssetsHandler(e)
 
-	handler.Register(e, db, sm, cfg.BaseURL)
+	// Setup.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewSetupHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Authentication.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewAuthenticationHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Events.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewEventsHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Events management.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewEditEventHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Feeds.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(handler.NoCache),
+		)
+
+		h := handler.NewFeedHandler(db, cfg.BaseURL)
+		h.Register(g)
+	}
 
 	e.Server.ReadHeaderTimeout = time.Minute
 	e.Server.ReadTimeout = time.Minute

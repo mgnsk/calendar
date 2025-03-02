@@ -66,21 +66,20 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			req.TimezoneOffset = offset
 		}
 
-		return RenderPage(c,
+		return RenderPage(c, h.sm,
 			html.EditEventMain(req, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c,
+			return RenderPage(c, h.sm,
 				html.EditEventMain(req, errs, c.CSRF),
 			)
 		}
 
-		loc := time.FixedZone("", req.TimezoneOffset)
-		startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
+		startAt, err := req.ParseStartAt()
 		if err != nil {
-			return wreck.InvalidValue.New("Invalid value", err)
+			return err
 		}
 
 		if ev != nil {
@@ -136,7 +135,7 @@ func (h *EditEventHandler) Delete(c *Context) error {
 
 	req := contract.DeleteEventRequest{}
 
-	if err := c.c.Bind(&req); err != nil {
+	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
@@ -175,10 +174,9 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		return err
 	}
 
-	loc := time.FixedZone("", req.TimezoneOffset)
-	startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
+	startAt, err := req.ParseStartAt()
 	if err != nil {
-		return wreck.InvalidValue.New("Invalid value", err)
+		return err
 	}
 
 	ev := &domain.Event{
@@ -272,7 +270,7 @@ func (h *EditEventHandler) GetTimezone(c *Context) error {
 
 	_, offset := time.Now().In(loc).Zone()
 
-	return c.c.JSON(http.StatusOK, contract.GetTimezoneResponse{
+	return c.JSON(http.StatusOK, contract.GetTimezoneResponse{
 		TimezoneOffset: offset,
 	})
 }

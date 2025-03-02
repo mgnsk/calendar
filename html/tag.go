@@ -3,6 +3,7 @@ package html
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 
 	"github.com/aybabtme/uniplot/histogram"
 	"github.com/mgnsk/calendar/domain"
@@ -37,12 +38,12 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 		)
 	}
 
-	hist, sizes, colors := calcHistogram(8, tags)
+	hist, classes := calcHistogram(tags)
 
-	getClassIndex := func(eventCount uint64) int {
+	getHistogramClasses := func(tag *domain.Tag) Classes {
 		for i, bucket := range hist.Buckets {
-			if eventCount >= uint64(bucket.Min) && eventCount <= uint64(bucket.Max) {
-				return i
+			if tag.EventCount >= uint64(bucket.Min) && tag.EventCount <= uint64(bucket.Max) {
+				return classes[i]
 			}
 		}
 		panic("no bucket found")
@@ -55,9 +56,7 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 					"hover:underline":      true,
 					"hover:cursor-pointer": true,
 				}
-				idx := getClassIndex(tag.EventCount)
-				classes[sizes[idx]] = true
-				classes[colors[idx]] = true
+				maps.Copy(classes, getHistogramClasses(tag))
 
 				return Li(
 					A(classes,
@@ -85,24 +84,52 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 	)
 }
 
-func calcHistogram(bins int, tags []*domain.Tag) (histogram.Histogram, []string, []string) {
+func calcHistogram(tags []*domain.Tag) (histogram.Histogram, []Classes) {
+	classes := []Classes{
+		{
+			"text-sm":       true,
+			"text-gray-400": true,
+		},
+		{
+			"text-base":     true,
+			"text-gray-500": true,
+		},
+		{
+			"text-lg":       true,
+			"text-gray-600": true,
+		},
+		{
+			"text-xl":       true,
+			"text-gray-700": true,
+		},
+		{
+			"text-2xl":      true,
+			"text-gray-800": true,
+		},
+		{
+			"text-3xl":      true,
+			"text-gray-900": true,
+		},
+		{
+			"text-4xl":      true,
+			"text-gray-950": true,
+		},
+		{
+			"text-5xl":   true,
+			"text-black": true,
+		},
+	}
+
+	// When not too many tags or buckets, prefer the largest size classes.
+	if len(tags) < len(classes) {
+		classes = classes[len(classes)-len(tags):]
+	}
+
 	counts := lo.Map(tags, func(tag *domain.Tag, _ int) float64 {
 		return float64(tag.EventCount)
 	})
 
-	sizes := []string{"text-sm", "text-base", "text-lg", "text-xl", "text-2xl", "text-3xl", "text-4xl", "text-5xl"}
-	colors := []string{"text-gray-400", "text-gray-500", "text-gray-600", "text-gray-700", "text-gray-800", "text-gray-900", "text-gray-950", "text-black"}
+	hist := histogram.Hist(len(classes), counts)
 
-	// When not too many tags or buckets, prefer the largest size classes.
-	if len(tags) < len(sizes) {
-		sizes = sizes[len(sizes)-len(tags):]
-		colors = colors[len(colors)-len(tags):]
-	} else if bins < len(sizes) {
-		sizes = sizes[len(sizes)-bins:]
-		colors = colors[len(colors)-bins:]
-	}
-
-	hist := histogram.Hist(len(sizes), counts)
-
-	return hist, sizes, colors
+	return hist, classes
 }

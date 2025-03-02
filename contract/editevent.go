@@ -2,8 +2,10 @@ package contract
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/calendar/pkg/wreck"
 )
 
 // EditEventForm is an edit event form.
@@ -46,6 +48,18 @@ func (r *EditEventForm) Validate() url.Values {
 	}
 
 	return errs
+}
+
+// ParseStartAt parses event start at time.
+func (r *EditEventForm) ParseStartAt() (time.Time, error) {
+	loc := time.FixedZone("", r.TimezoneOffset)
+
+	startAt, err := time.ParseInLocation(FormDateTimeLayout, r.StartAt, loc)
+	if err != nil {
+		return time.Time{}, wreck.InvalidValue.New("Invalid start_at value", err)
+	}
+
+	return startAt, nil
 }
 
 // FormDateTimeLayout is the HTML datetime-local input time format.

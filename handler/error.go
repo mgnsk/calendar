@@ -29,6 +29,10 @@ func ErrorHandler() echo.MiddlewareFunc {
 
 // HandleError is a custom function to handle errors.
 func HandleError(err error, c echo.Context) error {
+	if c.Response().Committed {
+		return nil
+	}
+
 	var (
 		msg  string
 		code = http.StatusInternalServerError

@@ -84,7 +84,7 @@ func (h *EventsHandler) Tags(c *Context) error {
 		return html.TagListPartial(tags, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c,
+	return RenderPage(c, h.sm,
 		html.TagsMain(c.CSRF),
 	)
 }
@@ -93,7 +93,7 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		req := contract.ListEventsRequest{}
 
-		if err := c.c.Bind(&req); err != nil {
+		if err := c.Bind(&req); err != nil {
 			return err
 		}
 
@@ -131,7 +131,7 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 		return html.EventListPartial(c.User, cursor, events, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c,
+	return RenderPage(c, h.sm,
 		html.EventsMain(c.CSRF),
 	)
 }
