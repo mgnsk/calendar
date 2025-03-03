@@ -20,11 +20,11 @@ require (
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.10
 	github.com/uptrace/bun/extra/bundebug v1.2.10
 	github.com/yuin/goldmark v1.7.8
-	golang.org/x/crypto v0.34.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/sync v0.11.0
 	maragu.dev/gomponents v1.0.0
 	maragu.dev/gomponents-htmx v0.6.1
-	modernc.org/sqlite v1.35.0
+	modernc.org/sqlite v1.36.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
