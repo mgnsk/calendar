@@ -7,7 +7,7 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      npm-deps:
+      go:
         patterns:
           - "*"
 
@@ -16,9 +16,9 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      production-dependencies:
+      npm-production:
         dependency-type: production
-      dev-dependencies:
+      npm-development:
         dependency-type: development
 
   - package-ecosystem: "github-actions"
@@ -26,6 +26,6 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      actions-deps:
+      actions:
         patterns:
           - "*"
