@@ -18,7 +18,7 @@ func RunOptimizer(ctx context.Context, db *sql.DB) error {
 		return err
 	}
 
-	if _, err := db.Exec(`INSERT INTO events_fts_idx(events_fts_idx) VALUES('optimize')`); err != nil {
+	if _, err := db.Exec(`INSERT INTO events_fts(events_fts) VALUES('optimize')`); err != nil {
 		return err
 	}
 
@@ -38,7 +38,7 @@ func RunOptimizer(ctx context.Context, db *sql.DB) error {
 			if _, err := db.Exec(`PRAGMA optimize`); err != nil {
 				return err
 			}
-			if _, err := db.Exec(`INSERT INTO events_fts_idx(events_fts_idx) VALUES('optimize')`); err != nil {
+			if _, err := db.Exec(`INSERT INTO events_fts(events_fts) VALUES('optimize')`); err != nil {
 				return err
 			}
 

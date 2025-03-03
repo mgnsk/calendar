@@ -326,8 +326,8 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, includeDra
 
 		ftsQuery := db.NewSelect().
 			ColumnExpr("rowid").
-			Table("events_fts_idx").
-			Where("events_fts_idx MATCH ?", searchWord)
+			Table("events_fts").
+			Where("events_fts MATCH ?", searchWord)
 
 		q.Join("JOIN (?) AS exact_result ON exact_result.rowid = event.id", ftsQuery)
 	}
