@@ -18,7 +18,7 @@
     "eslint": "^9.22.0",
     "globals": "^16.0.0",
     "open-cli": "^8.0.0",
-    "wait-on": "^8.0.2"
+    "wait-on": "^8.0.3"
   },
   "scripts": {
     "lint": "eslint",
