@@ -1,6 +1,7 @@
 module github.com/mgnsk/calendar
 
 go 1.23.5
+toolchain go1.24.1
 
 require (
 	github.com/alexedwards/scs/bunstore v0.0.0-20250205215704-2e2c681ccff8
@@ -15,7 +16,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/samber/lo v1.49.1
-	github.com/samber/slog-echo v1.15.1
+	github.com/samber/slog-echo v1.16.1
 	github.com/uptrace/bun v1.2.11
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.11
 	github.com/uptrace/bun/extra/bundebug v1.2.11
@@ -24,7 +25,7 @@ require (
 	golang.org/x/sync v0.12.0
 	maragu.dev/gomponents v1.1.0
 	maragu.dev/gomponents-htmx v0.6.1
-	modernc.org/sqlite v1.36.0
+	modernc.org/sqlite v1.36.1
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
