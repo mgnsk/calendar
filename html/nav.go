@@ -28,10 +28,10 @@ func UserNav(user *domain.User, children Node) Node {
 			Iff(user != nil, func() Node {
 				return Group{
 					Li(Class("justify-self-end"),
-						// If(user.Role == domain.Admin,
-						// 	A(Class("inline-block p-2"), Href("/users"), Text("Users")),
-						// ),
 						A(Class("inline-block p-2"), Href("/edit/0"), Text("Add event")),
+						If(user.Role == domain.Admin,
+							A(Class("inline-block p-2"), Href("/users"), Text("Users")),
+						),
 						A(Class("inline-block p-2"), Href("/logout"), Text("Logout")),
 					),
 				}

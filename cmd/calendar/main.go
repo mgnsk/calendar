@@ -86,11 +86,30 @@ func run() error {
 		}
 	}()
 
+	// Run SQL optimizer periodic task.
 	g.Go(func() error {
 		if err := sqlite.RunOptimizer(ctx, db.DB); err != nil {
 			return wreck.Internal.New("error running sqlite optimizer", err)
 		}
 		return nil
+	})
+
+	// Run expired invites cleanup periodic task.
+	g.Go(func() error {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+
+			case <-ticker.C:
+				if err := model.DeleteExpiredInvites(ctx, db); err != nil {
+					return err
+				}
+			}
+		}
 	})
 
 	// if *isDemo {
@@ -220,6 +239,16 @@ func run() error {
 		)
 
 		h := handler.NewEditEventHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Users management.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewUsersHandler(db, sm)
 		h.Register(g)
 	}
 

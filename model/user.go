@@ -55,7 +55,7 @@ func ListUsers(ctx context.Context, db bun.IDB) ([]*domain.User, error) {
 	model := []*User{}
 
 	if err := db.NewSelect().Model(&model).
-		Order("id DESC").
+		Order("id ASC").
 		Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}

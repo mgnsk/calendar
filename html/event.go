@@ -103,7 +103,7 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 						hx.Vals(string(must(json.Marshal(map[string]string{
 							"csrf": csrf,
 						})))),
-						Href(fmt.Sprintf("/delete/%d", ev.ID)),
+						Href("#"),
 						Text("DELETE"),
 					),
 				)),

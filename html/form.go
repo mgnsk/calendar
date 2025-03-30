@@ -8,7 +8,7 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-func submitButton(text string) Node {
+func buttonClasses() Classes {
 	classes := baseInputClasses(false)
 	maps.Copy(classes, Classes{
 		"mt-3":                 true,
@@ -17,7 +17,11 @@ func submitButton(text string) Node {
 		"hover:bg-amber-600/5": true,
 	})
 
-	return Button(classes,
+	return classes
+}
+
+func submitButton(text string) Node {
+	return Button(buttonClasses(),
 		Type("submit"),
 		Text(text),
 	)
