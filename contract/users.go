@@ -29,8 +29,13 @@ func (f *RegisterForm) Validate() url.Values {
 
 	if f.Username == "" {
 		errs.Set("username", "Username must be set")
+	} else if len(f.Username) < 3 {
+		errs.Set("username", "Username must be at least 3 characters")
+	} else if len(f.Username) > 30 {
+		errs.Set("username", "Username must be at most 30 characters")
 	}
 
+	// TODO: password strength check
 	if f.Password1 == "" {
 		errs.Set("password1", "Password must be set")
 	}

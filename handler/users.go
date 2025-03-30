@@ -33,6 +33,10 @@ func (h *UsersHandler) Users(c *Context) error {
 		return wreck.Forbidden.New("Must be logged in")
 	}
 
+	if c.User.Role != domain.Admin {
+		return wreck.Forbidden.New("Only admins can view users")
+	}
+
 	users, err := model.ListUsers(c.Request().Context(), h.db)
 	if err != nil {
 		return err

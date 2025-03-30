@@ -2,12 +2,14 @@ package model
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
 )
 
@@ -55,7 +57,13 @@ func GetInvite(ctx context.Context, db *bun.DB, token uuid.UUID) (*domain.Invite
 
 // DeleteExpiredInvites deletes expired invites.
 func DeleteExpiredInvites(ctx context.Context, db *bun.DB) error {
-	return sqlite.WithErrorChecking(db.NewDelete().Model((*Invite)(nil)).
+	err := sqlite.WithErrorChecking(db.NewDelete().Model((*Invite)(nil)).
 		Where("valid_until_unix < ?", time.Now().Unix()).
 		Exec(ctx))
+
+	if errors.Is(err, wreck.PreconditionFailed) {
+		return nil
+	}
+
+	return err
 }
