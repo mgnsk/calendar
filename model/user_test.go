@@ -88,12 +88,12 @@ var _ = Describe("listing users", func() {
 		}
 	})
 
-	Specify("users are listed in creation time desc", func(ctx SpecContext) {
+	Specify("users are listed in creation time asc", func(ctx SpecContext) {
 		users := Must(model.ListUsers(ctx, db))
 
 		Expect(users).To(HaveExactElements(
-			HaveField("Username", "user2"),
 			HaveField("Username", "user1"),
+			HaveField("Username", "user2"),
 		))
 	})
 })
