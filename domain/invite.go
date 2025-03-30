@@ -13,3 +13,8 @@ type Invite struct {
 	ValidUntil time.Time
 	CreatedBy  snowflake.ID
 }
+
+// IsValid returns whether the invite is valid.
+func (i *Invite) IsValid() bool {
+	return time.Until(i.ValidUntil) > 0
+}

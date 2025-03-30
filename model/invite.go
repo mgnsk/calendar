@@ -30,7 +30,7 @@ func InsertInvite(ctx context.Context, db *bun.DB, invite *domain.Invite) error 
 }
 
 // DeleteInvite deletes an invite.
-func DeleteInvite(ctx context.Context, db *bun.DB, token uuid.UUID) error {
+func DeleteInvite(ctx context.Context, db bun.IDB, token uuid.UUID) error {
 	return sqlite.WithErrorChecking(db.NewDelete().Model((*Invite)(nil)).
 		Where("token = ?", token).
 		Exec(ctx))

@@ -9,6 +9,7 @@ require (
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/mmcdole/gofeed v1.3.0
@@ -37,7 +38,6 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
