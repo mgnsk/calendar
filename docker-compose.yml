@@ -12,6 +12,7 @@ services:
     command: /calendar
     container_name: calendar
     restart: unless-stopped
+    user: 65534:65534
     ports:
       - "80:80/tcp"
       - "443:443/tcp"

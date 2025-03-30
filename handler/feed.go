@@ -39,7 +39,7 @@ func (h *FeedHandler) HandleICal(c *Context) error {
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetDescription(c.Settings.Title)
-	cal.SetUrl(h.baseURL.JoinPath("/ical").String())
+	cal.SetUrl(h.baseURL.JoinPath("/calendar.ics").String())
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
@@ -128,7 +128,7 @@ func (h *FeedHandler) getEvents(c *Context) ([]*domain.Event, error) {
 // Register the handler.
 func (h *FeedHandler) Register(g *echo.Group) {
 	g.GET("/feed", Wrap(h.db, nil, h.HandleRSS))
-	g.GET("/ical", Wrap(h.db, nil, h.HandleICal))
+	g.GET("/calendar.ics", Wrap(h.db, nil, h.HandleICal))
 }
 
 // NewFeedHandler creates a new feed handler.
