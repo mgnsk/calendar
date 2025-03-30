@@ -166,7 +166,7 @@ var _ = Describe("iCal feed output", func() {
 
 	When("events don't exist", func() {
 		Specify("iCal feed", func() {
-			r := Must(server.Client().Get(server.URL + "/ical"))
+			r := Must(server.Client().Get(server.URL + "/calendar.ics"))
 
 			Expect(r.StatusCode).To(Equal(http.StatusOK))
 			Expect(r.Header).To(SatisfyAll(
@@ -191,7 +191,7 @@ var _ = Describe("iCal feed output", func() {
 				})),
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 					"IANAToken": Equal("URL"),
-					"Value":     Equal("https://calendar.testing/ical"),
+					"Value":     Equal("https://calendar.testing/calendar.ics"),
 				})),
 			))
 
@@ -209,7 +209,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		Specify("iCal feed", func() {
-			r := Must(server.Client().Get(server.URL + "/ical"))
+			r := Must(server.Client().Get(server.URL + "/calendar.ics"))
 
 			Expect(r.StatusCode).To(Equal(http.StatusOK))
 			Expect(r.Header).To(SatisfyAll(
@@ -234,7 +234,7 @@ var _ = Describe("iCal feed output", func() {
 				})),
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 					"IANAToken": Equal("URL"),
-					"Value":     Equal("https://calendar.testing/ical"),
+					"Value":     Equal("https://calendar.testing/calendar.ics"),
 				})),
 			))
 

@@ -25,3 +25,7 @@ lint:
 	@npx concurrently --raw=true --group \
 		"revive -max_open_files=64 -formatter=stylish -exclude=./vendor/... -config=revive.toml ./..." \
 		"eslint"
+
+.PHONY: build
+build:
+	docker build -t ghcr.io/mgnsk/calendar:edge .

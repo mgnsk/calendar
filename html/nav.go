@@ -21,8 +21,8 @@ func UserNav(user *domain.User, children Node) Node {
 				A(Class("inline-block p-2"), Title("RSS feed"), Href("/feed"), rssIcon()),
 				A(Class("inline-block p-2"), Title("iCal URL"), ID("ical-link"), calendarIcon()),
 				A(Class("inline-block p-2"), Title("Add to Google Calendar"), ID("google-calendar-link"), Target("_blank"), calendarIcon()),
-				Script(Raw(`document.getElementById("ical-link").setAttribute("href", "webcals://" + window.location.host + "/ical")`)),
-				Script(Raw(`document.getElementById("google-calendar-link").setAttribute("href", "https://calendar.google.com/calendar/render?cid=" + window.location.protocol + "//" + window.location.host + "/ical")`)),
+				Script(Raw(`document.getElementById("ical-link").setAttribute("href", "webcals://" + window.location.host + "/calendar.ics")`)),
+				Script(Raw(`document.getElementById("google-calendar-link").setAttribute("href", "https://calendar.google.com/calendar/render?cid=" + window.location.protocol + "//" + window.location.host + "/calendar.ics")`)),
 			),
 
 			Iff(user != nil, func() Node {
