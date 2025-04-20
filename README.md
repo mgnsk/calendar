@@ -1,6 +1,6 @@
-## Simple calendar app
+# Simple calendar app
 
-### Local development
+## Local development
 
 - `make setup` - Set up the development sandbox.
 - `make dev` - Start the development sandbox.
@@ -8,22 +8,22 @@
 
 The calendar application can be visited on `https://calendar.localhost`.
 
-### Production installation
+## Production installation
 
-The Docker image is published at https://github.com/mgnsk/calendar/pkgs/container/calendar
+The Docker image is published at [https://github.com/mgnsk/calendar/pkgs/container/calendar](https://github.com/mgnsk/calendar/pkgs/container/calendar).
 
-#### Clone the repository
+### Clone the repository
 
 - `mkdir /opt/mgnsk/calendar`
 - `cd /opt/mgnsk/calendar`
 - `git clone https://github.com/mgnsk/calendar.git .`
 
-#### Create the `.env` file with your public domain name
+### Create the `.env` file with your public domain name
 
-```
+```sh
 HOSTNAME="my-domain-name.com"
 ```
 
-#### Install and enable the service
+### Install and enable the service
 
 - `make install`
