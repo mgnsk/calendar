@@ -17,11 +17,11 @@ setup:
 		--build-arg gid=${GID}
 
 	# Install tools and dependencies.
-	docker compose -f docker-compose.dev.yml run --rm --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml run --rm sandbox \
 		go mod download
-	docker compose -f docker-compose.dev.yml run --rm --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml run --rm sandbox \
 		go install tool
-	docker compose -f docker-compose.dev.yml run --rm --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml run --rm sandbox \
 		npm ci
 
 # Start the development environment.
@@ -30,11 +30,11 @@ dev:
 	docker compose -f docker-compose.dev.yml up -d
 
 	# Build the CSS once.
-	docker compose -f docker-compose.dev.yml exec --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml exec sandbox \
 		npx @tailwindcss/cli -i tailwind.css -o app.css
 
 	# Start the application and automatic rebuild.
-	docker compose -f docker-compose.dev.yml exec --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml exec sandbox \
 		npx concurrently -n tailwind,go -c blue,green,yellow --kill-others-on-fail \
 		"npx @tailwindcss/cli -i tailwind.css -o app.css --watch" \
 		"air -c .air.toml"
@@ -47,7 +47,7 @@ stop:
 # Lint application code.
 .PHONY: lint
 lint:
-	docker compose -f docker-compose.dev.yml run --rm --user ${UID}:${GID} sandbox \
+	docker compose -f docker-compose.dev.yml run --rm sandbox \
 		npx concurrently --raw=true --group \
 		"revive -formatter=stylish -exclude=./vendor/... -config=revive.toml ./..." \
 		"eslint"

@@ -18,3 +18,7 @@ RUN install -d --owner=${uid} --group=${gid} \
     /go \
     /go-cache \
     /database
+
+USER ${uid}:${gid}
+
+WORKDIR /application

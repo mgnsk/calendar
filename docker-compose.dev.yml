@@ -31,7 +31,6 @@ services:
       args:
         - uid
         - gid
-    working_dir: /application
     init: true
     stdin_open: true
     tty: true

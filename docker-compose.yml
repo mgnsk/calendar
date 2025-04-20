@@ -22,10 +22,9 @@ services:
 
   calendar:
     image: ghcr.io/mgnsk/calendar:edge
-    command: /calendar
+    command: /bin/calendar
     container_name: calendar
     restart: unless-stopped
-    user: 65534:65534
     environment:
       - LISTEN_ADDR=:8080
       - DATABASE_DIR=/database
