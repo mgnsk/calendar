@@ -25,6 +25,7 @@ services:
   sandbox:
     hostname: calendar
     image: sandbox
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile.dev

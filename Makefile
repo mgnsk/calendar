@@ -63,3 +63,11 @@ install:
 	docker volume create "calendar-database" || true
 	ln -s ./mgnsk-calendar.service /etc/systemd/system/mgnsk-calendar.service
 	systemctl enable --now mgnsk-calendar.service
+
+# Uninstall the production service.
+.PHONY: uninstall
+uninstall:
+	systemctl disable --now mgnsk-calendar.service || true
+	rm -f /etc/systemd/system/mgnsk-calendar.service
+	# Note: This command will not remove the database volume to prevent data loss
+	# Use 'docker volume rm calendar-database' to remove the database if needed.
