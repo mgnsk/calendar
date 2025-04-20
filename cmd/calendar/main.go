@@ -27,7 +27,6 @@ import (
 	"github.com/mgnsk/calendar/pkg/wreck"
 	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -270,17 +269,8 @@ func run() error {
 	g.Go(func() error {
 		slog.Info(fmt.Sprintf("listening at %s", cfg.ListenAddr))
 
-		if cfg.Development {
-			if err := e.StartTLS(cfg.ListenAddr, "./certs/calendar.testing.crt", "./certs/calendar.testing.key"); err != nil && err != http.ErrServerClosed {
-				return wreck.Internal.New("error running server", err)
-			}
-		} else {
-			e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(cfg.Host)
-			// Cache certificates to avoid issues with rate limits (https://letsencrypt.org/docs/rate-limits)
-			e.AutoTLSManager.Cache = autocert.DirCache(cfg.CacheDir)
-			if err := e.StartAutoTLS(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
-				return wreck.Internal.New("error running server", err)
-			}
+		if err := e.Start(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
+			return wreck.Internal.New("error running server", err)
 		}
 
 		return nil

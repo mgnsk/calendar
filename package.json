@@ -17,8 +17,7 @@
     "concurrently": "^9.1.2",
     "eslint": "^9.24.0",
     "globals": "^16.0.0",
-    "open-cli": "^8.0.0",
-    "wait-on": "^8.0.3"
+    "prettier": "^3.5.3"
   },
   "scripts": {
     "lint": "eslint",
