@@ -35,7 +35,7 @@ RUN mkdir /database /cache
 
 FROM scratch
 
-COPY --from=build /build/calendar /
+COPY --from=build /build/calendar /bin/calendar
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build --chown=65534:65534 /cache/ /cache/
 COPY --from=build --chown=65534:65534 /database/ /database/

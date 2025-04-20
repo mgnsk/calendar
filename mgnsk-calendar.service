@@ -1,13 +1,19 @@
 [Unit]
-Description=%i service with docker compose
+Description=mgnsk/calendar service
 PartOf=docker.service
 After=docker.service
 
 [Service]
-WorkingDirectory=/etc/docker/compose/%i
+WorkingDirectory=/opt/mgnsk/calendar
+
+; TODO
 ; ExecStartPre=/usr/bin/docker compose pull
+
+; Required for cleaning up after a hard system reset.
 ExecStartPre=/usr/bin/docker compose down
+
 ExecStart=/usr/bin/docker compose up --remove-orphans
+
 ExecStop=/usr/bin/docker compose down
 
 Restart=on-failure

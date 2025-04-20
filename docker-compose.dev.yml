@@ -1,9 +1,11 @@
 ---
 volumes:
+  go-packages:
+  go-cache:
+  npm-cache:
   caddy-data:
   caddy-config:
   calendar-database:
-    external: true
 
 
 services:
@@ -14,21 +16,33 @@ services:
       - 80:80/tcp
       - 443:443/tcp
     env_file:
-      - .env
+      - .env.example
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy-data:/data
       - caddy-config:/config
 
-  calendar:
-    image: ghcr.io/mgnsk/calendar:edge
-    command: /bin/calendar
-    container_name: calendar
+  sandbox:
+    hostname: calendar
+    image: sandbox
     restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        - uid
+        - gid
+    init: true
+    stdin_open: true
+    tty: true
     environment:
       - LISTEN_ADDR=:8080
       - DATABASE_DIR=/database
     env_file:
-      - .env
+      - .env.example
     volumes:
+      - ./:/application
+      - npm-cache:/home/node/.npm
+      - go-packages:/go
+      - go-cache:/go-cache
       - calendar-database:/database
