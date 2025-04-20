@@ -8,6 +8,7 @@ COPY --from=go /usr/local/go /usr/local/go
 ARG uid
 ARG gid
 
+ENV CGO_ENABLED=0
 ENV GOPATH="/go"
 ENV GOCACHE="/go-cache"
 ENV PATH="/go/bin:/usr/local/go/bin:$PATH"
