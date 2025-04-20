@@ -20,7 +20,7 @@ The Docker image is published at [https://github.com/mgnsk/calendar/pkgs/contain
 
 ### Create the `.env` file with your public domain name
 
-```sh
+```env
 HOSTNAME="my-domain-name.com"
 ```
 
