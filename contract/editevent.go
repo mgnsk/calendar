@@ -11,6 +11,7 @@ import (
 // EditEventForm is an edit event form.
 type EditEventForm struct {
 	EventID        snowflake.ID `param:"event_id"`
+	IsDraft        bool         `query:"draft"`
 	Title          string       `form:"title"`
 	Description    string       `form:"desc"`
 	URL            string       `form:"url"`

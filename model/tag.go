@@ -85,6 +85,24 @@ func CleanTags(ctx context.Context, db bun.IDB) error {
 	return nil
 }
 
+// DeleteTags deletes event's tags.
+func DeleteTags(ctx context.Context, db bun.IDB, eventID snowflake.ID) error {
+	// Delete old tag relations.
+	if err := sqlite.WithErrorChecking(
+		db.NewDelete().Model((*eventToTag)(nil)).
+			Where("event_id = ?", eventID).
+			Exec(ctx),
+	); err != nil {
+		if errors.Is(err, wreck.PreconditionFailed) {
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 // getTagID returns a tag IDs from database.
 func getTagIDs(ctx context.Context, db bun.IDB, names ...string) ([]snowflake.ID, error) {
 	model := []*Tag{}

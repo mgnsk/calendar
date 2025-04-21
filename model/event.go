@@ -73,6 +73,10 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			return err
 		}
 
+		if ev.IsDraft {
+			return nil
+		}
+
 		return createEventTagRelations(ctx, db, ev)
 	})
 }
@@ -112,17 +116,17 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 		}
 
 		// Delete old tag relations.
-		if err := sqlite.WithErrorChecking(
-			db.NewDelete().Model((*eventToTag)(nil)).
-				Where("event_id = ?", ev.ID).
-				Exec(ctx),
-		); err != nil {
+		if err := DeleteTags(ctx, db, ev.ID); err != nil {
 			return err
 		}
 
 		// Clean up orphaned tags.
 		if err := CleanTags(ctx, db); err != nil {
 			return err
+		}
+
+		if ev.IsDraft {
+			return nil
 		}
 
 		// Recreate tag relations.
@@ -142,11 +146,7 @@ func DeleteEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 		}
 
 		// Delete tag relations.
-		if err := sqlite.WithErrorChecking(
-			db.NewDelete().Model((*eventToTag)(nil)).
-				Where("event_id = ?", ev.ID).
-				Exec(ctx),
-		); err != nil {
+		if err := DeleteTags(ctx, db, ev.ID); err != nil {
 			return err
 		}
 
@@ -194,19 +194,25 @@ var (
 	OrderCreatedAtDesc = &[]string{"event.id DESC"}
 )
 
+// SelectQuery is an events select query.
+type SelectQuery struct {
+	*bun.SelectQuery
+	includeDrafts bool
+}
+
 // EventsQueryBuilder builds an event list query.
-type EventsQueryBuilder func(*bun.SelectQuery)
+type EventsQueryBuilder func(*SelectQuery)
 
 // NewEventsQuery creates a new events list query.
 // Note: cursor is ID cursor when sorting by created at
 // and offset when sorting by start time.
 func NewEventsQuery() EventsQueryBuilder {
-	return func(*bun.SelectQuery) {}
+	return func(*SelectQuery) {}
 }
 
 // WithLimit configures results limit.
 func (build EventsQueryBuilder) WithLimit(limit int) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
+	return func(q *SelectQuery) {
 		build(q)
 
 		q.Limit(limit)
@@ -215,7 +221,7 @@ func (build EventsQueryBuilder) WithLimit(limit int) EventsQueryBuilder {
 
 // WithOrder configures results order.
 func (build EventsQueryBuilder) WithOrder(cursor int64, orders EventOrder) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
+	return func(q *SelectQuery) {
 		build(q)
 
 		switch orders {
@@ -251,7 +257,7 @@ func (build EventsQueryBuilder) WithOrder(cursor int64, orders EventOrder) Event
 
 // WithStartAtFrom configures minimum start at time.
 func (build EventsQueryBuilder) WithStartAtFrom(from time.Time) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
+	return func(q *SelectQuery) {
 		build(q)
 
 		q.Where("event.start_at_unix >= ?", from.Unix())
@@ -260,7 +266,7 @@ func (build EventsQueryBuilder) WithStartAtFrom(from time.Time) EventsQueryBuild
 
 // WithStartAtUntil configures maximum start at time.
 func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
+	return func(q *SelectQuery) {
 		build(q)
 
 		q.Where("event.start_at_unix <= ?", until.Unix())
@@ -269,16 +275,28 @@ func (build EventsQueryBuilder) WithStartAtUntil(until time.Time) EventsQueryBui
 
 // WithUserID filters the event list by user ID.
 func (build EventsQueryBuilder) WithUserID(userID snowflake.ID) EventsQueryBuilder {
-	return func(q *bun.SelectQuery) {
+	return func(q *SelectQuery) {
 		build(q)
 
 		q.Where("event.user_id = ?", userID)
 	}
 }
 
+// WithIncludeDrafts includes drafts.
+func (build EventsQueryBuilder) WithIncludeDrafts() EventsQueryBuilder {
+	return func(q *SelectQuery) {
+		build(q)
+
+		q.includeDrafts = true
+	}
+}
+
 // List executes the query.
-func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, includeDrafts bool, searchText string) ([]*domain.Event, error) {
-	q := db.NewSelect()
+func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText string) ([]*domain.Event, error) {
+	q := &SelectQuery{
+		SelectQuery:   db.NewSelect(),
+		includeDrafts: false,
+	}
 
 	build(q)
 
@@ -286,7 +304,7 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, includeDra
 
 	q.Model(&model)
 
-	if !includeDrafts {
+	if !q.includeDrafts {
 		q.Where("event.is_draft = 0")
 	}
 

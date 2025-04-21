@@ -1,6 +1,7 @@
 package html
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 
@@ -15,6 +16,17 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 		Div(Class("max-w-3xl mx-auto"),
 			Form(ID("edit-form"), Class("w-full px-3 py-4 mx-auto"),
 				Method("POST"),
+
+				H1(baseFormElementClasses(),
+					Text("Status: "),
+					B(Text(func() string {
+						if form.IsDraft || form.EventID == 0 {
+							return "draft"
+						}
+						return "published"
+					}())),
+				),
+
 				input("title", "text", "Title", form.Title, errs.Get("title"), true, false),
 				input("url", "url", "URL", form.URL, errs.Get("url"), false, false),
 				dateTimeLocalInput("start_at", form.StartAt, errs.Get("start_at"), true, false),
@@ -33,8 +45,18 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				Input(Type("hidden"), Name("latitude"), Value(strconv.FormatFloat(form.Latitude, 'f', -1, 64))),
 				Input(Type("hidden"), Name("longitude"), Value(strconv.FormatFloat(form.Longitude, 'f', -1, 64))),
 				Input(Type("hidden"), Name("timezone_offset"), Value(strconv.FormatInt(int64(form.TimezoneOffset), 10))),
-				// TODO: save draft button
-				submitButton("Publish"),
+
+				Button(buttonClasses(),
+					Type("submit"),
+					Text("Save Draft"),
+					FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
+				),
+				Button(buttonClasses(),
+					Type("submit"),
+					Text("Publish"),
+					Attr("onclick", "return confirm('Confirm publishing this event')"),
+					FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
+				),
 			),
 		),
 	)

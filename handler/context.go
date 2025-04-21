@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"github.com/alexedwards/scs/v2"
@@ -10,7 +9,6 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/wreck"
-	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 )
 
@@ -72,7 +70,6 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 			}
 
 			ctx.User = user
-			slogecho.AddCustomAttributes(c, slog.String("username", username))
 		}
 
 		return next(ctx)
