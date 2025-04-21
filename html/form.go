@@ -1,7 +1,6 @@
 package html
 
 import (
-	"fmt"
 	"maps"
 
 	. "maragu.dev/gomponents"
@@ -33,7 +32,7 @@ func input(name, typ, placeholder string, value, err string, required, autocompl
 		Input(baseInputClasses(err != ""),
 			Name(name),
 			Type(typ),
-			If(required, Placeholder(fmt.Sprintf("%s*", placeholder))),
+			If(required, Placeholder(placeholder+"*")),
 			If(!required, Placeholder(placeholder)),
 			Value(value),
 			If(required, Required()),
