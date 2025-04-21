@@ -26,10 +26,10 @@ HOSTNAME="my-domain-name.com"
 
 ### Install and enable the service
 
+`sudo make install`
+
 This will:
 
-- Create a Docker volume for the database
-- Symlink the systemd service file
-- Enable and start the service
-
-- `sudo make install`
+- Create a Docker volume for the database if not already exists.
+- Symlink and reload the systemd service file.
+- Enable and start the service.

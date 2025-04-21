@@ -62,6 +62,7 @@ build:
 install:
 	docker volume create "calendar-database" || true
 	ln -sf $(shell pwd)/mgnsk-calendar.service /etc/systemd/system/mgnsk-calendar.service
+	systemctl daemon-reload
 	systemctl enable --now mgnsk-calendar.service
 
 # Uninstall the production service.
