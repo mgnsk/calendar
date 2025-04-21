@@ -37,6 +37,10 @@ func (h *EditEventHandler) Edit(c *Context) error {
 		return err
 	}
 
+	if err := (&echo.DefaultBinder{}).BindQueryParams(c, &req); err != nil {
+		return err
+	}
+
 	var ev *domain.Event
 
 	if req.EventID > 0 {
@@ -56,6 +60,7 @@ func (h *EditEventHandler) Edit(c *Context) error {
 	case http.MethodGet:
 		if ev != nil {
 			req.Title = ev.Title
+			req.IsDraft = ev.IsDraft
 			req.Description = ev.Description
 			req.URL = ev.URL
 			req.StartAt = ev.StartAt.Format(contract.FormDateTimeLayout)
@@ -85,18 +90,22 @@ func (h *EditEventHandler) Edit(c *Context) error {
 		if ev != nil {
 			ev.StartAt = startAt
 			ev.Title = req.Title
+			ev.IsDraft = req.IsDraft
 			ev.Description = req.Description
 			ev.URL = req.URL
 			ev.Location = req.Location
 			ev.Latitude = req.Latitude
 			ev.Longitude = req.Longitude
-			// TODO: draft
 
 			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
 				return err
 			}
 
-			h.sm.Put(c.Request().Context(), "flash-success", "Event updated")
+			if req.IsDraft {
+				h.sm.Put(c.Request().Context(), "flash-success", "Draft saved")
+			} else {
+				h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+			}
 
 			return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
 		}
@@ -112,13 +121,17 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			Location:    req.Location,
 			Latitude:    req.Latitude,
 			Longitude:   req.Longitude,
-			IsDraft:     false, // TODO
+			IsDraft:     req.IsDraft,
 			UserID:      c.User.ID,
 		}); err != nil {
 			return err
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+		if req.IsDraft {
+			h.sm.Put(c.Request().Context(), "flash-success", "Draft saved")
+		} else {
+			h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+		}
 
 		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", eventID))
 
@@ -174,6 +187,10 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		return err
 	}
 
+	if err := (&echo.DefaultBinder{}).BindQueryParams(c, &req); err != nil {
+		return err
+	}
+
 	startAt, err := req.ParseStartAt()
 	if err != nil {
 		return err
@@ -187,7 +204,7 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		Location:    req.Location,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
-		IsDraft:     false, // TODO
+		IsDraft:     req.IsDraft,
 	}
 
 	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)

@@ -151,6 +151,7 @@ func run() error {
 	sm.Cookie.Secure = true
 
 	e := echo.New()
+
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		if err := handler.HandleError(err, c); err != nil {
 			slog.Error("error handling error", slog.String("error", err.Error()))

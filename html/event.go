@@ -65,8 +65,6 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
-	// TODO: draft status and edit button
-
 	return Div(
 		Classes{
 			"event-card": true,
@@ -74,8 +72,7 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 			"max-w-3xl":  true,
 			"mx-auto":    true,
 
-			// Less opacity for events that have already started.
-			"opacity-60":          inPast,
+			"opacity-60":          inPast || ev.IsDraft,
 			"bg-white":            true,
 			"rounded-xl":          true,
 			"shadow-md":           true,
@@ -113,12 +110,17 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 }
 
 func eventTitle(ev *domain.Event) Node {
+	title := ev.Title
+	if ev.IsDraft {
+		title = fmt.Sprintf("[Draft] %s", ev.Title)
+	}
+
 	return H1(Class("tracking-wide text-xl md:text-2xl font-semibold"),
 		If(ev.URL != "",
-			A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(ev.Title)),
+			A(Class("hover:underline"), Href(ev.URL), Target("_blank"), Rel("noopener"), Text(title)),
 		),
 		If(ev.URL == "",
-			Text(ev.Title),
+			Text(title),
 		),
 	)
 }

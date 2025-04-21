@@ -11,7 +11,7 @@ import (
 func RegisterAssetsHandler(e *echo.Echo) {
 	e.GET("/assets/*",
 		echo.StaticDirectoryHandler(assetsFS, false),
-		assetCacheMiddleware(365*24*time.Hour),
+		assetCacheMiddleware(30*24*time.Hour),
 	)
 }
 

@@ -1,6 +1,7 @@
 package html
 
 import (
+	"fmt"
 	"maps"
 
 	. "maragu.dev/gomponents"
@@ -32,7 +33,8 @@ func input(name, typ, placeholder string, value, err string, required, autocompl
 		Input(baseInputClasses(err != ""),
 			Name(name),
 			Type(typ),
-			Placeholder(placeholder),
+			If(required, Placeholder(fmt.Sprintf("%s*", placeholder))),
+			If(!required, Placeholder(placeholder)),
 			Value(value),
 			If(required, Required()),
 			If(!autocomplete, AutoComplete("off")),
@@ -64,19 +66,27 @@ func dateTimeLocalInput(name string, value, err string, required, autocomplete b
 	)
 }
 
-func baseInputClasses(hasError bool) Classes {
+func baseFormElementClasses() Classes {
 	return Classes{
+		"py-2":    true,
+		"px-3":    true,
+		"rounded": true,
+		"mb-3":    true,
+		"block":   true,
+		"w-full":  true,
+		"mx-auto": true,
+	}
+}
+
+func baseInputClasses(hasError bool) Classes {
+	classes := baseFormElementClasses()
+	maps.Copy(classes, Classes{
 		"border":          true,
 		"border-gray-200": true,
-		"py-2":            true,
-		"px-3":            true,
-		"rounded":         true,
 		"bg-red-100":      hasError,
-		"mb-3":            true,
-		"block":           true,
-		"w-full":          true,
-		"mx-auto":         true,
-	}
+	})
+
+	return classes
 }
 
 func withErrors(err string, input Node) Node {

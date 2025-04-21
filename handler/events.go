@@ -59,7 +59,7 @@ func (h *EventsHandler) MyEvents(c *Context) error {
 
 	return h.events(
 		c,
-		model.NewEventsQuery().WithUserID(c.User.ID),
+		model.NewEventsQuery().WithUserID(c.User.ID).WithIncludeDrafts(),
 		model.OrderCreatedAtDesc,
 	)
 }
@@ -119,7 +119,7 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db, false, req.Search)
+		events, err = query.List(c.Request().Context(), h.db, req.Search)
 		if err != nil {
 			if !errors.Is(err, wreck.NotFound) {
 				return err
