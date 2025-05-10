@@ -39,12 +39,18 @@ func Page(props PageProps) Node {
 			Link(Rel("alternate"), Type("application/rss+xml"), Title(fmt.Sprintf("RSS feed for %s", props.Title)), Href("/feed")),
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.css"))),
+
+			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fontsource/noto-sans/400.css"))),
+			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fontsource/noto-sans/400-italic.css"))),
+
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/solid.min.css"))),
+
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/leaflet/dist/leaflet.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/leaflet-geosearch/dist/geosearch.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/jquery-ui/dist/themes/base/jquery-ui.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("app.css"))),
+
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/htmx.org/dist/htmx.min.js"))),
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/mark.js/dist/mark.min.js"))),
 			Script(Defer(), Src(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.js"))),
@@ -55,6 +61,7 @@ func Page(props PageProps) Node {
 			Script(Defer(), Raw(eventNavScript)),
 			Script(Defer(), Raw(searchScript)),
 			Script(Defer(), Raw(editEventScript)),
+
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
