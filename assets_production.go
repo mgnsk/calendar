@@ -16,6 +16,7 @@ import (
 //go:embed node_modules/htmx.org/dist/htmx.min.js
 //go:embed node_modules/mark.js/dist/mark.min.js
 //go:embed node_modules/easymde/dist
+//go:embed node_modules/@fontsource/inter
 //go:embed node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css
 //go:embed node_modules/@fortawesome/fontawesome-free/css/solid.min.css
 //go:embed node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2
