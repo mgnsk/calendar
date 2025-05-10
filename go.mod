@@ -10,19 +10,19 @@ require (
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/golang-migrate/migrate/v4 v4.18.2
+	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/samber/lo v1.49.1
+	github.com/samber/lo v1.50.0
 	github.com/samber/slog-echo v1.16.1
 	github.com/uptrace/bun v1.2.11
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.11
 	github.com/uptrace/bun/extra/bundebug v1.2.11
-	github.com/yuin/goldmark v1.7.10
+	github.com/yuin/goldmark v1.7.11
 	golang.org/x/crypto v0.37.0
 	golang.org/x/sync v0.13.0
 	maragu.dev/gomponents v1.1.0
