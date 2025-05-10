@@ -363,7 +363,7 @@ func eventToDomain(ev *Event) *domain.Event {
 	zone := time.FixedZone("", ev.TimezoneOffset)
 
 	return &domain.Event{
-		ID:          snowflake.ID(ev.ID),
+		ID:          ev.ID,
 		StartAt:     time.Unix(ev.StartAtUnix, 0).In(zone),
 		Title:       ev.Title,
 		Description: ev.Description,
