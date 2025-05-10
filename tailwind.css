@@ -1,5 +1,5 @@
 html {
-  font-family: "Noto Sans";
+  font-family: "Noto Sans", sans-serif;
 }
 
 @import "tailwindcss";
