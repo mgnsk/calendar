@@ -30,15 +30,32 @@ func InsertUser(ctx context.Context, db bun.IDB, user *domain.User) error {
 	}).Exec(ctx))
 }
 
-// DeleteUser deletes a user.
-func DeleteUser(ctx context.Context, db bun.IDB, username string) error {
-	return sqlite.WithErrorChecking(db.NewDelete().Model((*User)(nil)).
-		Where("username = ?", username).
+// UpdateUser updates a user.
+func UpdateUser(ctx context.Context, db bun.IDB, user *domain.User) error {
+	return sqlite.WithErrorChecking(db.NewUpdate().Model(&User{
+		ID:       user.ID,
+		Username: user.Username,
+		Password: user.Password,
+		Role:     string(user.Role),
+	}).
+		Column(
+			"username",
+			"password",
+			"role",
+		).
+		Where("id = ?", user.ID).
 		Exec(ctx))
 }
 
-// GetUser returns a user.
-func GetUser(ctx context.Context, db bun.IDB, username string) (*domain.User, error) {
+// DeleteUser deletes a user.
+func DeleteUser(ctx context.Context, db bun.IDB, id snowflake.ID) error {
+	return sqlite.WithErrorChecking(db.NewDelete().Model((*User)(nil)).
+		Where("id = ?", id).
+		Exec(ctx))
+}
+
+// GetUserByUsername returns a user.
+func GetUserByUsername(ctx context.Context, db bun.IDB, username string) (*domain.User, error) {
 	model := &User{}
 
 	if err := db.NewSelect().Model(model).

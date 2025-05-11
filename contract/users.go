@@ -4,11 +4,12 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
+	"github.com/mgnsk/calendar/pkg/snowflake"
 )
 
 // DeleteUserRequest is a request to delete a user.
 type DeleteUserRequest struct {
-	Username string `form:"username"`
+	UserID snowflake.ID `form:"user_id"`
 }
 
 // RegisterRequest is a request to render the register page.

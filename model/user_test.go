@@ -21,7 +21,7 @@ var _ = Describe("inserting users", func() {
 				Role:     domain.Admin,
 			})).To(Succeed())
 
-			user := Must(model.GetUser(ctx, db, "username"))
+			user := Must(model.GetUserByUsername(ctx, db, "username"))
 
 			Expect(user).To(PointTo(MatchAllFields(Fields{
 				"ID":       Not(BeZero()),
@@ -55,10 +55,48 @@ var _ = Describe("inserting users", func() {
 	})
 })
 
+var _ = Describe("updating users", func() {
+	When("user exists", func() {
+		var userID snowflake.ID
+
+		JustBeforeEach(func(ctx SpecContext) {
+			userID = snowflake.Generate()
+
+			Expect(model.InsertUser(ctx, db, &domain.User{
+				ID:       userID,
+				Username: "username",
+				Password: []byte("password"),
+				Role:     domain.Admin,
+			})).To(Succeed())
+		})
+
+		Specify("user is updated", func(ctx SpecContext) {
+			Expect(model.UpdateUser(ctx, db, &domain.User{
+				ID:       userID,
+				Username: "username2",
+				Password: []byte("password2"),
+				Role:     domain.Author,
+			})).To(Succeed())
+
+			user := Must(model.GetUserByUsername(ctx, db, "username2"))
+			Expect(user).To(PointTo(MatchAllFields(Fields{
+				"ID":       Equal(userID),
+				"Username": Equal("username2"),
+				"Password": Equal([]byte("password2")),
+				"Role":     Equal(domain.Author),
+			})))
+		})
+	})
+})
+
 var _ = Describe("deleting users", func() {
+	var userID snowflake.ID
+
 	JustBeforeEach(func(ctx SpecContext) {
+		userID = snowflake.Generate()
+
 		Expect(model.InsertUser(ctx, db, &domain.User{
-			ID:       snowflake.Generate(),
+			ID:       userID,
 			Username: "username",
 			Password: []byte("password"),
 			Role:     domain.Admin,
@@ -69,7 +107,7 @@ var _ = Describe("deleting users", func() {
 		users := Must(model.ListUsers(ctx, db))
 		Expect(users).To(HaveLen(1))
 
-		Expect(model.DeleteUser(ctx, db, "username")).To(Succeed())
+		Expect(model.DeleteUser(ctx, db, userID)).To(Succeed())
 
 		users = Must(model.ListUsers(ctx, db))
 		Expect(users).To(HaveLen(0))

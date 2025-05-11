@@ -53,8 +53,8 @@ func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf strin
 									hx.Post("/delete-user"),
 									hx.Confirm("Are you sure?"),
 									hx.Vals(string(must(json.Marshal(map[string]string{
-										"csrf":     csrf,
-										"username": user.Username,
+										"csrf":    csrf,
+										"user_id": user.ID.String(),
 									})))),
 									Href("#"),
 									Text("DELETE"),
