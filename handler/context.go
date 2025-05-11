@@ -55,7 +55,7 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 		}
 
 		if username := sm.GetString(c.Request().Context(), "username"); username != "" {
-			user, err := model.GetUser(c.Request().Context(), db, username)
+			user, err := model.GetUserByUsername(c.Request().Context(), db, username)
 			if err != nil {
 				if !errors.Is(err, wreck.NotFound) {
 					return err

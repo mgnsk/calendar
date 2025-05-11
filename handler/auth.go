@@ -51,7 +51,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 		ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
 		defer cancel()
 
-		user, err := model.GetUser(ctx, h.db, req.Username)
+		user, err := model.GetUserByUsername(ctx, h.db, req.Username)
 		if err != nil {
 			if errors.Is(err, wreck.NotFound) {
 				<-ctx.Done()

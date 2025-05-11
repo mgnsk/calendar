@@ -184,16 +184,16 @@ func (h *UsersHandler) Delete(c *Context) error {
 		return err
 	}
 
-	if c.User.Username == req.Username {
+	if c.User.ID == req.UserID {
 		return wreck.Forbidden.New("Cannot delete yourself")
 	}
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		if err := model.DeleteUser(c.Request().Context(), h.db, req.Username); err != nil {
+		if err := model.DeleteUser(c.Request().Context(), h.db, req.UserID); err != nil {
 			return err
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", fmt.Sprintf("User %s deleted", req.Username))
+		h.sm.Put(c.Request().Context(), "flash-success", fmt.Sprintf("User deleted"))
 
 		hxhttp.SetRefresh(c.Response().Header())
 
