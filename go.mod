@@ -22,9 +22,9 @@ require (
 	github.com/uptrace/bun v1.2.11
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.11
 	github.com/uptrace/bun/extra/bundebug v1.2.11
-	github.com/yuin/goldmark v1.7.11
-	golang.org/x/crypto v0.37.0
-	golang.org/x/sync v0.13.0
+	github.com/yuin/goldmark v1.7.12
+	golang.org/x/crypto v0.38.0
+	golang.org/x/sync v0.14.0
 	maragu.dev/gomponents v1.1.0
 	maragu.dev/gomponents-htmx v0.6.1
 	modernc.org/sqlite v1.37.0
@@ -91,8 +91,8 @@ require (
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	golang.org/x/tools v0.32.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
