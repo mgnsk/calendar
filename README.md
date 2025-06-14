@@ -14,6 +14,8 @@ The Docker image is published at [https://github.com/mgnsk/calendar/pkgs/contain
 
 ### Clone the repository
 
+As root:
+
 - `mkdir /opt/mgnsk/calendar`
 - `cd /opt/mgnsk/calendar`
 - `git clone https://github.com/mgnsk/calendar.git .`
@@ -26,7 +28,9 @@ HOSTNAME="my-domain-name.com"
 
 ### Install and enable the service
 
-`sudo make install`
+As root:
+
+`make install`
 
 This will:
 
