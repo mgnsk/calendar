@@ -17,17 +17,17 @@ require (
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/samber/lo v1.50.0
+	github.com/samber/lo v1.51.0
 	github.com/samber/slog-echo v1.16.1
-	github.com/uptrace/bun v1.2.12
-	github.com/uptrace/bun/dialect/sqlitedialect v1.2.12
-	github.com/uptrace/bun/extra/bundebug v1.2.12
+	github.com/uptrace/bun v1.2.13
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.13
+	github.com/uptrace/bun/extra/bundebug v1.2.13
 	github.com/yuin/goldmark v1.7.12
 	golang.org/x/crypto v0.39.0
 	golang.org/x/sync v0.15.0
 	maragu.dev/gomponents v1.1.0
 	maragu.dev/gomponents-htmx v0.6.1
-	modernc.org/sqlite v1.37.1
+	modernc.org/sqlite v1.38.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -97,7 +97,7 @@ require (
 	golang.org/x/tools v0.33.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.65.7 // indirect
+	modernc.org/libc v1.65.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
