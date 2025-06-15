@@ -84,7 +84,11 @@ func (h *EditEventHandler) Edit(c *Context) error {
 
 		startAt, err := req.ParseStartAt()
 		if err != nil {
-			return err
+			errs := url.Values{}
+			errs.Set("start_at", "Invalid start_at value")
+			return RenderPage(c, h.sm,
+				html.EditEventMain(req, errs, c.CSRF),
+			)
 		}
 
 		if ev != nil {
@@ -147,7 +151,6 @@ func (h *EditEventHandler) Delete(c *Context) error {
 	}
 
 	req := contract.DeleteEventRequest{}
-
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
@@ -191,10 +194,7 @@ func (h *EditEventHandler) Preview(c *Context) error {
 		return err
 	}
 
-	startAt, err := req.ParseStartAt()
-	if err != nil {
-		return err
-	}
+	startAt, _ := req.ParseStartAt()
 
 	ev := &domain.Event{
 		StartAt:     startAt,

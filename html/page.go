@@ -40,9 +40,6 @@ func Page(props PageProps) Node {
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/easymde/dist/easymde.min.css"))),
 
-			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fontsource/noto-sans/400.css"))),
-			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fontsource/noto-sans/400-italic.css"))),
-
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css"))),
 			Link(Rel("stylesheet"), Href(calendar.GetAssetPath("node_modules/@fortawesome/fontawesome-free/css/solid.min.css"))),
 
