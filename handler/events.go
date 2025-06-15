@@ -92,7 +92,6 @@ func (h *EventsHandler) Tags(c *Context) error {
 func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		req := contract.ListEventsRequest{}
-
 		if err := c.Bind(&req); err != nil {
 			return err
 		}
