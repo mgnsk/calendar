@@ -98,10 +98,10 @@ func HandleError(err error, c echo.Context) error {
 
 	switch {
 	case res.Status >= 500:
-		logger.Error("server error")
+		logger.ErrorContext(c.Request().Context(), "server error")
 
-	case res.Status >= 400 && res.Status <= 404:
-		logger.Error("client error")
+	case res.Status >= 400 && res.Status <= 403:
+		logger.ErrorContext(c.Request().Context(), "client error")
 	}
 
 	errText := fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID)
