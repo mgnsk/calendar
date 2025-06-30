@@ -11,14 +11,14 @@ import (
 
 func TestErrors(t *testing.T) {
 	t.Run("creating new errors", func(t *testing.T) {
-		base := wreck.NewBaseError("base")
+		base := wreck.New("base")
 		err := base.New("new error")
 		assert(t, errors.Is(err, base), true)
 		assert(t, err.Error(), "new error")
 	})
 
 	t.Run("wrapping existing error", func(t *testing.T) {
-		base := wreck.NewBaseError("base")
+		base := wreck.New("base")
 		one := fmt.Errorf("one")
 		err := base.New("new error", one)
 		assert(t, errors.Is(err, base), true)
@@ -27,7 +27,7 @@ func TestErrors(t *testing.T) {
 	})
 
 	t.Run("wrapping multiple existing errors", func(t *testing.T) {
-		base := wreck.NewBaseError("base")
+		base := wreck.New("base")
 		one := fmt.Errorf("one")
 		two := fmt.Errorf("two")
 		err := base.New("new error", one, two)
@@ -38,8 +38,8 @@ func TestErrors(t *testing.T) {
 	})
 
 	t.Run("wrapping multiple times", func(t *testing.T) {
-		inner := wreck.NewBaseError("inner")
-		outer := wreck.NewBaseError("outer")
+		inner := wreck.New("inner")
+		outer := wreck.New("outer")
 
 		err1 := inner.New("one")
 		err2 := outer.New("two", err1)
@@ -51,7 +51,7 @@ func TestErrors(t *testing.T) {
 	})
 
 	t.Run("safe error message", func(t *testing.T) {
-		base := wreck.NewBaseError("base")
+		base := wreck.New("base")
 		err := base.New("Message", fmt.Errorf("internal message"))
 
 		assert(t, err.Error(), "Message: internal message")
@@ -60,7 +60,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("storing values in base error", func(t *testing.T) {
 		t.Run("values are stored on new base error", func(t *testing.T) {
-			origBase := wreck.NewBaseError("base")
+			origBase := wreck.New("base")
 			newBase := origBase.With("key", "value")
 			err := newBase.New("Message")
 
@@ -69,7 +69,7 @@ func TestErrors(t *testing.T) {
 		})
 
 		t.Run("original base error is not modified", func(t *testing.T) {
-			origBase := wreck.NewBaseError("base")
+			origBase := wreck.New("base")
 			_ = origBase.With("key", "value")
 			err := origBase.New("Message")
 
@@ -78,7 +78,7 @@ func TestErrors(t *testing.T) {
 		})
 
 		t.Run("error matches original base error", func(t *testing.T) {
-			origBase := wreck.NewBaseError("base")
+			origBase := wreck.New("base")
 			newBase := origBase.With("key", "value")
 			err := newBase.New("Message")
 

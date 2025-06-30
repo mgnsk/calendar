@@ -15,17 +15,17 @@ const (
 
 // Base errors.
 var (
-	PreconditionFailed = NewBaseError("precondition_failed").With(KeyHTTPCode, http.StatusPreconditionFailed)
-	InvalidValue       = NewBaseError("invalid_param").With(KeyHTTPCode, http.StatusBadRequest)
-	AlreadyExists      = NewBaseError("already_exists").With(KeyHTTPCode, http.StatusConflict)
-	NotFound           = NewBaseError("not_found").With(KeyHTTPCode, http.StatusNotFound)
-	Timeout            = NewBaseError("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)
-	Forbidden          = NewBaseError("forbidden").With(KeyHTTPCode, http.StatusForbidden)
+	PreconditionFailed = New("precondition_failed").With(KeyHTTPCode, http.StatusPreconditionFailed)
+	InvalidValue       = New("invalid_param").With(KeyHTTPCode, http.StatusBadRequest)
+	AlreadyExists      = New("already_exists").With(KeyHTTPCode, http.StatusConflict)
+	NotFound           = New("not_found").With(KeyHTTPCode, http.StatusNotFound)
+	Timeout            = New("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)
+	Forbidden          = New("forbidden").With(KeyHTTPCode, http.StatusForbidden)
 
-	Internal = NewBaseError("internal").With(KeyHTTPCode, http.StatusInternalServerError)
+	Internal = New("internal").With(KeyHTTPCode, http.StatusInternalServerError)
 )
 
-// Value extracts a value from err's base error.
+// Value extracts a value from error.
 func Value(err error, key string) any {
 	var werr *wreckError
 	if errors.As(err, &werr) {
@@ -34,65 +34,33 @@ func Value(err error, key string) any {
 	return nil
 }
 
-// BaseError is a base error.
-type BaseError interface {
-	error
-
-	// With creates a new unique base error with the key-value pair added.
-	With(key string, value any) BaseError
-
-	// New creates a new error from the base error.
-	New(string, ...error) Error
-}
-
 // Error is an error with a safe error message.
 type Error interface {
-	error
+	// Error returns the internal error message.
+	Error() string
+
+	// Message returns the public error message.
 	Message() string
+
+	// With returns a clone of the error with the key-value pair added.
+	With(key string, value any) Error
+
+	// New creates a new error from the base error.
+	New(msg string, errs ...error) Error
 }
 
-// NewBaseError creates a new base error.
-func NewBaseError(code string) BaseError {
-	return &baseError{
-		base:   nil,
-		code:   code,
-		values: map[string]any{},
-	}
-}
-
-type baseError struct {
-	base   *baseError
-	code   string
-	values map[string]any
-}
-
-func (e *baseError) Error() string {
-	return e.code
-}
-
-func (e *baseError) With(key string, value any) BaseError {
-	values := maps.Clone(e.values)
-	values[key] = value
-
-	return &baseError{
-		base:   e,
-		code:   e.code,
-		values: values,
-	}
-}
-
-func (e *baseError) New(msg string, errs ...error) Error {
+// New creates a new error.
+func New(msg string) Error {
 	return &wreckError{
-		base: e,
-		msg:  msg,
-		err:  errors.Join(errs...),
+		msg: msg,
 	}
 }
 
 type wreckError struct {
-	base *baseError
-	msg  string
-	err  error
+	base   *wreckError
+	msg    string
+	err    error
+	values map[string]any
 }
 
 func (e *wreckError) Error() string {
@@ -111,7 +79,7 @@ func (e *wreckError) Unwrap() error {
 }
 
 func (e *wreckError) Is(target error) bool {
-	if base, ok := target.(*baseError); ok {
+	if base, ok := target.(*wreckError); ok {
 		b := e.base
 		for b != nil {
 			if b == base {
@@ -121,4 +89,30 @@ func (e *wreckError) Is(target error) bool {
 		}
 	}
 	return false
+}
+
+func (e *wreckError) With(key string, value any) Error {
+	var values map[string]any
+	if e.values != nil {
+		values = maps.Clone(e.values)
+	} else {
+		values = map[string]any{}
+	}
+
+	values[key] = value
+
+	return &wreckError{
+		base:   e,
+		msg:    e.msg,
+		err:    e.err,
+		values: values,
+	}
+}
+
+func (e *wreckError) New(msg string, errs ...error) Error {
+	return &wreckError{
+		base: e,
+		msg:  msg,
+		err:  errors.Join(errs...),
+	}
 }
