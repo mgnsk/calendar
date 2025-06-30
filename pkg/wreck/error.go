@@ -3,11 +3,15 @@ package wreck
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 )
 
-// KeyHTTPCode is a HTTP code error key.
-const KeyHTTPCode = "http_code"
+// Keys for error data in errors.
+const (
+	KeyHTTPCode = "http_code"
+	Stack       = "stack"
+)
 
 // Base errors.
 var (
@@ -33,7 +37,11 @@ func Value(err error, key string) any {
 // BaseError is a base error.
 type BaseError interface {
 	error
+
+	// With creates a new unique base error with the key-value pair added.
 	With(key string, value any) BaseError
+
+	// New creates a new error from the base error.
 	New(string, ...error) Error
 }
 
@@ -61,8 +69,13 @@ func (e *baseError) Error() string {
 }
 
 func (e *baseError) With(key string, value any) BaseError {
-	e.values[key] = value
-	return e
+	values := maps.Clone(e.values)
+	values[key] = value
+
+	return &baseError{
+		code:   e.code,
+		values: values,
+	}
 }
 
 func (e *baseError) New(msg string, errs ...error) Error {

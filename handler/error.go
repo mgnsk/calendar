@@ -6,23 +6,45 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"runtime"
 
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/pkg/wreck"
-	slogecho "github.com/samber/slog-echo"
 )
 
-// ErrorHandler handles setting response status code from error and renders an error page.
-func ErrorHandler() echo.MiddlewareFunc {
+// Recover returns a middleware which recovers from panics anywhere in the chain
+// and returns an error with stack trace.
+func Recover() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			err := next(c)
-			if err == nil {
-				return nil
-			}
+		return func(c echo.Context) (returnErr error) {
+			defer func() {
+				if r := recover(); r != nil {
+					if r == http.ErrAbortHandler {
+						panic(r)
+					}
 
-			return HandleError(err, c)
+					err, ok := r.(error)
+					if !ok {
+						err = fmt.Errorf("%v", r)
+					}
+
+					var (
+						stack  []byte
+						length int
+					)
+
+					stack = make([]byte, 4<<10) // 4 KB
+					length = runtime.Stack(stack, true)
+					stack = stack[:length]
+
+					returnErr = wreck.Internal.
+						With("stack", string(stack)).
+						New("recovered panic", err)
+				}
+			}()
+
+			return next(c)
 		}
 	}
 }
@@ -34,25 +56,53 @@ func HandleError(err error, c echo.Context) error {
 	}
 
 	var (
-		msg  string
-		code = http.StatusInternalServerError
+		msg   string
+		code  = http.StatusInternalServerError
+		stack string
 	)
 
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		code = http.StatusRequestTimeout
 	} else if werr := *new(wreck.Error); errors.As(err, &werr) {
 		msg = werr.Message()
+
 		if v := wreck.Value(werr, wreck.KeyHTTPCode); v != nil {
 			code = v.(int)
+		}
+
+		if v := wreck.Value(werr, wreck.Stack); v != nil {
+			stack = v.(string)
 		}
 	} else if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 	}
 
 	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-
-	slogecho.AddCustomAttributes(c, slog.String("error", err.Error()))
 	c.Response().Status = code
+
+	req := c.Request()
+	res := c.Response()
+
+	logger := slog.With(
+		"reason", err,
+		"status", code,
+		"method", req.Method,
+		"uri", req.RequestURI,
+		"request_id", reqID,
+		"real_ip", c.RealIP(),
+	)
+
+	if stack != "" {
+		logger = logger.With("stack", stack)
+	}
+
+	switch {
+	case res.Status >= 500:
+		logger.Error("server error")
+
+	case res.Status >= 400 && res.Status <= 404:
+		logger.Error("client error")
+	}
 
 	errText := fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID)
 

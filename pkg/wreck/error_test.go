@@ -59,11 +59,23 @@ func TestErrors(t *testing.T) {
 	})
 
 	t.Run("storing values in base error", func(t *testing.T) {
-		base := wreck.NewBaseError("base").With("key", "value")
-		err := base.New("Message")
+		origBase := wreck.NewBaseError("base")
 
-		value := wreck.Value(err, "key")
-		assert(t, value, "value")
+		t.Run("values are stored on new base error", func(t *testing.T) {
+			newBase := origBase.With("key", "value")
+			err := newBase.New("Message")
+
+			value := wreck.Value(err, "key")
+			assert(t, value, "value")
+		})
+
+		t.Run("original base error is not modified", func(t *testing.T) {
+			_ = origBase.With("key", "value")
+			err := origBase.New("Message")
+
+			value := wreck.Value(err, "key")
+			assert(t, value, nil)
+		})
 	})
 }
 
