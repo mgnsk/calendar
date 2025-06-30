@@ -25,7 +25,6 @@ import (
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	"github.com/mgnsk/calendar/pkg/wreck"
-	slogecho "github.com/samber/slog-echo"
 	"github.com/uptrace/bun"
 	"golang.org/x/sync/errgroup"
 )
@@ -164,27 +163,20 @@ func run() error {
 	}
 
 	e.Use(
-		slogecho.NewWithConfig(slog.Default(), slogecho.Config{
-			DefaultLevel:     slog.LevelInfo,
-			ClientErrorLevel: slog.LevelWarn,
-			ServerErrorLevel: slog.LevelError,
+		handler.Recover(),
 
-			WithUserAgent: true,
-			WithRequestID: true,
-		}),
-		middleware.Recover(), // Recover from all panics to always have your server up.
 		middleware.SecureWithConfig(middleware.SecureConfig{
 			XSSProtection:         "1; mode=block",
 			ContentTypeNosniff:    "nosniff",
 			XFrameOptions:         "SAMEORIGIN",
-			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: *.openstreetmap.org; connect-src 'self' *.openstreetmap.org",
+			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' *.openstreetmap.org",
 			HSTSPreloadEnabled:    false,
 		}),
-		handler.ErrorHandler(),
+
 		middleware.RequestID(),
-		middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)),
+
 		middleware.BodyLimit("1M"),
-		middleware.ContextTimeout(time.Minute),
+
 		middleware.CSRFWithConfig(middleware.CSRFConfig{
 			TokenLength:    32,
 			TokenLookup:    "form:csrf",
