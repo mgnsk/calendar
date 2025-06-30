@@ -39,7 +39,7 @@ func Recover() echo.MiddlewareFunc {
 					stack = stack[:length]
 
 					returnErr = wreck.Internal.
-						With("stack", string(stack)).
+						With(wreck.Stack, string(stack)).
 						New("recovered panic", err)
 				}
 			}()
@@ -56,9 +56,10 @@ func HandleError(err error, c echo.Context) error {
 	}
 
 	var (
-		msg   string
-		code  = http.StatusInternalServerError
-		stack string
+		msg  string
+		code = http.StatusInternalServerError
+
+		logAttrs []any
 	)
 
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -66,13 +67,11 @@ func HandleError(err error, c echo.Context) error {
 	} else if werr := *new(wreck.Error); errors.As(err, &werr) {
 		msg = werr.Message()
 
-		if v := wreck.Value(werr, wreck.KeyHTTPCode); v != nil {
-			code = v.(int)
+		if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
+			code = int(v.Int64())
 		}
 
-		if v := wreck.Value(werr, wreck.Stack); v != nil {
-			stack = v.(string)
-		}
+		logAttrs = append(logAttrs, wreck.Args(err)...)
 	} else if he, ok := err.(*echo.HTTPError); ok {
 		code = he.Code
 	}
@@ -92,8 +91,8 @@ func HandleError(err error, c echo.Context) error {
 		"real_ip", c.RealIP(),
 	)
 
-	if stack != "" {
-		logger = logger.With("stack", stack)
+	if len(logAttrs) > 0 {
+		logger = logger.With(logAttrs...)
 	}
 
 	switch {

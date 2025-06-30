@@ -3,6 +3,7 @@ package wreck_test
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"testing"
 
@@ -58,14 +59,14 @@ func TestErrors(t *testing.T) {
 		assert(t, err.Message(), "Message")
 	})
 
-	t.Run("storing values in base error", func(t *testing.T) {
+	t.Run("storing arguments in base error", func(t *testing.T) {
 		t.Run("values are stored on new base error", func(t *testing.T) {
 			origBase := wreck.New("base")
 			newBase := origBase.With("key", "value")
 			err := newBase.New("Message")
 
-			value := wreck.Value(err, "key")
-			assert(t, value, "value")
+			args := wreck.Args(err)
+			assert(t, args, []any{"key", "value"})
 		})
 
 		t.Run("original base error is not modified", func(t *testing.T) {
@@ -73,8 +74,8 @@ func TestErrors(t *testing.T) {
 			_ = origBase.With("key", "value")
 			err := origBase.New("Message")
 
-			value := wreck.Value(err, "key")
-			assert(t, value, nil)
+			args := wreck.Args(err)
+			assert(t, len(args), 0)
 		})
 
 		t.Run("error matches original base error", func(t *testing.T) {
@@ -82,11 +83,56 @@ func TestErrors(t *testing.T) {
 			newBase := origBase.With("key", "value")
 			err := newBase.New("Message")
 
-			value := wreck.Value(err, "key")
-			assert(t, value, "value")
+			args := wreck.Args(err)
+			assert(t, args, []any{"key", "value"})
 
 			assert(t, errors.Is(err, newBase), true)
 			assert(t, errors.Is(err, origBase), true)
+		})
+
+		t.Run("all arguments can be collected", func(t *testing.T) {
+			origBase := wreck.New("base").With(
+				"a", "value1",
+				"b", "value2",
+			)
+			newBase := origBase.With("c", "value3")
+			err := newBase.New("Message")
+
+			args := wreck.Args(err)
+			assert(t, args, []any{
+				"c", "value3",
+				"a", "value1",
+				"b", "value2",
+			})
+		})
+
+		t.Run("all arguments can be interpreted as key-value pair attributes", func(t *testing.T) {
+			origBase := wreck.New("base").With(
+				"a", "value1",
+				"b", "value2",
+			)
+			newBase := origBase.With("c", "value3")
+			err := newBase.New("Message")
+
+			attrs := wreck.Attrs(err)
+			assert(t, attrs, []slog.Attr{
+				slog.String("c", "value3"),
+				slog.String("a", "value1"),
+				slog.String("b", "value2"),
+			})
+		})
+
+		t.Run("single attribute can be collected", func(t *testing.T) {
+			origBase := wreck.New("base").With(
+				"a", "value1",
+				"b", "value2",
+			)
+			newBase := origBase.With("c", "value3")
+			err := newBase.New("Message")
+
+			value, ok := wreck.Value(err, "a")
+			assert(t, ok, true)
+			assert(t, value.String(), "value1")
 		})
 	})
 }

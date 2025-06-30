@@ -3,7 +3,6 @@ package wreck
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"net/http"
 )
 
@@ -25,15 +24,6 @@ var (
 	Internal = New("internal").With(KeyHTTPCode, http.StatusInternalServerError)
 )
 
-// Value extracts a value from error.
-func Value(err error, key string) any {
-	var werr *wreckError
-	if errors.As(err, &werr) {
-		return werr.base.values[key]
-	}
-	return nil
-}
-
 // Error is an error with a safe error message.
 type Error interface {
 	// Error returns the internal error message.
@@ -42,8 +32,8 @@ type Error interface {
 	// Message returns the public error message.
 	Message() string
 
-	// With returns a clone of the error with the key-value pair added.
-	With(key string, value any) Error
+	// With returns a clone of the error with the key-value pair arguments added.
+	With(args ...any) Error
 
 	// New creates a new error from the base error.
 	New(msg string, errs ...error) Error
@@ -57,10 +47,10 @@ func New(msg string) Error {
 }
 
 type wreckError struct {
-	base   *wreckError
-	msg    string
-	err    error
-	values map[string]any
+	base *wreckError
+	msg  string
+	err  error
+	args []any
 }
 
 func (e *wreckError) Error() string {
@@ -91,21 +81,12 @@ func (e *wreckError) Is(target error) bool {
 	return false
 }
 
-func (e *wreckError) With(key string, value any) Error {
-	var values map[string]any
-	if e.values != nil {
-		values = maps.Clone(e.values)
-	} else {
-		values = map[string]any{}
-	}
-
-	values[key] = value
-
+func (e *wreckError) With(args ...any) Error {
 	return &wreckError{
-		base:   e,
-		msg:    e.msg,
-		err:    e.err,
-		values: values,
+		base: e,
+		msg:  e.msg,
+		err:  e.err,
+		args: args,
 	}
 }
 
