@@ -59,9 +59,8 @@ func TestErrors(t *testing.T) {
 	})
 
 	t.Run("storing values in base error", func(t *testing.T) {
-		origBase := wreck.NewBaseError("base")
-
 		t.Run("values are stored on new base error", func(t *testing.T) {
+			origBase := wreck.NewBaseError("base")
 			newBase := origBase.With("key", "value")
 			err := newBase.New("Message")
 
@@ -70,16 +69,31 @@ func TestErrors(t *testing.T) {
 		})
 
 		t.Run("original base error is not modified", func(t *testing.T) {
+			origBase := wreck.NewBaseError("base")
 			_ = origBase.With("key", "value")
 			err := origBase.New("Message")
 
 			value := wreck.Value(err, "key")
 			assert(t, value, nil)
 		})
+
+		t.Run("error matches original base error", func(t *testing.T) {
+			origBase := wreck.NewBaseError("base")
+			newBase := origBase.With("key", "value")
+			err := newBase.New("Message")
+
+			value := wreck.Value(err, "key")
+			assert(t, value, "value")
+
+			assert(t, errors.Is(err, newBase), true)
+			assert(t, errors.Is(err, origBase), true)
+		})
 	})
 }
 
 func assert[T any](t testing.TB, a, b T) {
+	t.Helper()
+
 	if !reflect.DeepEqual(a, b) {
 		t.Fatalf("expected '%v' to equal '%v'", a, b)
 	}

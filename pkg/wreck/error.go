@@ -54,12 +54,14 @@ type Error interface {
 // NewBaseError creates a new base error.
 func NewBaseError(code string) BaseError {
 	return &baseError{
+		base:   nil,
 		code:   code,
 		values: map[string]any{},
 	}
 }
 
 type baseError struct {
+	base   *baseError
 	code   string
 	values map[string]any
 }
@@ -73,6 +75,7 @@ func (e *baseError) With(key string, value any) BaseError {
 	values[key] = value
 
 	return &baseError{
+		base:   e,
 		code:   e.code,
 		values: values,
 	}
@@ -109,7 +112,13 @@ func (e *wreckError) Unwrap() error {
 
 func (e *wreckError) Is(target error) bool {
 	if base, ok := target.(*baseError); ok {
-		return e.base == base
+		b := e.base
+		for b != nil {
+			if b == base {
+				return true
+			}
+			b = b.base
+		}
 	}
 	return false
 }
