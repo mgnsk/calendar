@@ -12,8 +12,7 @@ import (
 
 // UserNav renders the user navigation.
 func UserNav(user *domain.User, children Node) Node {
-	return Nav(Class("sticky top-0 bg-white max-w-3xl mx-auto"),
-		Style("z-index: 1;"), // TODO: why tailwind z-1 not working?
+	return Nav(Class("sticky top-0 bg-white max-w-3xl mx-auto z-1"),
 		Ul(Class("flex justify-between font-semibold flex-row space-x-8 mb-5"),
 			// TODO: find better icons
 			Li(Class("justify-self-start align-start"),
