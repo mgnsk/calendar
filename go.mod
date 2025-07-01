@@ -18,9 +18,9 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/samber/lo v1.51.0
-	github.com/uptrace/bun v1.2.13
-	github.com/uptrace/bun/dialect/sqlitedialect v1.2.13
-	github.com/uptrace/bun/extra/bundebug v1.2.13
+	github.com/uptrace/bun v1.2.14
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.14
+	github.com/uptrace/bun/extra/bundebug v1.2.14
 	github.com/yuin/goldmark v1.7.12
 	golang.org/x/crypto v0.39.0
 	golang.org/x/sync v0.15.0
