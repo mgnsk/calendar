@@ -1,4 +1,4 @@
-package handler
+package server
 
 import (
 	"errors"
@@ -21,11 +21,11 @@ type Context struct {
 	CSRF     string
 }
 
-// Func defines a function to serve HTTP requests, using the custom context.
-type Func func(*Context) error
+// HandlerFunc defines a function to serve HTTP requests, using the custom context.
+type HandlerFunc func(*Context) error
 
 // Wrap a HandlerFunc with echo.HandlerFunc.
-func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
+func Wrap(db *bun.DB, sm *scs.SessionManager, next HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var csrf string
 		if v, ok := c.Get("csrf").(string); ok {
@@ -45,12 +45,14 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 		}
 
 		if settings == nil && c.Path() != "/setup" {
+			// First setup.
 			return c.Redirect(http.StatusSeeOther, "/setup")
 		}
 
 		ctx.Settings = settings
 
 		if sm == nil {
+			// Public endpoint.
 			return next(ctx)
 		}
 
@@ -63,6 +65,7 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next Func) echo.HandlerFunc {
 			}
 
 			if user == nil {
+				// User has been deleted.
 				if err := sm.Destroy(c.Request().Context()); err != nil {
 					return err
 				}

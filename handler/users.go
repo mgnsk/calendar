@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -28,7 +28,7 @@ type UsersHandler struct {
 }
 
 // Users handles users page.
-func (h *UsersHandler) Users(c *Context) error {
+func (h *UsersHandler) Users(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -42,13 +42,13 @@ func (h *UsersHandler) Users(c *Context) error {
 		return err
 	}
 
-	return RenderPage(c, h.sm,
+	return server.RenderPage(c, h.sm,
 		html.UsersMain(c.User, users, c.CSRF),
 	)
 }
 
 // Invite handles invite link generation.
-func (h *UsersHandler) Invite(c *Context) error {
+func (h *UsersHandler) Invite(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -76,7 +76,7 @@ func (h *UsersHandler) Invite(c *Context) error {
 }
 
 // RegisterUser registers a user with an invite link.
-func (h *UsersHandler) RegisterUser(c *Context) error {
+func (h *UsersHandler) RegisterUser(c *server.Context) error {
 	if c.User != nil {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
@@ -99,7 +99,7 @@ func (h *UsersHandler) RegisterUser(c *Context) error {
 	case http.MethodGet:
 		form := contract.RegisterForm{}
 
-		return RenderPage(c, h.sm,
+		return server.RenderPage(c, h.sm,
 			html.RegisterMain(form, nil, c.CSRF),
 		)
 
@@ -110,7 +110,7 @@ func (h *UsersHandler) RegisterUser(c *Context) error {
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			return RenderPage(c, h.sm,
+			return server.RenderPage(c, h.sm,
 				html.RegisterMain(form, errs, c.CSRF),
 			)
 		}
@@ -127,7 +127,7 @@ func (h *UsersHandler) RegisterUser(c *Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return RenderPage(c, h.sm,
+				return server.RenderPage(c, h.sm,
 					html.RegisterMain(form, errs, c.CSRF),
 				)
 			}
@@ -146,7 +146,7 @@ func (h *UsersHandler) RegisterUser(c *Context) error {
 				errs := url.Values{}
 				errs.Set("username", "User already exists")
 
-				return RenderPage(c, h.sm,
+				return server.RenderPage(c, h.sm,
 					html.RegisterMain(form, errs, c.CSRF),
 				)
 			}
@@ -170,7 +170,7 @@ func (h *UsersHandler) RegisterUser(c *Context) error {
 }
 
 // Delete a user.
-func (h *UsersHandler) Delete(c *Context) error {
+func (h *UsersHandler) Delete(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -193,7 +193,7 @@ func (h *UsersHandler) Delete(c *Context) error {
 			return err
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", fmt.Sprintf("User deleted"))
+		h.sm.Put(c.Request().Context(), "flash-success", "User deleted")
 
 		hxhttp.SetRefresh(c.Response().Header())
 
@@ -205,13 +205,13 @@ func (h *UsersHandler) Delete(c *Context) error {
 
 // Register the handler.
 func (h *UsersHandler) Register(g *echo.Group) {
-	g.GET("/users", Wrap(h.db, h.sm, h.Users))
+	g.GET("/users", server.Wrap(h.db, h.sm, h.Users))
 
-	g.POST("/delete-user", Wrap(h.db, h.sm, h.Delete))
-	g.POST("/invite", Wrap(h.db, h.sm, h.Invite))
+	g.POST("/delete-user", server.Wrap(h.db, h.sm, h.Delete))
+	g.POST("/invite", server.Wrap(h.db, h.sm, h.Invite))
 
-	g.GET("/register/:token", Wrap(h.db, h.sm, h.RegisterUser))
-	g.POST("/register/:token", Wrap(h.db, h.sm, h.RegisterUser))
+	g.GET("/register/:token", server.Wrap(h.db, h.sm, h.RegisterUser))
+	g.POST("/register/:token", server.Wrap(h.db, h.sm, h.RegisterUser))
 }
 
 // NewUsersHandler creates a new users handler.

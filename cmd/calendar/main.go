@@ -98,24 +98,82 @@ func run() error {
 		}
 	})
 
+	e := server.NewServer()
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		if err := server.HandleError(err, c); err != nil {
+			slog.Error("error handling error", slog.String("error", err.Error()))
+		}
+	}
+
 	// Initialize the session store.
 	store, err := bunstore.New(db)
 	if err != nil {
 		return wreck.Internal.New("error creating sqlite session store", err)
 	}
 
-	sm := server.NewSessionManager(store)
-	e := server.NewServer(db, sm, cfg.BaseURL)
+	sm := server.NewSessionManager(store, e)
 
-	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
-		c := e.NewContext(r, w)
-		c.Error(err)
+	// Static assets.
+	calendar.RegisterAssetsHandler(e)
+
+	// Setup.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewSetupHandler(db, sm)
+		h.Register(g)
 	}
 
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		if err := handler.HandleError(err, c); err != nil {
-			slog.Error("error handling error", slog.String("error", err.Error()))
-		}
+	// Authentication.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewAuthenticationHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Events.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewEventsHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Events management.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewEditEventHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Users management.
+	{
+		g := e.Group("",
+			echo.WrapMiddleware(sm.LoadAndSave),
+		)
+
+		h := handler.NewUsersHandler(db, sm)
+		h.Register(g)
+	}
+
+	// Feeds.
+	{
+		// TODO: proper caching middleware for RSS and calendar feeds.
+		// Should support conditional get.
+		g := e.Group("")
+
+		h := handler.NewFeedHandler(db, cfg.BaseURL)
+		h.Register(g)
 	}
 
 	g.Go(func() error {

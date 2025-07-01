@@ -14,6 +14,7 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 )
 
@@ -24,12 +25,12 @@ type FeedHandler struct {
 }
 
 // HandleRSS handles RSS feeds.
-func (h *FeedHandler) HandleRSS(c *Context) error {
+func (h *FeedHandler) HandleRSS(c *server.Context) error {
 	return h.handleRSSFeed(c, "rss")
 }
 
 // HandleICal handles iCal feeds.
-func (h *FeedHandler) HandleICal(c *Context) error {
+func (h *FeedHandler) HandleICal(c *server.Context) error {
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
@@ -66,7 +67,7 @@ func (h *FeedHandler) HandleICal(c *Context) error {
 	return cal.SerializeTo(c.Response())
 }
 
-func (h *FeedHandler) handleRSSFeed(c *Context, _ string) error {
+func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 	events, err := h.getEvents(c)
 	if err != nil {
 		return err
@@ -117,7 +118,7 @@ func (h *FeedHandler) handleRSSFeed(c *Context, _ string) error {
 	return e.Encode(x)
 }
 
-func (h *FeedHandler) getEvents(c *Context) ([]*domain.Event, error) {
+func (h *FeedHandler) getEvents(c *server.Context) ([]*domain.Event, error) {
 	return model.NewEventsQuery().
 		WithStartAtFrom(time.Now()).
 		WithOrder(0, model.OrderCreatedAtAsc).
@@ -127,8 +128,8 @@ func (h *FeedHandler) getEvents(c *Context) ([]*domain.Event, error) {
 
 // Register the handler.
 func (h *FeedHandler) Register(g *echo.Group) {
-	g.GET("/feed", Wrap(h.db, nil, h.HandleRSS))
-	g.GET("/calendar.ics", Wrap(h.db, nil, h.HandleICal))
+	g.GET("/feed", server.Wrap(h.db, nil, h.HandleRSS))
+	g.GET("/calendar.ics", server.Wrap(h.db, nil, h.HandleICal))
 }
 
 // NewFeedHandler creates a new feed handler.

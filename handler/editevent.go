@@ -16,6 +16,7 @@ import (
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -27,7 +28,7 @@ type EditEventHandler struct {
 }
 
 // Edit handles adding and editing events.
-func (h *EditEventHandler) Edit(c *Context) error {
+func (h *EditEventHandler) Edit(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -71,13 +72,13 @@ func (h *EditEventHandler) Edit(c *Context) error {
 			req.TimezoneOffset = offset
 		}
 
-		return RenderPage(c, h.sm,
+		return server.RenderPage(c, h.sm,
 			html.EditEventMain(req, nil, c.CSRF),
 		)
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c, h.sm,
+			return server.RenderPage(c, h.sm,
 				html.EditEventMain(req, errs, c.CSRF),
 			)
 		}
@@ -86,7 +87,7 @@ func (h *EditEventHandler) Edit(c *Context) error {
 		if err != nil {
 			errs := url.Values{}
 			errs.Set("start_at", "Invalid start_at value")
-			return RenderPage(c, h.sm,
+			return server.RenderPage(c, h.sm,
 				html.EditEventMain(req, errs, c.CSRF),
 			)
 		}
@@ -145,7 +146,7 @@ func (h *EditEventHandler) Edit(c *Context) error {
 }
 
 // Delete handles deleting events.
-func (h *EditEventHandler) Delete(c *Context) error {
+func (h *EditEventHandler) Delete(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -180,7 +181,7 @@ func (h *EditEventHandler) Delete(c *Context) error {
 }
 
 // Preview returns a preview of the event.
-func (h *EditEventHandler) Preview(c *Context) error {
+func (h *EditEventHandler) Preview(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -213,7 +214,7 @@ func (h *EditEventHandler) Preview(c *Context) error {
 }
 
 // GetTimezone returns timezone offset by geo coordinates.
-func (h *EditEventHandler) GetTimezone(c *Context) error {
+func (h *EditEventHandler) GetTimezone(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -294,13 +295,13 @@ func (h *EditEventHandler) GetTimezone(c *Context) error {
 
 // Register the handler.
 func (h *EditEventHandler) Register(g *echo.Group) {
-	g.GET("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
-	g.POST("/edit/:event_id", Wrap(h.db, h.sm, h.Edit))
+	g.GET("/edit/:event_id", server.Wrap(h.db, h.sm, h.Edit))
+	g.POST("/edit/:event_id", server.Wrap(h.db, h.sm, h.Edit))
 
-	g.POST("/delete/:event_id", Wrap(h.db, h.sm, h.Delete))
+	g.POST("/delete/:event_id", server.Wrap(h.db, h.sm, h.Delete))
 
-	g.POST("/preview", Wrap(h.db, h.sm, h.Preview))
-	g.GET("/gettimezone", Wrap(h.db, h.sm, h.GetTimezone))
+	g.POST("/preview", server.Wrap(h.db, h.sm, h.Preview))
+	g.GET("/gettimezone", server.Wrap(h.db, h.sm, h.GetTimezone))
 }
 
 // NewEditEventHandler creates a new edit event handler.
