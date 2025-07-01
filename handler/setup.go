@@ -14,6 +14,7 @@ import (
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 )
 
@@ -24,7 +25,7 @@ type SetupHandler struct {
 }
 
 // Setup handles the setup page.
-func (h *SetupHandler) Setup(c *Context) error {
+func (h *SetupHandler) Setup(c *server.Context) error {
 	if c.Settings != nil {
 		// Already set up.
 		return wreck.NotFound.New("")
@@ -39,7 +40,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 			Description: c.Settings.Description,
 		}
 
-		return RenderPage(c, h.sm,
+		return server.RenderPage(c, h.sm,
 			html.SetupMain(form, nil, c.CSRF),
 		)
 
@@ -50,7 +51,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			return RenderPage(c, h.sm,
+			return server.RenderPage(c, h.sm,
 				html.SetupMain(form, errs, c.CSRF),
 			)
 		}
@@ -70,7 +71,7 @@ func (h *SetupHandler) Setup(c *Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return RenderPage(c, h.sm,
+				return server.RenderPage(c, h.sm,
 					html.SetupMain(form, errs, c.CSRF),
 				)
 			}
@@ -105,8 +106,8 @@ func (h *SetupHandler) Setup(c *Context) error {
 
 // Register the handler.
 func (h *SetupHandler) Register(g *echo.Group) {
-	g.GET("/setup", Wrap(h.db, h.sm, h.Setup))
-	g.POST("/setup", Wrap(h.db, h.sm, h.Setup))
+	g.GET("/setup", server.Wrap(h.db, h.sm, h.Setup))
+	g.POST("/setup", server.Wrap(h.db, h.sm, h.Setup))
 }
 
 // NewSetupHandler creates a new setup handler.

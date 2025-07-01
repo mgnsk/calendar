@@ -13,6 +13,7 @@ import (
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 )
 
@@ -23,14 +24,14 @@ type AuthenticationHandler struct {
 }
 
 // Login handles login page.
-func (h *AuthenticationHandler) Login(c *Context) error {
+func (h *AuthenticationHandler) Login(c *server.Context) error {
 	if c.User != nil {
 		return c.Redirect(http.StatusSeeOther, "/")
 	}
 
 	switch c.Request().Method {
 	case http.MethodGet:
-		return RenderPage(c, h.sm,
+		return server.RenderPage(c, h.sm,
 			html.LoginMain(contract.LoginForm{}, nil, c.CSRF),
 		)
 
@@ -41,7 +42,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 		}
 
 		if errs := req.Validate(); len(errs) > 0 {
-			return RenderPage(c, h.sm,
+			return server.RenderPage(c, h.sm,
 				html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 			)
 		}
@@ -60,7 +61,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c, h.sm,
+				return server.RenderPage(c, h.sm,
 					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
@@ -75,7 +76,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return RenderPage(c, h.sm,
+				return server.RenderPage(c, h.sm,
 					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
 				)
 			}
@@ -98,7 +99,7 @@ func (h *AuthenticationHandler) Login(c *Context) error {
 }
 
 // Logout handles logout page.
-func (h *AuthenticationHandler) Logout(c *Context) error {
+func (h *AuthenticationHandler) Logout(c *server.Context) error {
 	if err := h.sm.Destroy(c.Request().Context()); err != nil {
 		return err
 	}
@@ -107,10 +108,10 @@ func (h *AuthenticationHandler) Logout(c *Context) error {
 
 // Register the handler.
 func (h *AuthenticationHandler) Register(g *echo.Group) {
-	g.GET("/login", Wrap(h.db, h.sm, h.Login))
-	g.POST("/login", Wrap(h.db, h.sm, h.Login))
+	g.GET("/login", server.Wrap(h.db, h.sm, h.Login))
+	g.POST("/login", server.Wrap(h.db, h.sm, h.Login))
 
-	g.GET("/logout", Wrap(h.db, h.sm, h.Logout))
+	g.GET("/logout", server.Wrap(h.db, h.sm, h.Logout))
 }
 
 // NewAuthenticationHandler creates a new authentication handler.

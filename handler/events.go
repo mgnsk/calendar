@@ -14,6 +14,7 @@ import (
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -25,7 +26,7 @@ type EventsHandler struct {
 }
 
 // Latest handles latest events.
-func (h *EventsHandler) Latest(c *Context) error {
+func (h *EventsHandler) Latest(c *server.Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery(),
@@ -34,7 +35,7 @@ func (h *EventsHandler) Latest(c *Context) error {
 }
 
 // Upcoming handles upcoming events.
-func (h *EventsHandler) Upcoming(c *Context) error {
+func (h *EventsHandler) Upcoming(c *server.Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery().WithStartAtFrom(time.Now()),
@@ -43,7 +44,7 @@ func (h *EventsHandler) Upcoming(c *Context) error {
 }
 
 // Past handles past events.
-func (h *EventsHandler) Past(c *Context) error {
+func (h *EventsHandler) Past(c *server.Context) error {
 	return h.events(
 		c,
 		model.NewEventsQuery().WithStartAtUntil(time.Now()),
@@ -52,7 +53,7 @@ func (h *EventsHandler) Past(c *Context) error {
 }
 
 // MyEvents handles current user events.
-func (h *EventsHandler) MyEvents(c *Context) error {
+func (h *EventsHandler) MyEvents(c *server.Context) error {
 	if c.User == nil {
 		return wreck.Forbidden.New("Must be logged in")
 	}
@@ -65,7 +66,7 @@ func (h *EventsHandler) MyEvents(c *Context) error {
 }
 
 // Tags handles tags.
-func (h *EventsHandler) Tags(c *Context) error {
+func (h *EventsHandler) Tags(c *server.Context) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
 		if err != nil {
@@ -84,12 +85,12 @@ func (h *EventsHandler) Tags(c *Context) error {
 		return html.TagListPartial(tags, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c, h.sm,
+	return server.RenderPage(c, h.sm,
 		html.TagsMain(c.CSRF),
 	)
 }
 
-func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order model.EventOrder) error {
+func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		req := contract.ListEventsRequest{}
 		if err := c.Bind(&req); err != nil {
@@ -130,27 +131,27 @@ func (h *EventsHandler) events(c *Context, query model.EventsQueryBuilder, order
 		return html.EventListPartial(c.User, cursor, events, c.CSRF).Render(c.Response())
 	}
 
-	return RenderPage(c, h.sm,
+	return server.RenderPage(c, h.sm,
 		html.EventsMain(c.CSRF),
 	)
 }
 
 // Register the handler.
 func (h *EventsHandler) Register(g *echo.Group) {
-	g.GET("/", Wrap(h.db, h.sm, h.Latest))
-	g.POST("/", Wrap(h.db, h.sm, h.Latest)) // Fox htmx.
+	g.GET("/", server.Wrap(h.db, h.sm, h.Latest))
+	g.POST("/", server.Wrap(h.db, h.sm, h.Latest)) // Fox htmx.
 
-	g.GET("/upcoming", Wrap(h.db, h.sm, h.Upcoming))
-	g.POST("/upcoming", Wrap(h.db, h.sm, h.Upcoming)) // Fox htmx.
+	g.GET("/upcoming", server.Wrap(h.db, h.sm, h.Upcoming))
+	g.POST("/upcoming", server.Wrap(h.db, h.sm, h.Upcoming)) // Fox htmx.
 
-	g.GET("/past", Wrap(h.db, h.sm, h.Past))
-	g.POST("/past", Wrap(h.db, h.sm, h.Past)) // For htmx.
+	g.GET("/past", server.Wrap(h.db, h.sm, h.Past))
+	g.POST("/past", server.Wrap(h.db, h.sm, h.Past)) // For htmx.
 
-	g.GET("/tags", Wrap(h.db, h.sm, h.Tags))
-	g.POST("/tags", Wrap(h.db, h.sm, h.Tags)) // Fox htmx.
+	g.GET("/tags", server.Wrap(h.db, h.sm, h.Tags))
+	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // Fox htmx.
 
-	g.GET("/my-events", Wrap(h.db, h.sm, h.MyEvents))
-	g.POST("/my-events", Wrap(h.db, h.sm, h.MyEvents)) // Fox htmx.
+	g.GET("/my-events", server.Wrap(h.db, h.sm, h.MyEvents))
+	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // Fox htmx.
 }
 
 // NewEventsHandler creates a new events handler.
