@@ -44,7 +44,10 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				Input(Type("hidden"), Name("easymde_cache_key"), Value(form.EventID.String())),
 				Input(Type("hidden"), Name("latitude"), Value(strconv.FormatFloat(form.Latitude, 'f', -1, 64))),
 				Input(Type("hidden"), Name("longitude"), Value(strconv.FormatFloat(form.Longitude, 'f', -1, 64))),
+
 				Input(Type("hidden"), Name("timezone_offset"), Value(strconv.FormatInt(int64(form.TimezoneOffset), 10))),
+				Input(Type("hidden"), Name("user_timezone")),
+				Script(Raw(`document.querySelector('[name="user_timezone"]').value = Intl.DateTimeFormat().resolvedOptions().timeZone`)),
 
 				Button(buttonClasses(),
 					Type("submit"),

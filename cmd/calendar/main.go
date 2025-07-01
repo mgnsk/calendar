@@ -20,6 +20,7 @@ import (
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
+	"github.com/ringsaturn/tzf"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -113,6 +114,11 @@ func run() error {
 
 	sm := server.NewSessionManager(store, e)
 
+	finder, err := tzf.NewDefaultFinder()
+	if err != nil {
+		return wreck.Internal.New("error creating tzf", err)
+	}
+
 	// Static assets.
 	calendar.RegisterAssetsHandler(e)
 
@@ -152,7 +158,7 @@ func run() error {
 			echo.WrapMiddleware(sm.LoadAndSave),
 		)
 
-		h := handler.NewEditEventHandler(db, sm)
+		h := handler.NewEditEventHandler(db, sm, finder)
 		h.Register(g)
 	}
 
