@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/wreck"
 )
 
 // EditEventForm is an edit event form.
@@ -20,6 +19,7 @@ type EditEventForm struct {
 	Latitude       float64      `form:"latitude"`
 	Longitude      float64      `form:"longitude"`
 	TimezoneOffset int          `form:"timezone_offset"`
+	UserTimezone   string       `form:"user_timezone"`
 }
 
 // Validate the form.
@@ -42,6 +42,8 @@ func (r *EditEventForm) Validate() url.Values {
 
 	if r.StartAt == "" {
 		errs.Set("start_at", "Required")
+	} else if _, err := time.Parse(FormDateTimeLayout, r.StartAt); err != nil {
+		errs.Set("start_at", "Invalid format")
 	}
 
 	if r.Location == "" {
@@ -49,18 +51,6 @@ func (r *EditEventForm) Validate() url.Values {
 	}
 
 	return errs
-}
-
-// ParseStartAt parses event start at time.
-func (r *EditEventForm) ParseStartAt() (time.Time, error) {
-	loc := time.FixedZone("", r.TimezoneOffset)
-
-	startAt, err := time.ParseInLocation(FormDateTimeLayout, r.StartAt, loc)
-	if err != nil {
-		return time.Time{}, wreck.InvalidValue.New("Invalid start_at value", err)
-	}
-
-	return startAt, nil
 }
 
 // FormDateTimeLayout is the HTML datetime-local input time format.
