@@ -109,12 +109,7 @@ func run() error {
 		return wreck.Internal.New("error creating sqlite session store", err)
 	}
 
-	sm := server.NewSessionManager(store, e)
-
-	finder, err := tzf.NewDefaultFinder()
-	if err != nil {
-		return wreck.Internal.New("error creating tzf", err)
-	}
+	sm := server.NewSessionManager(store)
 
 	sessionMiddleware := session.LoadAndSaveWithConfig(session.Config{
 		ErrorHandler: func(err error, c echo.Context) {
@@ -127,6 +122,11 @@ func run() error {
 		},
 		SessionManager: sm,
 	})
+
+	finder, err := tzf.NewDefaultFinder()
+	if err != nil {
+		return wreck.Internal.New("error creating tzf", err)
+	}
 
 	// Static assets.
 	calendar.RegisterAssetsHandler(e)
