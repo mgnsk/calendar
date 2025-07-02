@@ -62,37 +62,8 @@ func Logger(c echo.Context) *slog.Logger {
 	)
 }
 
-// ErrorLogger is an error logging middleware.
-// It calls Echo's error handler which renders an error page.
-//
-// After logging, the error is not bubbled up.
-func ErrorLogger() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			err := next(c)
-			if err == nil {
-				return nil
-			}
-
-			c.Error(err)
-
-			logger := Logger(c).With(wreck.Args(err)...)
-
-			switch {
-			case c.Response().Status >= 500:
-				logger.Error("server error", slog.Any("reason", err))
-
-			case c.Response().Status >= 400 && c.Response().Status <= 403:
-				logger.Error("client error", slog.Any("reason", err))
-			}
-
-			return nil
-		}
-	}
-}
-
 // ErrorHandler is Echo server's error handler.
-// It renders HTML error pages.
+// It renders HTML error pages and logs errors.
 func ErrorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
 		if c.Response().Committed {
@@ -121,13 +92,25 @@ func ErrorHandler() echo.HTTPErrorHandler {
 
 		c.Response().Status = code
 
-		html.Page(html.PageProps{
+		if err := html.Page(html.PageProps{
 			Title:        "Error",
 			User:         nil,
 			Path:         c.Path(),
 			CSRF:         "",
 			Children:     html.ErrorMain(errText),
 			FlashSuccess: "",
-		}).Render(c.Response())
+		}).Render(c.Response()); err != nil {
+			Logger(c).With(wreck.Args(err)...).Error("error rendering error page", slog.Any("reason", err))
+		}
+
+		logger := Logger(c).With(wreck.Args(err)...)
+
+		switch {
+		case c.Response().Status >= 500:
+			logger.Error("server error", slog.Any("reason", err))
+
+		case c.Response().Status >= 400 && c.Response().Status <= 403:
+			logger.Error("client error", slog.Any("reason", err))
+		}
 	}
 }

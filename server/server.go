@@ -15,7 +15,6 @@ func NewServer() *echo.Echo {
 	e.HTTPErrorHandler = ErrorHandler()
 
 	e.Use(
-		ErrorLogger(),
 		Recover(),
 
 		middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
