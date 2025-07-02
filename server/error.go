@@ -77,7 +77,7 @@ func ErrorHandler() echo.HTTPErrorHandler {
 
 		if errors.Is(err, context.DeadlineExceeded) {
 			code = http.StatusGatewayTimeout
-			msg = http.StatusText(http.StatusRequestTimeout)
+			msg = http.StatusText(http.StatusGatewayTimeout)
 		} else if werr := *new(wreck.Error); errors.As(err, &werr) {
 			if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
 				code = int(v.Int64())
