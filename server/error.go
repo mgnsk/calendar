@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -40,7 +41,7 @@ func Recover() echo.MiddlewareFunc {
 
 					returnErr = wreck.Internal.
 						With(wreck.Stack, string(stack)).
-						New("recovered panic", err)
+						New("", err)
 				}
 			}()
 
@@ -72,20 +73,20 @@ func ErrorHandler() echo.HTTPErrorHandler {
 
 		var (
 			code = http.StatusInternalServerError
-			msg  = http.StatusText(http.StatusInternalServerError)
+			msg  = "Something went wrong"
 		)
 
 		if errors.Is(err, context.DeadlineExceeded) {
 			code = http.StatusGatewayTimeout
-			msg = http.StatusText(http.StatusGatewayTimeout)
+			msg = "Timeout"
 		} else if werr := *new(wreck.Error); errors.As(err, &werr) {
 			if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
 				code = int(v.Int64())
 			}
-			msg = werr.Message()
+			msg = cmp.Or(werr.Message(), msg)
 		} else if he, ok := err.(*echo.HTTPError); ok {
 			code = he.Code
-			msg = fmt.Sprint(he.Message)
+			msg = cmp.Or(fmt.Sprint(he.Message), msg)
 		}
 
 		errText := fmt.Sprintf("Error %d: %s", code, msg)
