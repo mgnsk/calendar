@@ -22,7 +22,7 @@ func NewServer() *echo.Echo {
 				// Pass through error.
 				return err
 			},
-			Timeout: time.Second,
+			Timeout: time.Minute,
 		}),
 
 		middleware.SecureWithConfig(middleware.SecureConfig{
