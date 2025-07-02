@@ -117,7 +117,6 @@ func run() error {
 	}
 
 	sessionMiddleware := session.LoadAndSaveWithConfig(session.Config{
-		Skipper: nil,
 		ErrorHandler: func(err error, c echo.Context) {
 			if errors.Is(err, context.DeadlineExceeded) {
 				return
