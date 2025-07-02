@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
+	session "github.com/canidam/echo-scs-session"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
@@ -100,11 +102,6 @@ func run() error {
 	})
 
 	e := server.NewServer()
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		if err := server.HandleError(err, c); err != nil {
-			slog.Error("error handling error", slog.String("error", err.Error()))
-		}
-	}
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)
@@ -119,13 +116,26 @@ func run() error {
 		return wreck.Internal.New("error creating tzf", err)
 	}
 
+	sessionMiddleware := session.LoadAndSaveWithConfig(session.Config{
+		Skipper: nil,
+		ErrorHandler: func(err error, c echo.Context) {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return
+			}
+
+			server.Logger(c).With(wreck.Args(err)...).
+				Error("session error", slog.Any("reason", err))
+		},
+		SessionManager: sm,
+	})
+
 	// Static assets.
 	calendar.RegisterAssetsHandler(e)
 
 	// Setup.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewSetupHandler(db, sm)
@@ -135,7 +145,7 @@ func run() error {
 	// Authentication.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewAuthenticationHandler(db, sm)
@@ -145,7 +155,7 @@ func run() error {
 	// Events.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewEventsHandler(db, sm)
@@ -155,7 +165,7 @@ func run() error {
 	// Events management.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewEditEventHandler(db, sm, finder)
@@ -165,7 +175,7 @@ func run() error {
 	// Users management.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewUsersHandler(db, sm)

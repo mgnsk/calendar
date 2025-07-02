@@ -23,10 +23,5 @@ func NewSessionManager(store scs.Store, e *echo.Echo) *scs.SessionManager {
 	sm.Cookie.SameSite = http.SameSiteStrictMode
 	sm.Cookie.Secure = true
 
-	sm.ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
-		c := e.NewContext(r, w)
-		c.Error(err)
-	}
-
 	return sm
 }

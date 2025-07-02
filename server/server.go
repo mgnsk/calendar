@@ -12,8 +12,19 @@ import (
 func NewServer() *echo.Echo {
 	e := echo.New()
 
+	e.HTTPErrorHandler = ErrorHandler()
+
 	e.Use(
+		ErrorLogger(),
 		Recover(),
+
+		middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
+			ErrorHandler: func(err error, _ echo.Context) error {
+				// Pass through error.
+				return err
+			},
+			Timeout: time.Second,
+		}),
 
 		middleware.SecureWithConfig(middleware.SecureConfig{
 			XSSProtection:         "1; mode=block",
@@ -22,8 +33,6 @@ func NewServer() *echo.Echo {
 			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' *.openstreetmap.org",
 			HSTSPreloadEnabled:    false,
 		}),
-
-		middleware.RequestID(),
 
 		middleware.BodyLimit("1M"),
 
@@ -41,10 +50,8 @@ func NewServer() *echo.Echo {
 		}),
 	)
 
-	e.Server.ReadHeaderTimeout = time.Minute
 	e.Server.ReadTimeout = time.Minute
 	e.Server.WriteTimeout = time.Minute
-	e.Server.IdleTimeout = time.Minute
 
 	return e
 }
