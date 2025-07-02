@@ -10,7 +10,6 @@ require (
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/canidam/echo-scs-session v1.0.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
@@ -108,8 +107,6 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-replace github.com/canidam/echo-scs-session => github.com/mgnsk/echo-scs-session v0.0.0-20250702190555-5decef23c9c9
 
 tool (
 	github.com/air-verse/air

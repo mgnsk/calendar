@@ -115,3 +115,37 @@ func ErrorHandler() echo.HTTPErrorHandler {
 		}
 	}
 }
+
+// NewEchoContext creates an Echo context from response and request.
+func NewEchoContext(e *echo.Echo, w http.ResponseWriter, r *http.Request) echo.Context {
+	c := e.NewContext(r, w)
+	e.Router().Find(r.Method, echo.GetPath(r), c)
+	return c
+}
+
+// Middleware is a go std middleware function.
+type Middleware func(http.Handler) http.Handler
+
+// WrapRecovery creates wraps a go std middleware with panic recovery
+// and error handling from Echo.
+func WrapRecovery(e *echo.Echo, mw Middleware) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := mw(next)
+
+			defer func() {
+				if err := recover(); err != nil {
+					c := NewEchoContext(e, w, r)
+					switch err := err.(type) {
+					case error:
+						c.Error(err)
+					default:
+						c.Error(fmt.Errorf("%v", err))
+					}
+				}
+			}()
+
+			h.ServeHTTP(w, r)
+		})
+	}
+}

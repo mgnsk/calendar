@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
-	session "github.com/canidam/echo-scs-session"
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
@@ -110,18 +109,15 @@ func run() error {
 	}
 
 	sm := server.NewSessionManager(store)
+	sm.ErrorFunc = func(_ http.ResponseWriter, _ *http.Request, err error) {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return
+		}
 
-	sessionMiddleware := session.LoadAndSaveWithConfig(session.Config{
-		ErrorHandler: func(err error, c echo.Context) {
-			if errors.Is(err, context.DeadlineExceeded) {
-				return
-			}
-
-			server.Logger(c).With(wreck.Args(err)...).
-				Error("session error", slog.Any("reason", err))
-		},
-		SessionManager: sm,
-	})
+		// This panic is caught by CreateWrapRecovery.
+		panic(err)
+	}
+	sessionMiddleware := echo.WrapMiddleware(server.WrapRecovery(e, sm.LoadAndSave))
 
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
