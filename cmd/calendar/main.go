@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
@@ -109,15 +107,7 @@ func run() error {
 	}
 
 	sm := server.NewSessionManager(store)
-	sm.ErrorFunc = func(_ http.ResponseWriter, _ *http.Request, err error) {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return
-		}
-
-		// This panic is caught by CreateWrapRecovery.
-		panic(err)
-	}
-	sessionMiddleware := echo.WrapMiddleware(server.WrapRecovery(e, sm.LoadAndSave))
+	sessionMiddleware := server.NewSessionMiddleware(sm)
 
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
