@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -40,7 +41,7 @@ func Recover() echo.MiddlewareFunc {
 
 					returnErr = wreck.Internal.
 						With(wreck.Stack, string(stack)).
-						New("recovered panic", err)
+						New("", err)
 				}
 			}()
 
@@ -49,68 +50,68 @@ func Recover() echo.MiddlewareFunc {
 	}
 }
 
-// HandleError is a custom function to handle errors.
-func HandleError(err error, c echo.Context) error {
-	if c.Response().Committed {
-		return nil
-	}
-
-	var (
-		msg  string
-		code = http.StatusInternalServerError
-
-		logAttrs []any
-	)
-
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		code = http.StatusRequestTimeout
-	} else if werr := *new(wreck.Error); errors.As(err, &werr) {
-		msg = werr.Message()
-
-		if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
-			code = int(v.Int64())
-		}
-
-		logAttrs = append(logAttrs, wreck.Args(err)...)
-	} else if he, ok := err.(*echo.HTTPError); ok {
-		code = he.Code
-	}
-
-	reqID := c.Response().Header().Get(echo.HeaderXRequestID)
-	c.Response().Status = code
-
+// Logger returns a logger with attributes populated from echo context.
+func Logger(c echo.Context) *slog.Logger {
 	req := c.Request()
 	res := c.Response()
 
-	logger := slog.With(
-		"reason", err,
-		"status", code,
+	return slog.With(
+		"status", res.Status,
 		"method", req.Method,
 		"uri", req.RequestURI,
-		"request_id", reqID,
 		"real_ip", c.RealIP(),
 	)
+}
 
-	if len(logAttrs) > 0 {
-		logger = logger.With(logAttrs...)
+// ErrorHandler is Echo server's error handler.
+// It renders HTML error pages and logs errors.
+func ErrorHandler() echo.HTTPErrorHandler {
+	return func(err error, c echo.Context) {
+		if c.Response().Committed {
+			return
+		}
+
+		var (
+			code = http.StatusInternalServerError
+			msg  = "Something went wrong"
+		)
+
+		if errors.Is(err, context.DeadlineExceeded) {
+			code = http.StatusGatewayTimeout
+			msg = "Timeout"
+		} else if werr := *new(wreck.Error); errors.As(err, &werr) {
+			if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
+				code = int(v.Int64())
+			}
+			msg = cmp.Or(werr.Message(), msg)
+		} else if he, ok := err.(*echo.HTTPError); ok {
+			code = he.Code
+			msg = cmp.Or(fmt.Sprint(he.Message), msg)
+		}
+
+		errText := fmt.Sprintf("Error %d: %s", code, msg)
+
+		c.Response().Status = code
+
+		if err := html.Page(html.PageProps{
+			Title:        "Error",
+			User:         nil,
+			Path:         c.Path(),
+			CSRF:         "",
+			Children:     html.ErrorMain(errText),
+			FlashSuccess: "",
+		}).Render(c.Response()); err != nil {
+			Logger(c).With(wreck.Args(err)...).Error("error rendering error page", slog.Any("reason", err))
+		}
+
+		logger := Logger(c).With(wreck.Args(err)...)
+
+		switch {
+		case c.Response().Status >= 500:
+			logger.Error("server error", slog.Any("reason", err))
+
+		case c.Response().Status >= 400 && c.Response().Status <= 403:
+			logger.Error("client error", slog.Any("reason", err))
+		}
 	}
-
-	switch {
-	case res.Status >= 500:
-		logger.ErrorContext(c.Request().Context(), "server error")
-
-	case res.Status >= 400 && res.Status <= 403:
-		logger.ErrorContext(c.Request().Context(), "client error")
-	}
-
-	errText := fmt.Sprintf("Error %d: %s (request ID: %s)", code, msg, reqID)
-
-	return html.Page(html.PageProps{
-		Title:        "Error",
-		User:         nil,
-		Path:         c.Path(),
-		CSRF:         "",
-		Children:     html.ErrorMain(errText),
-		FlashSuccess: "",
-	}).Render(c.Response())
 }

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
@@ -100,11 +99,6 @@ func run() error {
 	})
 
 	e := server.NewServer()
-	e.HTTPErrorHandler = func(err error, c echo.Context) {
-		if err := server.HandleError(err, c); err != nil {
-			slog.Error("error handling error", slog.String("error", err.Error()))
-		}
-	}
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)
@@ -112,7 +106,8 @@ func run() error {
 		return wreck.Internal.New("error creating sqlite session store", err)
 	}
 
-	sm := server.NewSessionManager(store, e)
+	sm := server.NewSessionManager(store)
+	sessionMiddleware := server.NewSessionMiddleware(sm)
 
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
@@ -125,7 +120,7 @@ func run() error {
 	// Setup.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewSetupHandler(db, sm)
@@ -135,7 +130,7 @@ func run() error {
 	// Authentication.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewAuthenticationHandler(db, sm)
@@ -145,7 +140,7 @@ func run() error {
 	// Events.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewEventsHandler(db, sm)
@@ -155,7 +150,7 @@ func run() error {
 	// Events management.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewEditEventHandler(db, sm, finder)
@@ -165,7 +160,7 @@ func run() error {
 	// Users management.
 	{
 		g := e.Group("",
-			echo.WrapMiddleware(sm.LoadAndSave),
+			sessionMiddleware,
 		)
 
 		h := handler.NewUsersHandler(db, sm)
