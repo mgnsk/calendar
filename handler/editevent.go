@@ -8,12 +8,12 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
@@ -34,7 +34,7 @@ type EditEventHandler struct {
 // Edit handles adding and editing events.
 func (h *EditEventHandler) Edit(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	req := contract.EditEventForm{}
@@ -55,7 +55,7 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 		}
 
 		if c.User.Role != domain.Admin && c.User.ID != event.UserID {
-			return wreck.Forbidden.New("Non-admin users can only edit own events")
+			return calendar.Forbidden.New("Non-admin users can only edit own events")
 		}
 
 		ev = event
@@ -145,14 +145,14 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", eventID))
 
 	default:
-		return wreck.NotFound.New("Not found")
+		return calendar.NotFound.New("Not found")
 	}
 }
 
 // Delete handles deleting events.
 func (h *EditEventHandler) Delete(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	req := contract.DeleteEventRequest{}
@@ -166,7 +166,7 @@ func (h *EditEventHandler) Delete(c *server.Context) error {
 	}
 
 	if c.User.Role != domain.Admin && c.User.ID != ev.UserID {
-		return wreck.Forbidden.New("Non-admin users can only edit own events")
+		return calendar.Forbidden.New("Non-admin users can only edit own events")
 	}
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
@@ -181,13 +181,13 @@ func (h *EditEventHandler) Delete(c *server.Context) error {
 		return nil
 	}
 
-	return wreck.NotFound.New("Not found")
+	return calendar.NotFound.New("Not found")
 }
 
 // Preview returns a preview of the event.
 func (h *EditEventHandler) Preview(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	req := contract.EditEventForm{}
@@ -244,7 +244,7 @@ func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, 
 		l, err := time.LoadLocation(ianaTimezone)
 		if err != nil {
 			// TODO: should we log this error and still use UTC?
-			return time.Time{}, wreck.InvalidValue.New("Invalid location timezone", err)
+			return time.Time{}, calendar.InvalidValue.New("Invalid location timezone", err)
 		}
 
 		loc = l
@@ -252,7 +252,7 @@ func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, 
 
 	startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
 	if err != nil {
-		return time.Time{}, wreck.InvalidValue.New("Invalid start_at value", err)
+		return time.Time{}, calendar.InvalidValue.New("Invalid start_at value", err)
 	}
 
 	return startAt, nil

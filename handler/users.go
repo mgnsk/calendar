@@ -10,12 +10,12 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
@@ -30,11 +30,11 @@ type UsersHandler struct {
 // Users handles users page.
 func (h *UsersHandler) Users(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	if c.User.Role != domain.Admin {
-		return wreck.Forbidden.New("Only admins can view users")
+		return calendar.Forbidden.New("Only admins can view users")
 	}
 
 	users, err := model.ListUsers(c.Request().Context(), h.db)
@@ -50,11 +50,11 @@ func (h *UsersHandler) Users(c *server.Context) error {
 // Invite handles invite link generation.
 func (h *UsersHandler) Invite(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	if c.User.Role != domain.Admin {
-		return wreck.Forbidden.New("Only admins can invite users")
+		return calendar.Forbidden.New("Only admins can invite users")
 	}
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
@@ -72,7 +72,7 @@ func (h *UsersHandler) Invite(c *server.Context) error {
 		return html.InviteLinkPartial(token).Render(c.Response())
 	}
 
-	return wreck.NotFound.New("Not found")
+	return calendar.NotFound.New("Not found")
 }
 
 // RegisterUser registers a user with an invite link.
@@ -92,7 +92,7 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 	}
 
 	if !invite.IsValid() {
-		return wreck.NotFound.New("Not found")
+		return calendar.NotFound.New("Not found")
 	}
 
 	switch c.Request().Method {
@@ -122,7 +122,7 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 		}
 
 		if err := newUser.SetPassword(form.Password1); err != nil {
-			if errors.Is(err, wreck.InvalidValue) {
+			if errors.Is(err, calendar.InvalidValue) {
 				errs := url.Values{}
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
@@ -142,7 +142,7 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 
 			return model.InsertUser(ctx, tx, newUser)
 		}); err != nil {
-			if errors.Is(err, wreck.AlreadyExists) {
+			if errors.Is(err, calendar.AlreadyExists) {
 				errs := url.Values{}
 				errs.Set("username", "User already exists")
 
@@ -165,18 +165,18 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
-		return wreck.NotFound.New("Not found")
+		return calendar.NotFound.New("Not found")
 	}
 }
 
 // Delete a user.
 func (h *UsersHandler) Delete(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	if c.User.Role != domain.Admin {
-		return wreck.Forbidden.New("Only admins can delete users")
+		return calendar.Forbidden.New("Only admins can delete users")
 	}
 
 	req := contract.DeleteUserRequest{}
@@ -185,7 +185,7 @@ func (h *UsersHandler) Delete(c *server.Context) error {
 	}
 
 	if c.User.ID == req.UserID {
-		return wreck.Forbidden.New("Cannot delete yourself")
+		return calendar.Forbidden.New("Cannot delete yourself")
 	}
 
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
@@ -200,7 +200,7 @@ func (h *UsersHandler) Delete(c *server.Context) error {
 		return nil
 	}
 
-	return wreck.NotFound.New("Not found")
+	return calendar.NotFound.New("Not found")
 }
 
 // Register the handler.

@@ -4,11 +4,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	. "github.com/mgnsk/calendar/pkg/testing"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -199,7 +199,7 @@ var _ = Describe("deleting events", func() {
 		Expect(model.DeleteEvent(ctx, db, ev)).To(Succeed())
 
 		By("asserting event was deleted", func() {
-			Expect(model.GetEvent(ctx, db, ev.ID)).Error().To(MatchError(wreck.NotFound))
+			Expect(model.GetEvent(ctx, db, ev.ID)).Error().To(MatchError(calendar.NotFound))
 		})
 
 		By("asserting tags are updated", func() {

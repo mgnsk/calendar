@@ -9,11 +9,11 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
@@ -55,7 +55,7 @@ func (h *EventsHandler) Past(c *server.Context) error {
 // MyEvents handles current user events.
 func (h *EventsHandler) MyEvents(c *server.Context) error {
 	if c.User == nil {
-		return wreck.Forbidden.New("Must be logged in")
+		return calendar.Forbidden.New("Must be logged in")
 	}
 
 	return h.events(
@@ -70,7 +70,7 @@ func (h *EventsHandler) Tags(c *server.Context) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
 		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
 		if err != nil {
-			if !errors.Is(err, wreck.NotFound) {
+			if !errors.Is(err, calendar.NotFound) {
 				return err
 			}
 		}
@@ -107,7 +107,7 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 			cursor = req.Offset
 
 		default:
-			return wreck.NotFound.New("Not found")
+			return calendar.NotFound.New("Not found")
 		}
 
 		query = query.
@@ -121,7 +121,7 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 
 		events, err = query.List(c.Request().Context(), h.db, req.Search)
 		if err != nil {
-			if !errors.Is(err, wreck.NotFound) {
+			if !errors.Is(err, calendar.NotFound) {
 				return err
 			}
 		}

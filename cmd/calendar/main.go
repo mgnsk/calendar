@@ -17,7 +17,6 @@ import (
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/sqlite"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/ringsaturn/tzf"
 	"golang.org/x/sync/errgroup"
@@ -35,16 +34,16 @@ func main() {
 func run() error {
 	cfg, err := LoadConfig()
 	if err != nil {
-		return wreck.Internal.New("error loading configuration", err)
+		return calendar.Internal.New("error loading configuration", err)
 	}
 
 	databaseDir, err := filepath.Abs(cfg.DatabaseDir)
 	if err != nil {
-		return wreck.Internal.New("invalid database dir", err)
+		return calendar.Internal.New("invalid database dir", err)
 	}
 
 	if err := os.MkdirAll(databaseDir, 0755); err != nil {
-		return wreck.Internal.New("error creating database dir", err)
+		return calendar.Internal.New("error creating database dir", err)
 	}
 
 	filename := filepath.Join(databaseDir, "calendar.sqlite")
@@ -57,7 +56,7 @@ func run() error {
 	}()
 
 	if err := calendar.MigrateUp(db.DB); err != nil {
-		return wreck.Internal.New("error migrating database", err)
+		return calendar.Internal.New("error migrating database", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -75,7 +74,7 @@ func run() error {
 	// Run SQL optimizer periodic task.
 	g.Go(func() error {
 		if err := sqlite.RunOptimizer(ctx, db.DB); err != nil {
-			return wreck.Internal.New("error running sqlite optimizer", err)
+			return calendar.Internal.New("error running sqlite optimizer", err)
 		}
 		return nil
 	})
@@ -103,7 +102,7 @@ func run() error {
 	// Initialize the session store.
 	store, err := bunstore.New(db)
 	if err != nil {
-		return wreck.Internal.New("error creating sqlite session store", err)
+		return calendar.Internal.New("error creating sqlite session store", err)
 	}
 
 	sm := server.NewSessionManager(store)
@@ -111,7 +110,7 @@ func run() error {
 
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
-		return wreck.Internal.New("error creating tzf", err)
+		return calendar.Internal.New("error creating tzf", err)
 	}
 
 	// Static assets.
@@ -181,7 +180,7 @@ func run() error {
 		slog.Info(fmt.Sprintf("listening at %s", cfg.ListenAddr))
 
 		if err := e.Start(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
-			return wreck.Internal.New("error running server", err)
+			return calendar.Internal.New("error running server", err)
 		}
 
 		return nil
@@ -196,7 +195,7 @@ func run() error {
 		slog.Info("shutting down the server")
 
 		if err := e.Shutdown(ctx); err != nil {
-			return wreck.Internal.New("error shutting down server", err)
+			return calendar.Internal.New("error shutting down server", err)
 		}
 
 		return nil

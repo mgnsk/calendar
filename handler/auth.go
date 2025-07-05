@@ -9,10 +9,10 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 )
@@ -54,7 +54,7 @@ func (h *AuthenticationHandler) Login(c *server.Context) error {
 
 		user, err := model.GetUserByUsername(ctx, h.db, req.Username)
 		if err != nil {
-			if errors.Is(err, wreck.NotFound) {
+			if errors.Is(err, calendar.NotFound) {
 				<-ctx.Done()
 
 				errs := url.Values{}
@@ -69,7 +69,7 @@ func (h *AuthenticationHandler) Login(c *server.Context) error {
 		}
 
 		if err := user.VerifyPassword(req.Password); err != nil {
-			if errors.Is(err, wreck.InvalidValue) {
+			if errors.Is(err, calendar.InvalidValue) {
 				<-ctx.Done()
 
 				errs := url.Values{}
@@ -94,7 +94,7 @@ func (h *AuthenticationHandler) Login(c *server.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
-		return wreck.NotFound.New("Not found")
+		return calendar.NotFound.New("Not found")
 	}
 }
 

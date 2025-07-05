@@ -6,9 +6,9 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
 )
 
@@ -39,7 +39,7 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next HandlerFunc) echo.HandlerFunc
 
 		settings, err := model.GetSettings(c.Request().Context(), db)
 		if err != nil {
-			if !errors.Is(err, wreck.NotFound) {
+			if !errors.Is(err, calendar.NotFound) {
 				return err
 			}
 		}
@@ -59,7 +59,7 @@ func Wrap(db *bun.DB, sm *scs.SessionManager, next HandlerFunc) echo.HandlerFunc
 		if username := sm.GetString(c.Request().Context(), "username"); username != "" {
 			user, err := model.GetUserByUsername(c.Request().Context(), db, username)
 			if err != nil {
-				if !errors.Is(err, wreck.NotFound) {
+				if !errors.Is(err, calendar.NotFound) {
 					return err
 				}
 			}
