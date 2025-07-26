@@ -76,4 +76,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           image-names: calendar
           cut-off: 1s
-          keep-n-most-recent: 2
+          keep-n-most-recent: 10
