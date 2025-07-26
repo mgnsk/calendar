@@ -10,6 +10,7 @@ import (
 	"runtime"
 
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/pkg/wreck"
 )
@@ -39,8 +40,8 @@ func Recover() echo.MiddlewareFunc {
 					length = runtime.Stack(stack, true)
 					stack = stack[:length]
 
-					returnErr = wreck.Internal.
-						With(wreck.Stack, string(stack)).
+					returnErr = calendar.Internal.
+						With(calendar.Stack, string(stack)).
 						New("", err)
 				}
 			}()
@@ -80,7 +81,7 @@ func ErrorHandler() echo.HTTPErrorHandler {
 			code = http.StatusGatewayTimeout
 			msg = "Timeout"
 		} else if werr := *new(wreck.Error); errors.As(err, &werr) {
-			if v, ok := wreck.Value(werr, wreck.KeyHTTPCode); ok {
+			if v, ok := wreck.Value(werr, calendar.KeyHTTPCode); ok {
 				code = int(v.Int64())
 			}
 			msg = cmp.Or(werr.Message(), msg)

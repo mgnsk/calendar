@@ -8,12 +8,12 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/labstack/echo/v4"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/mgnsk/calendar/server"
 	"github.com/uptrace/bun"
 )
@@ -28,7 +28,7 @@ type SetupHandler struct {
 func (h *SetupHandler) Setup(c *server.Context) error {
 	if c.Settings != nil {
 		// Already set up.
-		return wreck.NotFound.New("")
+		return calendar.NotFound.New("")
 	}
 
 	c.Settings = domain.NewDefaultSettings()
@@ -66,7 +66,7 @@ func (h *SetupHandler) Setup(c *server.Context) error {
 		}
 
 		if err := user.SetPassword(form.Password1); err != nil {
-			if errors.Is(err, wreck.InvalidValue) {
+			if errors.Is(err, calendar.InvalidValue) {
 				errs := url.Values{}
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
@@ -100,7 +100,7 @@ func (h *SetupHandler) Setup(c *server.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/")
 
 	default:
-		return wreck.NotFound.New("Not found")
+		return calendar.NotFound.New("Not found")
 	}
 }
 

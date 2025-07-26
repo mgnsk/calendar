@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/calendar"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
@@ -17,7 +17,7 @@ func NormalizeError(err error) error {
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
-		return wreck.NotFound.New("Not found", err)
+		return calendar.NotFound.New("Not found", err)
 	}
 
 	if se := new(sqlite.Error); errors.As(err, &se) {
@@ -25,10 +25,10 @@ func NormalizeError(err error) error {
 		case
 			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,
 			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
-			return wreck.AlreadyExists.New("Already exists", err)
+			return calendar.AlreadyExists.New("Already exists", err)
 
 		case sqlite3.SQLITE_LOCKED:
-			return wreck.Timeout.New("Timeout", err)
+			return calendar.Timeout.New("Timeout", err)
 
 		default:
 			return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[code], code, err)
@@ -47,7 +47,7 @@ func WithErrorChecking(res sql.Result, err error) error {
 	if c, err := res.RowsAffected(); err != nil {
 		return fmt.Errorf("error checking affected row count: %w", err)
 	} else if c == 0 {
-		return wreck.PreconditionFailed.New("Now rows affected", err)
+		return calendar.PreconditionFailed.New("Now rows affected", err)
 	}
 
 	return nil

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/sqlite"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/uptrace/bun"
 )
 
@@ -61,7 +61,7 @@ func DeleteExpiredInvites(ctx context.Context, db *bun.DB) error {
 		Where("valid_until_unix < ?", time.Now().Unix()).
 		Exec(ctx))
 
-	if errors.Is(err, wreck.PreconditionFailed) {
+	if errors.Is(err, calendar.PreconditionFailed) {
 		return nil
 	}
 

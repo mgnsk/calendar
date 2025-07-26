@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/sqlite"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
@@ -31,7 +31,7 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 	})
 
 	if err := sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx)); err != nil {
-		if errors.Is(err, wreck.PreconditionFailed) {
+		if errors.Is(err, calendar.PreconditionFailed) {
 			return nil
 		}
 		return err
@@ -75,7 +75,7 @@ func CleanTags(ctx context.Context, db bun.IDB) error {
 			Where("id IN (?)", subQuery).
 			Exec(ctx),
 	); err != nil {
-		if errors.Is(err, wreck.PreconditionFailed) {
+		if errors.Is(err, calendar.PreconditionFailed) {
 			return nil
 		}
 
@@ -93,7 +93,7 @@ func DeleteTags(ctx context.Context, db bun.IDB, eventID snowflake.ID) error {
 			Where("event_id = ?", eventID).
 			Exec(ctx),
 	); err != nil {
-		if errors.Is(err, wreck.PreconditionFailed) {
+		if errors.Is(err, calendar.PreconditionFailed) {
 			return nil
 		}
 

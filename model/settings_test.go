@@ -1,10 +1,10 @@
 package model_test
 
 import (
+	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
 	. "github.com/mgnsk/calendar/pkg/testing"
-	"github.com/mgnsk/calendar/pkg/wreck"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -33,7 +33,7 @@ var _ = Describe("updating settings", func() {
 			Expect(model.UpdateSettings(ctx, db, &domain.Settings{
 				Title:       "Page Title",
 				Description: "Description",
-			})).To(MatchError(wreck.PreconditionFailed))
+			})).To(MatchError(calendar.PreconditionFailed))
 		})
 	})
 
