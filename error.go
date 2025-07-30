@@ -3,7 +3,7 @@ package calendar
 import (
 	"net/http"
 
-	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/wreck"
 )
 
 // Keys for error data in errors.

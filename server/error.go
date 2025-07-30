@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/html"
-	"github.com/mgnsk/calendar/pkg/wreck"
+	"github.com/mgnsk/wreck"
 )
 
 // Recover returns a middleware which recovers from panics anywhere in the chain
@@ -77,14 +77,15 @@ func ErrorHandler() echo.HTTPErrorHandler {
 			msg  = "Something went wrong"
 		)
 
-		if errors.Is(err, context.DeadlineExceeded) {
-			code = http.StatusGatewayTimeout
-			msg = "Timeout"
-		} else if werr := *new(wreck.Error); errors.As(err, &werr) {
+		var werr *wreck.Error
+		if errors.As(err, &werr) {
 			if v, ok := wreck.Value(werr, calendar.KeyHTTPCode); ok {
 				code = int(v.Int64())
 			}
 			msg = cmp.Or(werr.Message(), msg)
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			code = http.StatusGatewayTimeout
+			msg = "Timeout"
 		} else if he, ok := err.(*echo.HTTPError); ok {
 			code = he.Code
 			msg = cmp.Or(fmt.Sprint(he.Message), msg)
