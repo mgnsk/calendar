@@ -79,8 +79,8 @@ func ErrorHandler() echo.HTTPErrorHandler {
 
 		var werr *wreck.Error
 		if errors.As(err, &werr) {
-			if v, ok := wreck.Value(werr, calendar.KeyHTTPCode); ok {
-				code = int(v.Int64())
+			if v, ok := wreck.Value[int](werr, calendar.KeyHTTPCode); ok {
+				code = v
 			}
 			msg = cmp.Or(werr.Message(), msg)
 		} else if errors.Is(err, context.DeadlineExceeded) {
@@ -103,17 +103,15 @@ func ErrorHandler() echo.HTTPErrorHandler {
 			Children:     html.ErrorMain(errText),
 			FlashSuccess: "",
 		}).Render(c.Response()); err != nil {
-			Logger(c).With(wreck.Args(err)...).Error("error rendering error page", slog.Any("reason", err))
+			Logger(c).Error("error rendering error page", "reason", err)
 		}
-
-		logger := Logger(c).With(wreck.Args(err)...)
 
 		switch {
 		case c.Response().Status >= 500:
-			logger.Error("server error", slog.Any("reason", err))
+			Logger(c).Error("server error", "reason", err)
 
 		case c.Response().Status >= 400 && c.Response().Status <= 403:
-			logger.Error("client error", slog.Any("reason", err))
+			Logger(c).Error("client error", "reason", err)
 		}
 	}
 }

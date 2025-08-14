@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/mgnsk/wreck v0.0.0-20250729123621-f881b9a6b63e
+	github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
