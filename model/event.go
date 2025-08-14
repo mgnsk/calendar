@@ -198,6 +198,7 @@ var (
 type SelectQuery struct {
 	*bun.SelectQuery
 	includeDrafts bool
+	searchText    string
 }
 
 // EventsQueryBuilder builds an event list query.
@@ -291,11 +292,21 @@ func (build EventsQueryBuilder) WithIncludeDrafts() EventsQueryBuilder {
 	}
 }
 
+// WithSearchText filters the result by search text.
+func (build EventsQueryBuilder) WithSearchText(s string) EventsQueryBuilder {
+	return func(q *SelectQuery) {
+		build(q)
+
+		q.searchText = s
+	}
+}
+
 // List executes the query.
-func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText string) ([]*domain.Event, error) {
+func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB) ([]*domain.Event, error) {
 	q := &SelectQuery{
 		SelectQuery:   db.NewSelect(),
 		includeDrafts: false,
+		searchText:    "",
 	}
 
 	build(q)
@@ -314,9 +325,9 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 
 	// Note: for search, we do not order by `rank` column from fts table.
 	// The original order of the events query is used.
-	if searchText != "" {
-		searchText = strings.TrimSpace(searchText)
-		if len(searchText) < 3 {
+	if q.searchText != "" {
+		q.searchText = strings.TrimSpace(q.searchText)
+		if len(q.searchText) < 3 {
 			return []*domain.Event{}, nil
 		}
 
@@ -325,10 +336,10 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB, searchText
 			general []string
 		)
 
-		if !strings.Contains(searchText, `"`) {
-			exact = textfilter.EnsureQuoted(searchText)
+		if !strings.Contains(q.searchText, `"`) {
+			exact = textfilter.EnsureQuoted(q.searchText)
 		}
-		general = textfilter.PrepareFTSSearchStrings(searchText)
+		general = textfilter.PrepareFTSSearchStrings(q.searchText)
 
 		var searchWord string
 		if exact == "" {
