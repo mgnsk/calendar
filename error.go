@@ -15,7 +15,7 @@ const (
 // Base errors.
 var (
 	PreconditionFailed = wreck.New("precondition_failed").With(KeyHTTPCode, http.StatusPreconditionFailed)
-	InvalidValue       = wreck.New("invalid_param").With(KeyHTTPCode, http.StatusBadRequest)
+	InvalidValue       = wreck.New("invalid_value").With(KeyHTTPCode, http.StatusBadRequest)
 	AlreadyExists      = wreck.New("already_exists").With(KeyHTTPCode, http.StatusConflict)
 	NotFound           = wreck.New("not_found").With(KeyHTTPCode, http.StatusNotFound)
 	Timeout            = wreck.New("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)

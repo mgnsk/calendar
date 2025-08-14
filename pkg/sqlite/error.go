@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/mgnsk/calendar"
 	"modernc.org/sqlite"
@@ -20,8 +21,9 @@ func NormalizeError(err error) error {
 		return calendar.NotFound.New("Not found", err)
 	}
 
-	if se := new(sqlite.Error); errors.As(err, &se) {
-		switch code := se.Code(); code {
+	var se *sqlite.Error
+	if errors.As(err, &se) {
+		switch se.Code() {
 		case
 			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,
 			sqlite3.SQLITE_CONSTRAINT_UNIQUE:
@@ -30,9 +32,13 @@ func NormalizeError(err error) error {
 		case sqlite3.SQLITE_LOCKED:
 			return calendar.Timeout.New("Timeout", err)
 
-		default:
-			return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[code], code, err)
+		case sqlite3.SQLITE_ERROR:
+			if strings.Contains(se.Error(), "fts5: syntax error") {
+				return calendar.InvalidValue.New("Invalid query", err)
+			}
 		}
+
+		return fmt.Errorf("code %s (%d): %w", sqlite.ErrorCodeString[se.Code()], se.Code(), err)
 	}
 
 	return err

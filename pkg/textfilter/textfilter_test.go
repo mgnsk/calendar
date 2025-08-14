@@ -36,11 +36,11 @@ func TestPrepareFTSSearchStrings(t *testing.T) {
 		},
 		{
 			source:   `AND AND a`,
-			expected: []string{`"a"`},
+			expected: []string{`AND`, `AND`, `"a"`},
 		},
 		{
 			source:   `a AND AND`,
-			expected: []string{`"a"`},
+			expected: []string{`"a"`, `AND`, `AND`},
 		},
 	} {
 		t.Run(tc.source, func(t *testing.T) {

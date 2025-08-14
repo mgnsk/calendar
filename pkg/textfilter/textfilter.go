@@ -16,28 +16,6 @@ func EnsureQuoted(s string) string {
 func PrepareFTSSearchStrings(s string) (quoted []string) {
 	fields := splitString(s)
 
-first:
-	for len(fields) > 0 {
-		switch first := fields[0]; first {
-		case "AND", "OR", "NOT":
-			fields = fields[1:]
-
-		default:
-			break first
-		}
-	}
-
-last:
-	for len(fields) > 0 {
-		switch last := fields[len(fields)-1]; last {
-		case "AND", "OR", "NOT":
-			fields = fields[:len(fields)-1]
-
-		default:
-			break last
-		}
-	}
-
 	for _, field := range fields {
 		switch field {
 		case "AND", "OR", "NOT":
@@ -75,7 +53,7 @@ func GetTags(s string) []string {
 		return ' '
 	}, s)
 
-	for _, word := range strings.Fields(s) {
+	for word := range strings.FieldsSeq(s) {
 		if len(word) >= 3 {
 			word = strings.ToLower(word)
 			tags = append(tags, word)
