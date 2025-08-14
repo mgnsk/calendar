@@ -172,7 +172,7 @@ func run() error {
 		// Should support conditional get.
 		g := e.Group("")
 
-		h := handler.NewFeedHandler(db, cfg.BaseURL)
+		h := handler.NewFeedHandler(db)
 		h.Register(g)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -20,8 +19,7 @@ import (
 
 // FeedHandler handles feed output.
 type FeedHandler struct {
-	db      *bun.DB
-	baseURL *url.URL
+	db *bun.DB
 }
 
 // HandleRSS handles RSS feeds.
@@ -40,13 +38,13 @@ func (h *FeedHandler) HandleICal(c *server.Context) error {
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
 	cal.SetDescription(c.Settings.Title)
-	cal.SetUrl(h.baseURL.JoinPath("/calendar.ics").String())
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
 
 		event.SetCreatedTime(ev.GetCreatedAt())
 		event.SetModifiedAt(ev.GetCreatedAt())
+		event.SetDtStampTime(ev.GetCreatedAt())
 
 		event.SetStartAt(ev.StartAt)
 		// Default to 1 hour event duration.
@@ -75,8 +73,6 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 
 	feed := &feeds.Feed{
 		Title: c.Settings.Title,
-		Link:  &feeds.Link{Rel: "self", Href: h.baseURL.JoinPath(c.Path()).String()},
-		Image: nil,
 	}
 
 	for _, ev := range events {
@@ -133,9 +129,8 @@ func (h *FeedHandler) Register(g *echo.Group) {
 }
 
 // NewFeedHandler creates a new feed handler.
-func NewFeedHandler(db *bun.DB, baseURL *url.URL) *FeedHandler {
+func NewFeedHandler(db *bun.DB) *FeedHandler {
 	return &FeedHandler{
-		db:      db,
-		baseURL: baseURL,
+		db: db,
 	}
 }
