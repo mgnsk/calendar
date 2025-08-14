@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
@@ -31,7 +30,7 @@ var _ = Describe("RSS feed output", func() {
 		})
 
 		e := echo.New()
-		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
+		h := handler.NewFeedHandler(db)
 		h.Register(e.Group(""))
 
 		server = httptest.NewServer(e)
@@ -59,7 +58,6 @@ var _ = Describe("RSS feed output", func() {
 				fields := Fields{
 					"FeedType": Equal(string(feedType)),
 					"Title":    Equal("My Awesome Events"),
-					"Link":     Equal("https://calendar.testing/feed"),
 					"Items":    BeEmpty(),
 				}
 
@@ -104,7 +102,6 @@ var _ = Describe("RSS feed output", func() {
 				fields := Fields{
 					"FeedType": Equal(string(feedType)),
 					"Title":    Equal("My Awesome Events"),
-					"Link":     Equal("https://calendar.testing/feed"),
 					"Items": HaveExactElements(
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event1.Title),
@@ -157,7 +154,7 @@ var _ = Describe("iCal feed output", func() {
 		})
 
 		e := echo.New()
-		h := handler.NewFeedHandler(db, Must(url.Parse("https://calendar.testing")))
+		h := handler.NewFeedHandler(db)
 		h.Register(e.Group(""))
 
 		server = httptest.NewServer(e)
@@ -188,10 +185,6 @@ var _ = Describe("iCal feed output", func() {
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 					"IANAToken": Equal("DESCRIPTION"),
 					"Value":     Equal("My Awesome Events"),
-				})),
-				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
-					"IANAToken": Equal("URL"),
-					"Value":     Equal("https://calendar.testing/calendar.ics"),
 				})),
 			))
 
@@ -231,10 +224,6 @@ var _ = Describe("iCal feed output", func() {
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
 					"IANAToken": Equal("DESCRIPTION"),
 					"Value":     Equal("My Awesome Events"),
-				})),
-				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
-					"IANAToken": Equal("URL"),
-					"Value":     Equal("https://calendar.testing/calendar.ics"),
 				})),
 			))
 
