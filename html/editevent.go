@@ -50,7 +50,7 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				Script(Raw(`document.querySelector('[name="user_timezone"]').value = Intl.DateTimeFormat().resolvedOptions().timeZone`)),
 
 				// Draft or new event.
-				Iff(form.IsDraft || form.EventID == 0, func() Node {
+				Iff(form.IsDraftOrNew(), func() Node {
 					return Group{
 						Button(buttonClasses(),
 							Type("submit"),
@@ -67,7 +67,7 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				}),
 
 				// Already published event.
-				Iff(!form.IsDraft, func() Node {
+				Iff(!form.IsDraftOrNew(), func() Node {
 					return Group{
 						Button(buttonClasses(),
 							Type("submit"),
