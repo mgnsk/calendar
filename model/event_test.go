@@ -416,26 +416,21 @@ var _ = Describe("full text search", func() {
 
 	DescribeTable("incorrect queries",
 		func(ctx SpecContext, query string) {
-			result := Must(
-				model.NewEventsQuery().
-					WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
-					WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
-					WithOrder(0, model.OrderStartAtAsc).
-					WithSearchText(query).
-					List(ctx, db),
-			)
+			result, err := model.NewEventsQuery().
+				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
+				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
+				WithOrder(0, model.OrderStartAtAsc).
+				WithSearchText(query).
+				List(ctx, db)
 
 			Expect(result).To(BeEmpty())
+			Expect(err).To(MatchError(calendar.InvalidValue))
 		},
-		Entry("multiple exact match at least one", `"Desc 2" "unknown@email.testing"`), // Defaults to AND operator.
 		Entry("only AND operator", "AND"),
 		Entry("multiple operators prefix", "AND AND Desc"),
 		Entry("multiple operators suffix", "Desc AND AND"),
 		Entry("unused AND operator", "AND something"),
-		Entry("backslash", `aou\`),
-		Entry("spaces", "Desc \t \u00a0  3"),
-		Entry("wildcard in beginning", `*aou`),
-		Entry("wildcard in the end", `Des*`), // Note: we quote searches, making this otherwise valid query invalid.
+		Entry("syntax error", `a"Desc"a`),
 	)
 
 	DescribeTable("valid queries",
@@ -468,6 +463,8 @@ var _ = Describe("full text search", func() {
 		Entry("partial word", `even`),
 		Entry("multiple exact match", `"Desc 2" "some@email.testing"`),
 		Entry("OR operator", `"Desc 2" OR "some@email.testing"`),
+		Entry("AND operator", `"Desc 2" AND ÕÄÖÜ`),
+		Entry("NOT operator", `"Desc 2" NOT "Desc 3"`),
 		Entry("email", `some@email.testing`),
 	)
 })
