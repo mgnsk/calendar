@@ -19,7 +19,6 @@ import (
 //go:embed node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css
 //go:embed node_modules/@fortawesome/fontawesome-free/css/solid.min.css
 //go:embed node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2
-//go:embed node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-900.ttf
 //go:embed node_modules/leaflet/dist
 //go:embed node_modules/leaflet-geosearch/dist
 //go:embed node_modules/jquery/dist/jquery.min.js
