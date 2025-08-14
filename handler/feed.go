@@ -75,10 +75,17 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 		Title: c.Settings.Title,
 	}
 
+	// Track latest item timestamp to populate channel-level updated time.
+	var latest time.Time
+
 	for _, ev := range events {
 		var htmlContent strings.Builder
 		if err := html.EventCard(nil, ev, "").Render(&htmlContent); err != nil {
 			return err
+		}
+
+		if ev.GetCreatedAt().After(latest) {
+			latest = ev.GetCreatedAt()
 		}
 
 		feed.Add(&feeds.Item{
@@ -91,6 +98,10 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 			Updated:     ev.GetCreatedAt(),
 			Created:     ev.GetCreatedAt(),
 		})
+	}
+
+	if !latest.IsZero() {
+		feed.Updated = latest
 	}
 
 	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.rss"`)
