@@ -49,17 +49,39 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				Input(Type("hidden"), Name("user_timezone")),
 				Script(Raw(`document.querySelector('[name="user_timezone"]').value = Intl.DateTimeFormat().resolvedOptions().timeZone`)),
 
-				Button(buttonClasses(),
-					Type("submit"),
-					Text("Save Draft"),
-					FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
-				),
-				Button(buttonClasses(),
-					Type("submit"),
-					Text("Publish"),
-					Attr("onclick", "return confirm('Confirm publishing this event')"),
-					FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
-				),
+				// Draft or new event.
+				Iff(form.IsDraftOrNew(), func() Node {
+					return Group{
+						Button(buttonClasses(),
+							Type("submit"),
+							Text("Save Draft"),
+							FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
+						),
+						Button(buttonClasses(),
+							Type("submit"),
+							Text("Publish"),
+							Attr("onclick", "return confirm('Confirm publishing this event')"),
+							FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
+						),
+					}
+				}),
+
+				// Already published event.
+				Iff(!form.IsDraftOrNew(), func() Node {
+					return Group{
+						Button(buttonClasses(),
+							Type("submit"),
+							Text("Save"),
+							FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
+						),
+						Button(buttonClasses(),
+							Type("submit"),
+							Text("Unpublish"),
+							Attr("onclick", "return confirm('Confirm unpublishing this event')"),
+							FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
+						),
+					}
+				}),
 			),
 		),
 	)

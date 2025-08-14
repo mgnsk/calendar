@@ -22,6 +22,11 @@ type EditEventForm struct {
 	UserTimezone   string       `form:"user_timezone"`
 }
 
+// IsDraftOrNew reports whether the current event is draft or a new event.
+func (r *EditEventForm) IsDraftOrNew() bool {
+	return r.IsDraft || r.EventID == 0
+}
+
 // Validate the form.
 func (r *EditEventForm) Validate() url.Values {
 	errs := url.Values{}
