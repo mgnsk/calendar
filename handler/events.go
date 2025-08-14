@@ -112,14 +112,15 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 
 		query = query.
 			WithOrder(cursor, order).
-			WithLimit(contract.EventLimitPerPage)
+			WithLimit(contract.EventLimitPerPage).
+			WithSearchText(req.Search)
 
 		var (
 			events []*domain.Event
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db, req.Search)
+		events, err = query.List(c.Request().Context(), h.db)
 		if err != nil {
 			if !errors.Is(err, calendar.NotFound) {
 				return err

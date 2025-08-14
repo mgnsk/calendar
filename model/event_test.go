@@ -59,7 +59,7 @@ var _ = Describe("inserting events", func() {
 			})
 
 			By("asserting event can be listed", func() {
-				result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+				result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db))
 
 				Expect(result).To(HaveExactElements(
 					SatisfyAll(
@@ -263,7 +263,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -279,7 +279,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtDesc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtDesc).List(ctx, db))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -295,7 +295,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("events can be listed in created at time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderCreatedAtDesc).List(ctx, db, ""))
+		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderCreatedAtDesc).List(ctx, db))
 
 		Expect(result).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -316,7 +316,7 @@ var _ = Describe("listing events", func() {
 				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
 				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
 				WithOrder(0, model.OrderStartAtAsc).
-				List(ctx, db, ""),
+				List(ctx, db),
 		)
 
 		Expect(result).To(HaveExactElements(
@@ -331,7 +331,7 @@ var _ = Describe("listing events", func() {
 			model.NewEventsQuery().
 				WithOrder(0, model.OrderStartAtAsc).
 				WithUserID(userID1).
-				List(ctx, db, ""),
+				List(ctx, db),
 		)
 
 		Expect(result).To(HaveExactElements(
@@ -349,7 +349,7 @@ var _ = Describe("listing events", func() {
 			model.NewEventsQuery().
 				WithOrder(0, model.OrderStartAtAsc).
 				WithIncludeDrafts().
-				List(ctx, db, ""),
+				List(ctx, db),
 		)
 
 		Expect(result).To(HaveLen(4))
@@ -421,7 +421,8 @@ var _ = Describe("full text search", func() {
 					WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
 					WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
 					WithOrder(0, model.OrderStartAtAsc).
-					List(ctx, db, query),
+					WithSearchText(query).
+					List(ctx, db),
 			)
 
 			Expect(result).To(BeEmpty())
@@ -444,7 +445,8 @@ var _ = Describe("full text search", func() {
 					WithStartAtFrom(startTime).
 					WithStartAtUntil(endTime).
 					WithOrder(0, model.OrderStartAtAsc).
-					List(ctx, db, query),
+					WithSearchText(query).
+					List(ctx, db),
 			)
 
 			Expect(result).To(HaveExactElements(
@@ -496,7 +498,7 @@ var _ = Describe("concurrent insert", func() {
 
 		wg.Wait()
 
-		events := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db, ""))
+		events := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db))
 		Expect(events).To(HaveLen(100))
 	})
 })
