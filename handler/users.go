@@ -135,12 +135,12 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 			return err
 		}
 
-		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.DeleteInvite(ctx, tx, invite.Token); err != nil {
+		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, db bun.Tx) error {
+			if err := model.DeleteInvite(ctx, db, invite.Token); err != nil {
 				return err
 			}
 
-			return model.InsertUser(ctx, tx, newUser)
+			return model.InsertUser(ctx, db, newUser)
 		}); err != nil {
 			if errors.Is(err, calendar.AlreadyExists) {
 				errs := url.Values{}
