@@ -79,12 +79,12 @@ func (h *SetupHandler) Setup(c *server.Context) error {
 			return err
 		}
 
-		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, tx bun.Tx) error {
-			if err := model.InsertSettings(ctx, tx, c.Settings); err != nil {
+		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, db bun.Tx) error {
+			if err := model.InsertSettings(ctx, db, c.Settings); err != nil {
 				return err
 			}
 
-			return model.InsertUser(ctx, tx, user)
+			return model.InsertUser(ctx, db, user)
 		}); err != nil {
 			return err
 		}

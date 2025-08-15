@@ -166,6 +166,16 @@ func run() error {
 		h.Register(g)
 	}
 
+	// Stopwords management.
+	{
+		g := e.Group("",
+			sessionMiddleware,
+		)
+
+		h := handler.NewStopWordsHandler(db, sm)
+		h.Register(g)
+	}
+
 	// Feeds.
 	{
 		// TODO: proper caching middleware for RSS and calendar feeds.

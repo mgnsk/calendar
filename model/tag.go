@@ -40,13 +40,15 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 	return nil
 }
 
-// ListTags lists most popular tags.
+// ListTags lists most popular tags, excluding stopwords.
 func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
 	if err := db.NewSelect().Model(&model).
 		ColumnExpr("tag.id, tag.name, COUNT(et.event_id) AS event_count").
 		Join("LEFT JOIN events_tags AS et ON et.tag_id = tag.id").
+		Join("LEFT JOIN stopwords AS sw ON sw.word = tag.name").
+		Where("sw.id IS NULL").
 		Group("tag.id").
 		Order("event_count DESC", "name ASC").
 		Limit(limit).

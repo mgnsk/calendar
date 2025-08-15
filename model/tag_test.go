@@ -93,7 +93,17 @@ var _ = Describe("listing tags", func() {
 	Specify("tags contain the number of related events", func(ctx SpecContext) {
 		tags := Must(model.ListTags(ctx, db, 0))
 
-		Expect(tags).To(ContainElements(
+		Expect(tags).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("desc"),
+				"EventCount": Equal(uint64(3)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("event"),
+				"EventCount": Equal(uint64(3)),
+			})),
+
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Name":       Equal("tag1"),
 				"EventCount": Equal(uint64(2)),
@@ -102,6 +112,29 @@ var _ = Describe("listing tags", func() {
 			PointTo(MatchFields(IgnoreExtras, Fields{
 				"Name":       Equal("tag2"),
 				"EventCount": Equal(uint64(1)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("tag3"),
+				"EventCount": Equal(uint64(1)),
+			})),
+		))
+	})
+
+	Specify("tags exclude stopwords", func(ctx SpecContext) {
+		Expect(model.SetStopWords(ctx, db, "desc", "tag2")).To(Succeed())
+
+		tags := Must(model.ListTags(ctx, db, 0))
+
+		Expect(tags).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("event"),
+				"EventCount": Equal(uint64(3)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("tag1"),
+				"EventCount": Equal(uint64(2)),
 			})),
 
 			PointTo(MatchFields(IgnoreExtras, Fields{
