@@ -16,12 +16,12 @@ type StopWordList []StopWord
 
 // NewStopWordList creates a new stop word list.
 func NewStopWordList(words ...string) StopWordList {
-	return lo.FilterMap(words, func(item string, _ int) (StopWord, bool) {
-		item = strings.TrimSpace(item)
-		if item == "" {
+	return lo.Uniq(lo.FilterMap(words, func(word string, _ int) (StopWord, bool) {
+		word = strings.ToLower(strings.TrimSpace(word))
+		if word == "" {
 			return StopWord{}, false
 		}
 
-		return StopWord{Word: item}, true
-	})
+		return StopWord{Word: word}, true
+	}))
 }
