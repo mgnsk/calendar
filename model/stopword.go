@@ -55,9 +55,9 @@ func ListStopWords(ctx context.Context, db bun.IDB) ([]*domain.StopWord, error) 
 		return nil, sqlite.NormalizeError(err)
 	}
 
-	return lo.Map(model, func(tag *StopWord, _ int) *domain.StopWord {
+	return lo.Map(model, func(sw *StopWord, _ int) *domain.StopWord {
 		return &domain.StopWord{
-			Word: tag.Word,
+			Word: sw.Word,
 		}
 	}), nil
 }
