@@ -10,14 +10,14 @@ import (
 // StopWordsMain renders the stop words form.
 func StopWordsMain(words []string, csrf string) Node {
 	return Main(
-		Div(Class("max-w-3xl px-3 py-4 mx-auto"),
-			P(Class("pb-2"), Text("Stop words are excluded from tags page. One word per line.")),
-
-			Form(Class("text-center w-full mx-auto"),
+		Div(Class("max-w-3xl mx-auto"),
+			Form(Class("text-center w-full  px-3 py-4 mx-auto"),
 				Method("POST"),
 
+				Label(Class("block w-full pb-2"), For("words"), Text("Stop words are excluded from tags page. One word per line.")),
 				Textarea(baseInputClasses(false),
 					Name("words"),
+					ID("words"),
 					Text(strings.Join(words, "\n")),
 					Rows("20"),
 				),
