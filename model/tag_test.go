@@ -121,8 +121,8 @@ var _ = Describe("listing tags", func() {
 		))
 	})
 
-	Specify("tags exclude stopwords", func(ctx SpecContext) {
-		Expect(model.SetStopWords(ctx, db, "desc", "tag2")).To(Succeed())
+	Specify("tags exclude stopwords case-insensitive", func(ctx SpecContext) {
+		Expect(model.SetStopWords(ctx, db, "desc", "TAG2")).To(Succeed())
 
 		tags := Must(model.ListTags(ctx, db, 0))
 
