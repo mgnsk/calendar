@@ -63,7 +63,7 @@ func (h *StopWordsHandler) StopWords(c *server.Context) error {
 			return err
 		}
 
-		if err := model.SetStopWords(c.Request().Context(), h.db, words...); err != nil {
+		if err := model.SetStopWords(c.Request().Context(), h.db, domain.NewStopWordList(words...)); err != nil {
 			return err
 		}
 

@@ -21,7 +21,7 @@ type StopWord struct {
 }
 
 // SetStopWords sets stop words in the database.
-func SetStopWords(ctx context.Context, db bun.IDB, words ...string) error {
+func SetStopWords(ctx context.Context, db bun.IDB, words domain.StopWordList) error {
 	return db.RunInTx(ctx, nil, func(ctx context.Context, db bun.Tx) error {
 		// Delete all stop words.
 		if err := sqlite.WithErrorChecking(
@@ -34,11 +34,10 @@ func SetStopWords(ctx context.Context, db bun.IDB, words ...string) error {
 			return nil
 		}
 
-		// Insert stop words.
-		model := lo.Map(words, func(word string, _ int) StopWord {
-			return StopWord{
+		model := lo.Map(words, func(word domain.StopWord, _ int) *StopWord {
+			return &StopWord{
 				ID:   snowflake.Generate(),
-				Word: word,
+				Word: word.Word,
 			}
 		})
 
