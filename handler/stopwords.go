@@ -17,7 +17,7 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// StopWordsHandler handles users pages.
+// StopWordsHandler handles stop word pages.
 type StopWordsHandler struct {
 	db *bun.DB
 	sm *scs.SessionManager
@@ -80,7 +80,7 @@ func (h *StopWordsHandler) Register(g *echo.Group) {
 	g.POST("/stopwords", server.Wrap(h.db, h.sm, h.StopWords))
 }
 
-// NewStopWordsHandler creates a new users handler.
+// NewStopWordsHandler creates a new stop words handler.
 func NewStopWordsHandler(db *bun.DB, sm *scs.SessionManager) *StopWordsHandler {
 	return &StopWordsHandler{
 		db: db,
