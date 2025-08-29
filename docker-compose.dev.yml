@@ -24,7 +24,7 @@ services:
 
   sandbox:
     hostname: calendar
-    image: sandbox
+    image: calendar-sandbox
     restart: unless-stopped
     build:
       context: .

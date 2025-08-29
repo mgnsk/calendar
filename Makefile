@@ -35,7 +35,7 @@ dev:
 
 	# Start the application and automatic rebuild.
 	docker compose -f docker-compose.dev.yml exec sandbox \
-		npx concurrently -n tailwind,go -c blue,green,yellow --kill-others-on-fail \
+		npx concurrently -n tailwind,go -c blue,green --kill-others-on-fail \
 		"npx @tailwindcss/cli -i tailwind.css -o app.css --watch" \
 		"air -c .air.toml"
 
