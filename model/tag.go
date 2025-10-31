@@ -48,7 +48,7 @@ func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error)
 		ColumnExpr("tag.id, tag.name, COUNT(et.event_id) AS event_count").
 		Join("LEFT JOIN events_tags AS et ON et.tag_id = tag.id").
 		Join("LEFT JOIN stopwords AS sw ON sw.word = tag.name COLLATE NOCASE").
-		Where("sw.id IS NULL").
+		Where("sw.word IS NULL").
 		Group("tag.id").
 		Order("event_count DESC", "name ASC").
 		Limit(limit).

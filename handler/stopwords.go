@@ -13,7 +13,6 @@ import (
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
-	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
 
@@ -41,9 +40,7 @@ func (h *StopWordsHandler) StopWords(c *server.Context) error {
 		}
 
 		return server.RenderPage(c, h.sm,
-			html.StopWordsMain(lo.Map(words, func(word *domain.StopWord, _ int) string {
-				return word.Word
-			}), c.CSRF),
+			html.StopWordsMain(words, c.CSRF),
 		)
 
 	case http.MethodPost:
