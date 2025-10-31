@@ -6,22 +6,18 @@ import (
 	"github.com/samber/lo"
 )
 
-// StopWord is the stopword domain model.
-type StopWord struct {
-	Word string
-}
-
 // StopWordList is a domain model for the list of stop words.
-type StopWordList []StopWord
+// Stop words are lowercase and deduplicated.
+type StopWordList []string
 
 // NewStopWordList creates a new stop word list.
 func NewStopWordList(words ...string) StopWordList {
-	return lo.Uniq(lo.FilterMap(words, func(word string, _ int) (StopWord, bool) {
+	return lo.Uniq(lo.FilterMap(words, func(word string, _ int) (string, bool) {
 		word = strings.ToLower(strings.TrimSpace(word))
 		if word == "" {
-			return StopWord{}, false
+			return "", false
 		}
 
-		return StopWord{Word: word}, true
+		return word, true
 	}))
 }

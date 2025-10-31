@@ -6,7 +6,6 @@ import (
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
@@ -14,8 +13,8 @@ import (
 
 // StopWord is the stopword database model.
 type StopWord struct {
-	ID   snowflake.ID `bun:"id,pk"`
-	Word string       `bun:"word"`
+	Word  string `bun:"word,pk"`
+	Order uint64 `bun:"sort_order"`
 
 	bun.BaseModel `bun:"stopwords"`
 }
@@ -34,30 +33,28 @@ func SetStopWords(ctx context.Context, db bun.IDB, words domain.StopWordList) er
 			return nil
 		}
 
-		model := lo.Map(words, func(word domain.StopWord, _ int) *StopWord {
+		model := lo.Map(words, func(word string, idx int) *StopWord {
 			return &StopWord{
-				ID:   snowflake.Generate(),
-				Word: word.Word,
+				Word:  word,
+				Order: uint64(idx),
 			}
 		})
 
-		return sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx))
+		return sqlite.WithErrorChecking(db.NewInsert().Model(&model).Exec(ctx))
 	})
 }
 
 // ListStopWords lists all stopwords.
-func ListStopWords(ctx context.Context, db bun.IDB) ([]*domain.StopWord, error) {
+func ListStopWords(ctx context.Context, db bun.IDB) ([]string, error) {
 	model := []*StopWord{}
 
 	if err := db.NewSelect().Model(&model).
-		Order("id ASC").
+		Order("sort_order ASC").
 		Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}
 
-	return lo.Map(model, func(sw *StopWord, _ int) *domain.StopWord {
-		return &domain.StopWord{
-			Word: sw.Word,
-		}
+	return lo.Map(model, func(sw *StopWord, _ int) string {
+		return sw.Word
 	}), nil
 }

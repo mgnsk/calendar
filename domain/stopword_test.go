@@ -11,7 +11,7 @@ var _ = Describe("creating a stop word list", func() {
 		words := domain.NewStopWordList(" a ")
 
 		Expect(words).To(HaveExactElements(
-			HaveField("Word", "a"),
+			"a",
 		))
 	})
 
@@ -19,7 +19,7 @@ var _ = Describe("creating a stop word list", func() {
 		words := domain.NewStopWordList("A")
 
 		Expect(words).To(HaveExactElements(
-			HaveField("Word", "a"),
+			"a",
 		))
 	})
 
@@ -27,7 +27,7 @@ var _ = Describe("creating a stop word list", func() {
 		words := domain.NewStopWordList("A", "a")
 
 		Expect(words).To(HaveExactElements(
-			HaveField("Word", "a"),
+			"a",
 		))
 	})
 })

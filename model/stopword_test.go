@@ -6,7 +6,6 @@ import (
 	. "github.com/mgnsk/calendar/pkg/testing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 )
 
 var _ = Describe("setting stopwords", func() {
@@ -16,13 +15,8 @@ var _ = Describe("setting stopwords", func() {
 
 			words := Must(model.ListStopWords(ctx, db))
 			Expect(words).To(HaveExactElements(
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Word": Equal("word1"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Word": Equal("word2"),
-				})),
+				"word1",
+				"word2",
 			))
 		})
 	})
@@ -38,17 +32,9 @@ var _ = Describe("setting stopwords", func() {
 			words := Must(model.ListStopWords(ctx, db))
 
 			Expect(words).To(HaveExactElements(
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Word": Equal("word1"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Word": Equal("word2"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Word": Equal("word3"),
-				})),
+				"word1",
+				"word2",
+				"word3",
 			))
 		})
 	})
