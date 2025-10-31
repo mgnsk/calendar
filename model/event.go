@@ -331,27 +331,7 @@ func (build EventsQueryBuilder) List(ctx context.Context, db *bun.DB) ([]*domain
 			return []*domain.Event{}, nil
 		}
 
-		var (
-			exact   string
-			general []string
-		)
-
-		if !strings.Contains(q.searchText, `"`) {
-			exact = textfilter.EnsureQuoted(q.searchText)
-		}
-		general = textfilter.PrepareFTSSearchStrings(q.searchText)
-
-		var searchWord string
-		if exact == "" {
-			// Only general search.
-			searchWord = strings.Join(general, " ")
-		} else if len(general) == 0 || len(general) == 1 && exact == general[0] {
-			// Only exact search.
-			searchWord = exact
-		} else {
-			// Both exact and general.
-			searchWord = fmt.Sprintf("(%s) OR (%s)", exact, strings.Join(general, " "))
-		}
+		searchWord := buildSearchQuery(q.searchText)
 
 		ftsQuery := db.NewSelect().
 			ColumnExpr("rowid").
@@ -385,4 +365,31 @@ func eventToDomain(ev *Event) *domain.Event {
 		IsDraft:     ev.IsDraft,
 		UserID:      ev.UserID,
 	}
+}
+
+func buildSearchQuery(text string) string {
+	var (
+		exact   string
+		general []string
+	)
+
+	if !strings.Contains(text, `"`) {
+		exact = textfilter.EnsureQuoted(text)
+	}
+
+	general = textfilter.PrepareFTSSearchStrings(text)
+
+	var searchWord string
+	if exact == "" {
+		// Only general search.
+		searchWord = strings.Join(general, " ")
+	} else if len(general) == 0 || len(general) == 1 && exact == general[0] {
+		// Only exact search.
+		searchWord = exact
+	} else {
+		// Both exact and general.
+		searchWord = fmt.Sprintf("(%s) OR (%s)", exact, strings.Join(general, " "))
+	}
+
+	return searchWord
 }
