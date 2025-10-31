@@ -1,4 +1,4 @@
 CREATE TABLE `stopwords` (
   `word` text PRIMARY KEY,
-  `order` bigint NOT NULL
+  `sort_order` bigint NOT NULL
 );

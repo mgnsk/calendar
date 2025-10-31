@@ -14,7 +14,7 @@ import (
 // StopWord is the stopword database model.
 type StopWord struct {
 	Word  string `bun:"word,pk"`
-	Order uint64 `bun:"order"`
+	Order uint64 `bun:"sort_order"`
 
 	bun.BaseModel `bun:"stopwords"`
 }
@@ -49,7 +49,7 @@ func ListStopWords(ctx context.Context, db bun.IDB) ([]string, error) {
 	model := []*StopWord{}
 
 	if err := db.NewSelect().Model(&model).
-		Order("order ASC").
+		Order("sort_order ASC").
 		Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}
