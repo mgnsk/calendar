@@ -10,7 +10,7 @@ volumes:
 
 services:
   caddy:
-    image: caddy@sha256:87aa104ed6c658991e1b0672be271206b7cd9fec452d1bf3ed9ad6f8ab7a2348
+    image: caddy@sha256:9e95012adcbbd599f853cb315b986781845c238f9e52aa3652798758cca01422
     restart: unless-stopped
     ports:
       - 80:80/tcp
