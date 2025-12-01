@@ -2,7 +2,7 @@
   "type": "module",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
-    "@tailwindcss/cli": "^4.1.16",
+    "@tailwindcss/cli": "^4.1.17",
     "easymde": "^2.20.0",
     "htmx.org": "^2.0.8",
     "jquery": "^3.7.1",
