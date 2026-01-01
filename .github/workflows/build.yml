@@ -69,7 +69,6 @@ jobs:
     name: Prune old images
     needs: build
     permissions:
-      contents: read
       packages: write
     steps:
       - uses: snok/container-retention-policy@3b0972b2276b171b212f8c4efbca59ebba26eceb
