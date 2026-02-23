@@ -23,7 +23,7 @@ func NewSessionManager(store scs.Store) *scs.SessionManager {
 	sm.Cookie.HttpOnly = true
 	sm.Cookie.Path = "/"
 	sm.Cookie.Persist = true
-	sm.Cookie.SameSite = http.SameSiteStrictMode
+	sm.Cookie.SameSite = http.SameSiteLaxMode
 	sm.Cookie.Secure = true
 
 	sm.ErrorFunc = func(_ http.ResponseWriter, _ *http.Request, err error) {
