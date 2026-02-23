@@ -203,11 +203,53 @@ func (h *UsersHandler) Delete(c *server.Context) error {
 	return calendar.NotFound.New("Not found")
 }
 
+// UpgradeUserRole upgrades user role.
+func (h *UsersHandler) UpgradeUserRole(c *server.Context) error {
+	if c.User == nil {
+		return calendar.Forbidden.New("Must be logged in")
+	}
+
+	if c.User.Role != domain.Admin {
+		return calendar.Forbidden.New("Only admins can upgrade users")
+	}
+
+	req := contract.UpgradeUserRoleRequest{}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+
+	if c.User.ID == req.UserID {
+		return calendar.Forbidden.New("Cannot upgrade yourself")
+	}
+
+	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
+		user, err := model.GetUser(c.Request().Context(), h.db, req.UserID)
+		if err != nil {
+			return err
+		}
+
+		user.Role = domain.Admin
+
+		if err := model.UpdateUser(c.Request().Context(), h.db, user); err != nil {
+			return err
+		}
+
+		h.sm.Put(c.Request().Context(), "flash-success", "User upgraded to admin")
+
+		hxhttp.SetRefresh(c.Response().Header())
+
+		return nil
+	}
+
+	return calendar.NotFound.New("Not found")
+}
+
 // Register the handler.
 func (h *UsersHandler) Register(g *echo.Group) {
 	g.GET("/users", server.Wrap(h.db, h.sm, h.Users))
 
 	g.POST("/delete-user", server.Wrap(h.db, h.sm, h.Delete))
+	g.POST("/upgrade-user", server.Wrap(h.db, h.sm, h.UpgradeUserRole))
 	g.POST("/invite", server.Wrap(h.db, h.sm, h.Invite))
 
 	g.GET("/register/:token", server.Wrap(h.db, h.sm, h.RegisterUser))

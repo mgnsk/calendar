@@ -14,21 +14,35 @@ import (
 var _ = Describe("inserting users", func() {
 	When("user does not exist", func() {
 		It("is inserted", func(ctx SpecContext) {
+			userID := snowflake.Generate()
+
 			Expect(model.InsertUser(ctx, db, &domain.User{
-				ID:       snowflake.Generate(),
+				ID:       userID,
 				Username: "username",
 				Password: []byte("password"),
 				Role:     domain.Admin,
 			})).To(Succeed())
 
-			user := Must(model.GetUserByUsername(ctx, db, "username"))
+			{
+				user := Must(model.GetUserByUsername(ctx, db, "username"))
 
-			Expect(user).To(PointTo(MatchAllFields(Fields{
-				"ID":       Not(BeZero()),
-				"Username": Equal("username"),
-				"Password": Equal([]byte("password")),
-				"Role":     Equal(domain.Admin),
-			})))
+				Expect(user).To(PointTo(MatchAllFields(Fields{
+					"ID":       Equal(userID),
+					"Username": Equal("username"),
+					"Password": Equal([]byte("password")),
+					"Role":     Equal(domain.Admin),
+				})))
+			}
+
+			{
+				user := Must(model.GetUser(ctx, db, userID))
+				Expect(user).To(PointTo(MatchAllFields(Fields{
+					"ID":       Equal(userID),
+					"Username": Equal("username"),
+					"Password": Equal([]byte("password")),
+					"Role":     Equal(domain.Admin),
+				})))
+			}
 		})
 	})
 

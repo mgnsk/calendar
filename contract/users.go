@@ -12,6 +12,11 @@ type DeleteUserRequest struct {
 	UserID snowflake.ID `form:"user_id"`
 }
 
+// UpgradeUserRoleRequest is a request to upgrade a user role.
+type UpgradeUserRoleRequest struct {
+	UserID snowflake.ID `form:"user_id"`
+}
+
 // RegisterRequest is a request to render the register page.
 type RegisterRequest struct {
 	Token uuid.UUID `param:"token"`

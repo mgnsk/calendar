@@ -54,6 +54,19 @@ func DeleteUser(ctx context.Context, db bun.IDB, id snowflake.ID) error {
 		Exec(ctx))
 }
 
+// GetUser returns a user.
+func GetUser(ctx context.Context, db bun.IDB, userID snowflake.ID) (*domain.User, error) {
+	model := &User{}
+
+	if err := db.NewSelect().Model(model).
+		Where("id = ?", userID).
+		Scan(ctx); err != nil {
+		return nil, sqlite.NormalizeError(err)
+	}
+
+	return userToDomain(model), nil
+}
+
 // GetUserByUsername returns a user.
 func GetUserByUsername(ctx context.Context, db bun.IDB, username string) (*domain.User, error) {
 	model := &User{}
