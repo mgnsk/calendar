@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
@@ -108,6 +109,19 @@ func run() error {
 	sm := server.NewSessionManager(store)
 	sessionMiddleware := server.NewSessionMiddleware(sm)
 
+	csrfMiddleware := middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLength:    32,
+		TokenLookup:    "form:csrf",
+		ContextKey:     "csrf",
+		CookieName:     "_csrf",
+		CookieDomain:   "",
+		CookiePath:     "/",
+		CookieMaxAge:   86400,
+		CookieSecure:   true,
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
+	})
+
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
 		return calendar.Internal.New("error creating tzf", err)
@@ -119,6 +133,7 @@ func run() error {
 	// Setup.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 
@@ -129,6 +144,7 @@ func run() error {
 	// Authentication.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 
@@ -139,6 +155,7 @@ func run() error {
 	// Events.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 
@@ -149,6 +166,7 @@ func run() error {
 	// Events management.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 
@@ -159,6 +177,7 @@ func run() error {
 	// Users management.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 
@@ -169,6 +188,7 @@ func run() error {
 	// Stopwords management.
 	{
 		g := e.Group("",
+			csrfMiddleware,
 			sessionMiddleware,
 		)
 

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -34,19 +33,6 @@ func NewServer() *echo.Echo {
 		}),
 
 		middleware.BodyLimit("1M"),
-
-		middleware.CSRFWithConfig(middleware.CSRFConfig{
-			TokenLength:    32,
-			TokenLookup:    "form:csrf",
-			ContextKey:     "csrf",
-			CookieName:     "_csrf",
-			CookieDomain:   "",
-			CookiePath:     "/",
-			CookieMaxAge:   86400,
-			CookieSecure:   true,
-			CookieHTTPOnly: true,
-			CookieSameSite: http.SameSiteStrictMode,
-		}),
 	)
 
 	e.Server.ReadTimeout = time.Minute
