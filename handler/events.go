@@ -131,16 +131,16 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 // Register the handler.
 func (h *EventsHandler) Register(g *echo.Group) {
 	g.GET("/", server.Wrap(h.db, h.sm, h.Upcoming))
-	g.POST("/", server.Wrap(h.db, h.sm, h.Upcoming)) // Fox htmx.
+	g.POST("/", server.Wrap(h.db, h.sm, h.Upcoming)) // For htmx.
 
 	g.GET("/past", server.Wrap(h.db, h.sm, h.Past))
 	g.POST("/past", server.Wrap(h.db, h.sm, h.Past)) // For htmx.
 
 	g.GET("/tags", server.Wrap(h.db, h.sm, h.Tags))
-	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // Fox htmx.
+	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // For htmx.
 
 	g.GET("/my-events", server.Wrap(h.db, h.sm, h.MyEvents))
-	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // Fox htmx.
+	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // For htmx.
 }
 
 // NewEventsHandler creates a new events handler.
