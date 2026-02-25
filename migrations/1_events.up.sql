@@ -11,3 +11,5 @@ CREATE TABLE `events` (
   `is_draft` tinyint NOT NULL,
   `user_id` bigint NOT NULL
 );
+CREATE INDEX events_start_at_unix_idx ON events (start_at_unix);
+CREATE INDEX events_user_id_idx ON events (user_id);
