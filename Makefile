@@ -56,19 +56,3 @@ lint:
 .PHONY: build
 build:
 	docker build -t ghcr.io/mgnsk/calendar:edge .
-
-# Install and enable the production service.
-.PHONY: install
-install:
-	docker volume create "calendar-database" || true
-	ln -sf $(shell pwd)/mgnsk-calendar.service /etc/systemd/system/mgnsk-calendar.service
-	systemctl daemon-reload
-	systemctl enable --now mgnsk-calendar.service
-
-# Uninstall the production service.
-.PHONY: uninstall
-uninstall:
-	systemctl disable --now mgnsk-calendar.service || true
-	rm -f /etc/systemd/system/mgnsk-calendar.service
-	# Note: This command will not remove the database volume to prevent data loss
-	# Use 'docker volume rm calendar-database' to remove the database if needed.

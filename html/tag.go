@@ -64,7 +64,7 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 						Sup(Class("text-gray-400"),
 							Textf("(%d)", tag.EventCount),
 						),
-						// Show latest tagged events on click.
+						// Show upcoming tagged events on click.
 						hx.Post("/"),
 						hx.Trigger("click"),
 						Attr("onclick", fmt.Sprintf(`changeTab(document.querySelectorAll(".nav-link")[0]); setSearch("%s")`, tag.Name)),

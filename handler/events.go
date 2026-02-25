@@ -25,15 +25,6 @@ type EventsHandler struct {
 	sm *scs.SessionManager
 }
 
-// Latest handles latest events.
-func (h *EventsHandler) Latest(c *server.Context) error {
-	return h.events(
-		c,
-		model.NewEventsQuery(),
-		model.OrderCreatedAtDesc,
-	)
-}
-
 // Upcoming handles upcoming events.
 func (h *EventsHandler) Upcoming(c *server.Context) error {
 	return h.events(
@@ -100,10 +91,10 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 		var cursor int64
 
 		switch c.Path() {
-		case "/", "/my-events":
+		case "/my-events":
 			cursor = req.LastID
 
-		case "/upcoming", "/past":
+		case "/", "/past":
 			cursor = req.Offset
 
 		default:
@@ -139,20 +130,17 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 
 // Register the handler.
 func (h *EventsHandler) Register(g *echo.Group) {
-	g.GET("/", server.Wrap(h.db, h.sm, h.Latest))
-	g.POST("/", server.Wrap(h.db, h.sm, h.Latest)) // Fox htmx.
-
-	g.GET("/upcoming", server.Wrap(h.db, h.sm, h.Upcoming))
-	g.POST("/upcoming", server.Wrap(h.db, h.sm, h.Upcoming)) // Fox htmx.
+	g.GET("/", server.Wrap(h.db, h.sm, h.Upcoming))
+	g.POST("/", server.Wrap(h.db, h.sm, h.Upcoming)) // For htmx.
 
 	g.GET("/past", server.Wrap(h.db, h.sm, h.Past))
 	g.POST("/past", server.Wrap(h.db, h.sm, h.Past)) // For htmx.
 
 	g.GET("/tags", server.Wrap(h.db, h.sm, h.Tags))
-	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // Fox htmx.
+	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // For htmx.
 
 	g.GET("/my-events", server.Wrap(h.db, h.sm, h.MyEvents))
-	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // Fox htmx.
+	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // For htmx.
 }
 
 // NewEventsHandler creates a new events handler.
