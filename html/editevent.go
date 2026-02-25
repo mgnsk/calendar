@@ -33,6 +33,8 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 
 				Div(Class("relative"),
 					input("location", "text", "Location", form.Location, errs.Get("location"), true, false),
+					Input(Type("hidden"), Name("osm_type"), Value(form.OSMType)),
+					Input(Type("hidden"), Name("osm_id"), Value(strconv.FormatUint(form.OSMID, 10))),
 					Div(ID("location-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2"),
 						spinner(2),
 					),

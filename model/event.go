@@ -23,6 +23,8 @@ type Event struct {
 	Description    string       `bun:"description"`
 	URL            string       `bun:"url"`
 	Location       string       `bun:"location"`
+	OSMType        string       `bun:"osm_type"`
+	OSMID          uint64       `bun:"osm_id"`
 	Latitude       float64      `bun:"latitude"`
 	Longitude      float64      `bun:"longitude"`
 
@@ -65,6 +67,8 @@ func InsertEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 			Description:    ev.Description,
 			URL:            ev.URL,
 			Location:       ev.Location,
+			OSMType:        ev.OSMType,
+			OSMID:          ev.OSMID,
 			Latitude:       ev.Latitude,
 			Longitude:      ev.Longitude,
 			IsDraft:        ev.IsDraft,
@@ -94,6 +98,8 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Description:    ev.Description,
 				URL:            ev.URL,
 				Location:       ev.Location,
+				OSMType:        ev.OSMType,
+				OSMID:          ev.OSMID,
 				Latitude:       ev.Latitude,
 				Longitude:      ev.Longitude,
 				IsDraft:        ev.IsDraft,
@@ -105,6 +111,8 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 					"description",
 					"url",
 					"location",
+					"osm_type",
+					"osm_id",
 					"latitude",
 					"longitude",
 					"is_draft",
@@ -360,6 +368,8 @@ func eventToDomain(ev *Event) *domain.Event {
 		Description: ev.Description,
 		URL:         ev.URL,
 		Location:    ev.Location,
+		OSMType:     ev.OSMType,
+		OSMID:       ev.OSMID,
 		Latitude:    ev.Latitude,
 		Longitude:   ev.Longitude,
 		IsDraft:     ev.IsDraft,

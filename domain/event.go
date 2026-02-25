@@ -17,6 +17,8 @@ type Event struct {
 	Description string
 	URL         string
 	Location    string
+	OSMType     string
+	OSMID       uint64
 	Latitude    float64
 	Longitude   float64
 	IsDraft     bool

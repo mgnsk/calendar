@@ -97,6 +97,10 @@ document.addEventListener("DOMContentLoaded", () => {
           $("#location-spinner").css("opacity", "0");
         });
     },
+    select: function (_, ui) {
+      document.querySelector('[name="osm_type"]').value = ui.item.raw.osm_type;
+      document.querySelector('[name="osm_id"]').value = ui.item.raw.osm_id;
+    },
     delay: 1000,
     minLength: 3,
   });

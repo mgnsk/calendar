@@ -70,6 +70,8 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			req.URL = ev.URL
 			req.StartAt = ev.StartAt.Format(contract.FormDateTimeLayout)
 			req.Location = ev.Location
+			req.OSMType = ev.OSMType
+			req.OSMID = ev.OSMID
 			req.Latitude = ev.Latitude
 			req.Longitude = ev.Longitude
 			_, offset := ev.StartAt.Zone()
@@ -103,6 +105,8 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			ev.Description = req.Description
 			ev.URL = req.URL
 			ev.Location = req.Location
+			ev.OSMType = req.OSMType
+			ev.OSMID = req.OSMID
 			ev.Latitude = req.Latitude
 			ev.Longitude = req.Longitude
 
@@ -128,6 +132,8 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			Description: req.Description,
 			URL:         req.URL,
 			Location:    req.Location,
+			OSMType:     req.OSMType,
+			OSMID:       req.OSMID,
 			Latitude:    req.Latitude,
 			Longitude:   req.Longitude,
 			IsDraft:     req.IsDraft,
@@ -207,6 +213,8 @@ func (h *EditEventHandler) Preview(c *server.Context) error {
 		Description: req.Description,
 		URL:         req.URL,
 		Location:    req.Location,
+		OSMType:     req.OSMType,
+		OSMID:       req.OSMID,
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
 		IsDraft:     req.IsDraft,

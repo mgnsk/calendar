@@ -1,0 +1,1 @@
+ALTER TABLE events ADD COLUMN osm_id bigint NOT NULL;
