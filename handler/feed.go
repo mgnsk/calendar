@@ -37,10 +37,14 @@ func (h *FeedHandler) HandleICal(c *server.Context) error {
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetDescription(c.Settings.Title)
+	cal.SetName(c.Settings.Title)
+	cal.SetDescription(c.Settings.Description)
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
+
+		event.SetLocation(ev.Location)
+		event.SetGeo(ev.Latitude, ev.Longitude)
 
 		event.SetCreatedTime(ev.GetCreatedAt())
 		event.SetModifiedAt(ev.GetCreatedAt())
@@ -72,20 +76,14 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 	}
 
 	feed := &feeds.Feed{
-		Title: c.Settings.Title,
+		Title:       c.Settings.Title,
+		Description: c.Settings.Description,
 	}
-
-	// Track latest item timestamp to populate channel-level updated time.
-	var latest time.Time
 
 	for _, ev := range events {
 		var htmlContent strings.Builder
 		if err := html.EventCard(nil, ev, "").Render(&htmlContent); err != nil {
 			return err
-		}
-
-		if ev.GetCreatedAt().After(latest) {
-			latest = ev.GetCreatedAt()
 		}
 
 		feed.Add(&feeds.Item{
@@ -98,10 +96,6 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 			Updated:     ev.GetCreatedAt(),
 			Created:     ev.GetCreatedAt(),
 		})
-	}
-
-	if !latest.IsZero() {
-		feed.Updated = latest
 	}
 
 	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.rss"`)

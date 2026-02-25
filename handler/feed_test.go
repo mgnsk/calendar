@@ -56,9 +56,10 @@ var _ = Describe("RSS feed output", func() {
 				feed := Must(fp.Parse(r.Body))
 
 				fields := Fields{
-					"FeedType": Equal(string(feedType)),
-					"Title":    Equal("My Awesome Events"),
-					"Items":    BeEmpty(),
+					"FeedType":    Equal(string(feedType)),
+					"Title":       Equal("My Awesome Events"),
+					"Description": Equal("All the awesome events in one place!"),
+					"Items":       BeEmpty(),
 				}
 
 				Expect(feed).To(PointTo(MatchFields(IgnoreExtras, fields)))
@@ -100,8 +101,9 @@ var _ = Describe("RSS feed output", func() {
 				feed := Must(fp.Parse(r.Body))
 
 				fields := Fields{
-					"FeedType": Equal(string(feedType)),
-					"Title":    Equal("My Awesome Events"),
+					"FeedType":    Equal(string(feedType)),
+					"Title":       Equal("My Awesome Events"),
+					"Description": Equal("All the awesome events in one place!"),
 					"Items": HaveExactElements(
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event1.Title),
@@ -183,8 +185,12 @@ var _ = Describe("iCal feed output", func() {
 					"Value":     Equal("PUBLISH"),
 				})),
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
-					"IANAToken": Equal("DESCRIPTION"),
+					"IANAToken": Equal("NAME"),
 					"Value":     Equal("My Awesome Events"),
+				})),
+				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
+					"IANAToken": Equal("DESCRIPTION"),
+					"Value":     Equal("All the awesome events in one place!"),
 				})),
 			))
 
@@ -222,8 +228,12 @@ var _ = Describe("iCal feed output", func() {
 					"Value":     Equal("PUBLISH"),
 				})),
 				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
-					"IANAToken": Equal("DESCRIPTION"),
+					"IANAToken": Equal("NAME"),
 					"Value":     Equal("My Awesome Events"),
+				})),
+				HaveField("BaseProperty", MatchFields(IgnoreExtras, Fields{
+					"IANAToken": Equal("DESCRIPTION"),
+					"Value":     Equal("All the awesome events in one place!"),
 				})),
 			))
 
@@ -236,13 +246,19 @@ var _ = Describe("iCal feed output", func() {
 					Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.StartAt.Add(time.Hour), time.Second))
 
 					summary := ev.GetProperty(ics.ComponentPropertySummary)
-					Expect(summary).To(HaveField("Value", target.Title))
+					Expect(summary.Value).To(Equal(target.Title))
+
+					location := ev.GetProperty(ics.ComponentPropertyLocation)
+					Expect(location.Value).To(Equal(target.Location))
+
+					geo := ev.GetProperty(ics.ComponentPropertyGeo)
+					Expect(geo.Value).To(Equal("59.436962;24.753574"))
 
 					url := ev.GetProperty(ics.ComponentPropertyUrl)
-					Expect(url).To(HaveField("Value", target.URL))
+					Expect(url.Value).To(Equal(target.URL))
 
 					desc := ev.GetProperty(ics.ComponentPropertyDescription)
-					Expect(desc).To(HaveField("Value", target.Description))
+					Expect(desc.Value).To(Equal(target.Description))
 
 					return true, nil
 				}))
