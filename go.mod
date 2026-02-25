@@ -1,6 +1,6 @@
 module github.com/mgnsk/calendar
 
-go 1.24.5
+go 1.26
 
 require (
 	github.com/alexedwards/scs/bunstore v0.0.0-20250205215704-2e2c681ccff8
