@@ -7,7 +7,6 @@ volumes:
   caddy-config:
   calendar-database:
 
-
 services:
   caddy:
     image: caddy@sha256:dedfbbeb703b2ce9ff4a98fc06aa9c7c7d9a42f0b7d778738c1dd3ef11dcc767
@@ -15,10 +14,10 @@ services:
     ports:
       - 80:80/tcp
       - 443:443/tcp
-    env_file:
-      - .env.example
+    environment:
+      HOSTNAME: "calendar.localhost"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
 
@@ -36,10 +35,9 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - LISTEN_ADDR=:8080
-      - DATABASE_DIR=/database
-    env_file:
-      - .env.example
+      HOSTNAME: "calendar.localhost"
+      LISTEN_ADDR: ":8080"
+      DATABASE_DIR: "/database"
     volumes:
       - ./:/application
       - npm-cache:/home/node/.npm
