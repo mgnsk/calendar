@@ -61,8 +61,6 @@ func (h *FeedHandler) HandleICal(c *server.Context) error {
 
 	c.Response().Header().Set(echo.HeaderContentType, "text/calendar; charset=utf-8")
 	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="calendar.ics"`)
-	c.Response().Header().Set(echo.HeaderCacheControl, "max-age=3600")
-	c.Response().Header().Set("Expires", time.Now().UTC().Add(time.Hour).Format(http.TimeFormat))
 
 	c.Response().WriteHeader(http.StatusOK)
 
@@ -100,8 +98,7 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 
 	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.rss"`)
 	c.Response().Header().Set(echo.HeaderContentType, "application/rss+xml; charset=utf-8")
-	c.Response().Header().Set(echo.HeaderCacheControl, "max-age=3600")
-	c.Response().Header().Set("Expires", time.Now().UTC().Add(time.Hour).Format(http.TimeFormat))
+
 	c.Response().WriteHeader(http.StatusOK)
 
 	rss := (&feeds.Rss{Feed: feed}).RssFeed()
