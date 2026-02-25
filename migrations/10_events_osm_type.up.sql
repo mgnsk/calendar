@@ -1,1 +1,1 @@
-ALTER TABLE events ADD COLUMN osm_type text NOT NULL;
+ALTER TABLE events ADD COLUMN osm_type text NOT NULL DEFAULT '';

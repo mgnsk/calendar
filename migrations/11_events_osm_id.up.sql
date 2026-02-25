@@ -1,1 +1,1 @@
-ALTER TABLE events ADD COLUMN osm_id bigint NOT NULL;
+ALTER TABLE events ADD COLUMN osm_id bigint NOT NULL DEFAULT '0';
