@@ -54,27 +54,22 @@ type eventNavLink struct {
 }
 
 // EventNav renders the event navigation.
-func EventNav(user *domain.User, path, csrf string) Node {
+func EventNav(user *domain.User, currentPath, csrf string) Node {
 	links := []eventNavLink{
 		{
-			Text:   "Latest",
-			URL:    "/",
-			Active: path == "/",
-		},
-		{
 			Text:   "Upcoming",
-			URL:    "/upcoming",
-			Active: path == "/upcoming",
+			URL:    "/",
+			Active: currentPath == "/",
 		},
 		{
 			Text:   "Past",
 			URL:    "/past",
-			Active: path == "/past",
+			Active: currentPath == "/past",
 		},
 		{
 			Text:   "Tags",
 			URL:    "/tags",
-			Active: path == "/tags",
+			Active: currentPath == "/tags",
 		},
 	}
 
@@ -82,7 +77,7 @@ func EventNav(user *domain.User, path, csrf string) Node {
 		links = append(links, eventNavLink{
 			Text:   "My events",
 			URL:    "/my-events",
-			Active: path == "/my-events",
+			Active: currentPath == "/my-events",
 		})
 	}
 
