@@ -1,17 +1,19 @@
-package html
+package components
 
 import (
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
 )
 
-func loadingSpinner() Node {
+// LoadingSpinner is a HTMX-aware loading spinner element.
+func LoadingSpinner() Node {
 	return Div(ID("loading-spinner"), Class("absolute left-0 right-0 my-5 htmx-indicator m-10 mx-auto flex justify-center"),
-		spinner(8),
+		Spinner(8),
 	)
 }
 
-func spinner(size int) Node {
+// Spinner is a spinner SVG element.
+func Spinner(size int) Node {
 	return Rawf(`<svg class="w-%d h-%d text-gray-300 animate-spin" viewBox="0 0 64 64" fill="none"
      xmlns="http://www.w3.org/2000/svg" width="24" height="24">
      <path

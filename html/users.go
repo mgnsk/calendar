@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/html/components"
 	. "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
 	. "maragu.dev/gomponents/html"
@@ -78,9 +79,7 @@ func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf strin
 			),
 		),
 		Div(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
-			Button(buttonClasses(),
-				Type("button"),
-				Text("Invite"),
+			components.ButtonElement("Invite",
 				hx.Post("/invite"),
 				hx.Swap("outerHTML"),
 				hx.Vals(string(must(json.Marshal(map[string]string{
@@ -114,17 +113,17 @@ func RegisterMain(form contract.RegisterForm, errs url.Values, csrf string) Node
 				Method("POST"),
 
 				Label(Class("block w-full pt-2"), For("username"), Text("Username")),
-				input("username", "text", "Username", form.Username, errs.Get("username"), true, false),
+				components.InputElement("username", "text", "Username", form.Username, errs.Get("username"), true, false),
 
 				Label(Class("block w-full pt-2"), For("password1"), Text("Password")),
-				input("password1", "password", "Password", form.Password1, errs.Get("password1"), true, false),
+				components.InputElement("password1", "password", "Password", form.Password1, errs.Get("password1"), true, false),
 
 				Label(Class("block w-full pt-2"), For("password2"), Text("Password again")),
-				input("password2", "password", "Password again", form.Password2, errs.Get("password2"), true, false),
+				components.InputElement("password2", "password", "Password again", form.Password2, errs.Get("password2"), true, false),
 
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 
-				submitButton("Register"),
+				components.SubmitButtonElement("Register"),
 			),
 		),
 	)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
+	"github.com/mgnsk/calendar/html/components"
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/components"
 	. "maragu.dev/gomponents/html"
@@ -74,18 +75,18 @@ func Page(props PageProps) Node {
 			Meta(Name("generator"), Content("Calendar - github.com/mgnsk/calendar")),
 		},
 		Body: []Node{
-			UserNav(
+			components.UserNav(
 				props.User,
 				If(
 					props.Path == "/" ||
 						props.Path == "/past" ||
 						props.Path == "/tags" ||
 						props.Path == "/my-events",
-					EventNav(props.User, props.Path, props.CSRF),
+					components.EventNav(props.User, props.Path, props.CSRF),
 				),
 			),
 			props.Children,
-			loadingSpinner(),
+			components.LoadingSpinner(),
 			If(props.FlashSuccess != "", flashMessage(true, props.FlashSuccess)),
 		},
 	})
