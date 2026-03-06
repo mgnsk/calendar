@@ -59,7 +59,7 @@ func (h *EventsHandler) MyEvents(c *server.Context) error {
 // Tags handles tags.
 func (h *EventsHandler) Tags(c *server.Context) error {
 	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		tags, err := model.ListTags(c.Request().Context(), h.db, 500)
+		tags, err := model.ListTags(c.Request().Context(), h.db, time.Now(), 500)
 		if err != nil {
 			if !errors.Is(err, calendar.NotFound) {
 				return err
