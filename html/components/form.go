@@ -46,7 +46,7 @@ func InputElement(name, typ, placeholder string, value, err string, required, au
 			Type(typ),
 			If(required, Placeholder(placeholder+"*")),
 			If(!required, Placeholder(placeholder)),
-			Value(value),
+			If(typ != "password", Value(value)),
 			If(required, Required()),
 			If(!autocomplete, AutoComplete("off")),
 		),
