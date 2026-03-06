@@ -41,18 +41,24 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 }
 
 // ListTags lists most popular tags, excluding stopwords.
-func ListTags(ctx context.Context, db bun.IDB, limit int) ([]*domain.Tag, error) {
+func ListTags(ctx context.Context, db bun.IDB, eventStartAtFromUnix int64, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
-	if err := db.NewSelect().Model(&model).
+	query := db.NewSelect().Model(&model).
 		ColumnExpr("tag.id, tag.name, COUNT(et.event_id) AS event_count").
 		Join("LEFT JOIN events_tags AS et ON et.tag_id = tag.id").
 		Join("LEFT JOIN stopwords AS sw ON sw.word = tag.name COLLATE NOCASE").
 		Where("sw.word IS NULL").
 		Group("tag.id").
 		Order("event_count DESC", "name ASC").
-		Limit(limit).
-		Scan(ctx); err != nil {
+		Limit(limit)
+
+	if eventStartAtFromUnix > 0 {
+		query.Join("LEFT JOIN events AS ev ON et.event_id = ev.id")
+		query.Where("ev.start_at_unix >= ?", eventStartAtFromUnix)
+	}
+
+	if err := query.Scan(ctx); err != nil {
 		return nil, sqlite.NormalizeError(err)
 	}
 
