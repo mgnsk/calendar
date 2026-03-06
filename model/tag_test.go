@@ -17,7 +17,7 @@ var _ = Describe("inserting tags", func() {
 		It("is inserted", func(ctx SpecContext) {
 			Expect(model.InsertTags(ctx, db, "tag1", "tag2")).To(Succeed())
 
-			tags := Must(model.ListTags(ctx, db, 0, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Name": Equal("tag1"),
@@ -38,7 +38,7 @@ var _ = Describe("inserting tags", func() {
 		It("is ignored", func(ctx SpecContext) {
 			Expect(model.InsertTags(ctx, db, "tag1", "tag2", "tag3")).To(Succeed())
 
-			tags := Must(model.ListTags(ctx, db, 0, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
 
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
@@ -98,7 +98,7 @@ var _ = Describe("listing tags", func() {
 	})
 
 	Specify("tags contain the number of related future events", func(ctx SpecContext) {
-		tags := Must(model.ListTags(ctx, db, time.Now().Unix(), 0))
+		tags := Must(model.ListTags(ctx, db, time.Now(), 0))
 
 		Expect(tags).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -131,7 +131,7 @@ var _ = Describe("listing tags", func() {
 	Specify("tags exclude stopwords case-insensitive", func(ctx SpecContext) {
 		Expect(model.SetStopWords(ctx, db, domain.NewStopWordList("desc", "TAG2"))).To(Succeed())
 
-		tags := Must(model.ListTags(ctx, db, time.Now().Unix(), 0))
+		tags := Must(model.ListTags(ctx, db, time.Now(), 0))
 
 		Expect(tags).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{

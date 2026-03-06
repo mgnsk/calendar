@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
@@ -41,7 +42,7 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 }
 
 // ListTags lists most popular tags, excluding stopwords.
-func ListTags(ctx context.Context, db bun.IDB, eventStartAtFromUnix int64, limit int) ([]*domain.Tag, error) {
+func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom time.Time, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
 	query := db.NewSelect().Model(&model).
@@ -53,9 +54,9 @@ func ListTags(ctx context.Context, db bun.IDB, eventStartAtFromUnix int64, limit
 		Order("event_count DESC", "name ASC").
 		Limit(limit)
 
-	if eventStartAtFromUnix > 0 {
+	if !eventStartAtFrom.IsZero() {
 		query.Join("LEFT JOIN events AS ev ON et.event_id = ev.id")
-		query.Where("ev.start_at_unix >= ?", eventStartAtFromUnix)
+		query.Where("ev.start_at_unix >= ?", eventStartAtFrom.Unix())
 	}
 
 	if err := query.Scan(ctx); err != nil {
