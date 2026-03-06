@@ -15,14 +15,14 @@ require (
 	github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/gomega v1.39.1
 	github.com/ringsaturn/tzf v1.0.3
 	github.com/samber/lo v1.52.0
-	github.com/uptrace/bun v1.2.17
-	github.com/uptrace/bun/dialect/sqlitedialect v1.2.17
-	github.com/uptrace/bun/extra/bundebug v1.2.17
+	github.com/uptrace/bun v1.2.18
+	github.com/uptrace/bun/dialect/sqlitedialect v1.2.18
+	github.com/uptrace/bun/extra/bundebug v1.2.18
 	github.com/yuin/goldmark v1.7.16
-	golang.org/x/crypto v0.47.0
+	golang.org/x/crypto v0.48.0
 	golang.org/x/sync v0.19.0
 	maragu.dev/gomponents v1.2.0
 	maragu.dev/gomponents-htmx v0.6.1
@@ -95,7 +95,7 @@ require (
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
