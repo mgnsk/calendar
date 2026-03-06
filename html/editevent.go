@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mgnsk/calendar/contract"
+	"github.com/mgnsk/calendar/html/components"
 	. "maragu.dev/gomponents"
 	. "maragu.dev/gomponents/html"
 )
@@ -17,7 +18,8 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 			Form(ID("edit-form"), Class("w-full px-3 py-4 mx-auto"),
 				Method("POST"),
 
-				H1(baseFormElementClasses(),
+				// TODO: refactor this usage of classes
+				H1(components.BaseFormElementClasses(),
 					Text("Status: "),
 					B(Text(func() string {
 						if form.IsDraft || form.EventID == 0 {
@@ -27,20 +29,20 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 					}())),
 				),
 
-				input("title", "text", "Title", form.Title, errs.Get("title"), true, false),
-				input("url", "url", "URL", form.URL, errs.Get("url"), false, false),
-				dateTimeLocalInput("start_at", form.StartAt, errs.Get("start_at"), true, false),
+				components.InputElement("title", "text", "Title", form.Title, errs.Get("title"), true, false),
+				components.InputElement("url", "url", "URL", form.URL, errs.Get("url"), false, false),
+				components.DateTimeLocalInput("start_at", form.StartAt, errs.Get("start_at"), true, false),
 
 				Div(Class("relative"),
-					input("location", "text", "Location", form.Location, errs.Get("location"), true, false),
+					components.InputElement("location", "text", "Location", form.Location, errs.Get("location"), true, false),
 					Input(Type("hidden"), Name("osm_type"), Value(form.OSMType)),
 					Input(Type("hidden"), Name("osm_id"), Value(strconv.FormatUint(form.OSMID, 10))),
 					Div(ID("location-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2"),
-						spinner(2),
+						components.Spinner(2),
 					),
 				),
 
-				textarea("desc", form.Description, errs.Get("desc"), true, false),
+				components.TextareaElement("desc", form.Description, errs.Get("desc"), 3, true, false),
 
 				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Input(Type("hidden"), Name("easymde_cache_key"), Value(form.EventID.String())),
@@ -54,14 +56,10 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				// Draft or new event.
 				Iff(form.IsDraftOrNew(), func() Node {
 					return Group{
-						Button(buttonClasses(),
-							Type("submit"),
-							Text("Save Draft"),
+						components.SubmitButtonElement("Save Draft",
 							FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
 						),
-						Button(buttonClasses(),
-							Type("submit"),
-							Text("Publish"),
+						components.SubmitButtonElement("Publish",
 							Attr("onclick", "return confirm('Confirm publishing this event')"),
 							FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
 						),
@@ -71,14 +69,10 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 				// Already published event.
 				Iff(!form.IsDraftOrNew(), func() Node {
 					return Group{
-						Button(buttonClasses(),
-							Type("submit"),
-							Text("Save"),
+						components.SubmitButtonElement("Save",
 							FormAction(fmt.Sprintf("/edit/%s?draft=0", form.EventID.String())),
 						),
-						Button(buttonClasses(),
-							Type("submit"),
-							Text("Unpublish"),
+						components.SubmitButtonElement("Unpublish",
 							Attr("onclick", "return confirm('Confirm unpublishing this event')"),
 							FormAction(fmt.Sprintf("/edit/%s?draft=1", form.EventID.String())),
 						),
