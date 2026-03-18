@@ -1,7 +1,7 @@
 package markdown
 
 import (
-	"strings"
+	"io"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -15,13 +15,8 @@ import (
 )
 
 // Convert a markdown source to HTML.
-func Convert(source string) (string, error) {
-	var buf strings.Builder
-	if err := md.Convert([]byte(source), &buf); err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
+func Convert(w io.Writer, source string) error {
+	return md.Convert([]byte(source), w)
 }
 
 var md = goldmark.New(

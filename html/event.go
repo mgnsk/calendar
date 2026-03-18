@@ -3,6 +3,7 @@ package html
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"strconv"
 	"time"
@@ -37,7 +38,7 @@ func EventsMain(csrf string) Node {
 func EventListPartial(user *domain.User, offset int64, events []*domain.Event, csrf string) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
-			P(Text("no events found")),
+			P(Text("reached the end...")),
 		)
 	}
 
@@ -147,13 +148,13 @@ func eventLocation(ev *domain.Event) Node {
 }
 
 func eventDesc(ev *domain.Event) Node {
-	html, err := markdown.Convert(ev.Description)
-	if err != nil {
-		panic(fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err))
-	}
-
 	return Div(Class("text-justify"),
-		Div(Class("mt-2 text-gray-700 [&>p]:py-3 [&_a:hover]:underline"), Raw(html)),
+		Div(Class("mt-2 text-gray-700 [&>p]:py-3 [&_a:hover]:underline"), NodeFunc(func(w io.Writer) error {
+			if err := markdown.Convert(w, ev.Description); err != nil {
+				return fmt.Errorf("error rendering markdown (event ID %d): %w", ev.ID.Int64(), err)
+			}
+			return nil
+		})),
 	)
 }
 

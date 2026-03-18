@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/mgnsk/calendar/pkg/markdown"
-	. "github.com/mgnsk/calendar/pkg/testing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -12,8 +11,9 @@ import (
 var _ = Describe("rendering markdown", func() {
 	DescribeTable("allowed markdown elements",
 		func(source, expectedHTML string) {
-			html := Must(markdown.Convert(source))
-			html = strings.TrimSpace(html)
+			var buf strings.Builder
+			Expect(markdown.Convert(&buf, source)).To(Succeed())
+			html := strings.TrimSpace(buf.String())
 			Expect(html).To(Equal(expectedHTML))
 		},
 
@@ -51,8 +51,9 @@ var _ = Describe("rendering markdown", func() {
 
 	DescribeTable("XSS mitigation",
 		func(source, expectedHTML string) {
-			html := Must(markdown.Convert(source))
-			html = strings.TrimSpace(html)
+			var buf strings.Builder
+			Expect(markdown.Convert(&buf, source)).To(Succeed())
+			html := strings.TrimSpace(buf.String())
 			Expect(html).To(Equal(expectedHTML))
 		},
 
@@ -85,8 +86,9 @@ href="javascript:alert('xss')">you</a>`,
 
 	DescribeTable("linebreaks",
 		func(source, expectedHTML string) {
-			html := Must(markdown.Convert(source))
-			html = strings.TrimSpace(html)
+			var buf strings.Builder
+			Expect(markdown.Convert(&buf, source)).To(Succeed())
+			html := strings.TrimSpace(buf.String())
 			Expect(html).To(Equal(expectedHTML))
 		},
 
