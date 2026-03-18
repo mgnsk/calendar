@@ -1,5 +1,3 @@
 {$HOSTNAME} {
-  handle_path /* {
-    reverse_proxy calendar:8080
-  }
+	reverse_proxy calendar:8080
 }
