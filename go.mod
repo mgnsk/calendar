@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/alexedwards/scs/bunstore v0.0.0-20250205215704-2e2c681ccff8
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/arran4/golang-ical v0.3.3
+	github.com/arran4/golang-ical v0.3.4
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.1
@@ -16,17 +16,17 @@ require (
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
-	github.com/ringsaturn/tzf v1.0.3
-	github.com/samber/lo v1.52.0
+	github.com/ringsaturn/tzf v1.0.4
+	github.com/samber/lo v1.53.0
 	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/sqlitedialect v1.2.18
 	github.com/uptrace/bun/extra/bundebug v1.2.18
-	github.com/yuin/goldmark v1.7.16
-	golang.org/x/crypto v0.48.0
-	golang.org/x/sync v0.19.0
+	github.com/yuin/goldmark v1.8.2
+	golang.org/x/crypto v0.49.0
+	golang.org/x/sync v0.20.0
 	maragu.dev/gomponents v1.2.0
 	maragu.dev/gomponents-htmx v0.6.1
-	modernc.org/sqlite v1.46.1
+	modernc.org/sqlite v1.48.0
 	mvdan.cc/xurls/v2 v2.6.0
 )
 
@@ -75,13 +75,13 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/ringsaturn/tzf-rel-lite v0.0.2025-c // indirect
+	github.com/ringsaturn/tzf-rel-lite v0.0.2026-a // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/afero v1.14.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/tdewolff/parse/v2 v2.7.15 // indirect
 	github.com/tidwall/geoindex v1.7.0 // indirect
-	github.com/tidwall/geojson v1.4.5 // indirect
+	github.com/tidwall/geojson v1.4.6 // indirect
 	github.com/tidwall/rtree v1.10.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/twpayne/go-polyline v1.1.1 // indirect
@@ -91,15 +91,14 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
-	golang.org/x/mod v0.32.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.41.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	modernc.org/libc v1.67.6 // indirect
+	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
