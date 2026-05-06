@@ -1,4 +1,4 @@
-FROM node:25-bookworm@sha256:ccfc02deb6abb1b70b6ef21d3d93b3f671c0de6f463ff331cf0ea0a28ad875c9 AS assets
+FROM node:25-bookworm@sha256:c69f4e0640e5b065f2694579793e4309f1e0e49868b0f2fea29c44d9c0dc2caf AS assets
 
 WORKDIR /build
 
@@ -11,7 +11,7 @@ COPY html ./html
 RUN npx @tailwindcss/cli -i tailwind.css -o app.css --minify
 
 
-FROM golang:1.26.1-bookworm@sha256:8e8aa801e8417ef0b5c42b504dd34db3db911bb73dba933bd8bde75ed815fdbb AS build
+FROM golang:1.26.2-bookworm@sha256:47ce5636e9936b2c5cbf708925578ef386b4f8872aec74a67bd13a627d242b19 AS build
 
 WORKDIR /build
 
