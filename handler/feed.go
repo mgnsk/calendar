@@ -118,9 +118,7 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 
 func (h *FeedHandler) getEvents(c *server.Context) ([]*domain.Event, error) {
 	return model.NewEventsQuery().
-		WithStartAtFrom(time.Now()).
 		WithOrder(0, model.OrderCreatedAtAsc).
-		WithLimit(100). // TODO: test this with rss and thunderbird calendar.
 		List(c.Request().Context(), h.db)
 }
 
