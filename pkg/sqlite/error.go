@@ -21,8 +21,7 @@ func NormalizeError(err error) error {
 		return calendar.NotFound.New("Not found", err)
 	}
 
-	var se *sqlite.Error
-	if errors.As(err, &se) {
+	if se, ok := errors.AsType[*sqlite.Error](err); ok {
 		switch se.Code() {
 		case
 			sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY,

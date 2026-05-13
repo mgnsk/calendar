@@ -494,13 +494,11 @@ var _ = Describe("concurrent insert", func() {
 				UserID:      snowflake.Generate(),
 			}
 
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				defer GinkgoRecover()
 
 				Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
-			}()
+			})
 		}
 
 		wg.Wait()
