@@ -77,8 +77,7 @@ func ErrorHandler() echo.HTTPErrorHandler {
 			msg  = "Something went wrong"
 		)
 
-		var werr *wreck.Error
-		if errors.As(err, &werr) {
+		if werr, ok := errors.AsType[*wreck.Error](err); ok {
 			if v, ok := wreck.Value[int](werr, calendar.KeyHTTPCode); ok {
 				code = v
 			}
