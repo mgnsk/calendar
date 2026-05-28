@@ -15,9 +15,6 @@ import (
 //go:embed search.js
 var searchScript string
 
-//go:embed eventnav.js
-var eventNavScript string
-
 //go:embed editevent.js
 var editEventScript string
 
@@ -64,7 +61,6 @@ func Page(props PageProps) Node {
 			}),
 
 			Map([]string{
-				eventNavScript,
 				searchScript,
 				editEventScript,
 			}, func(s string) Node {
