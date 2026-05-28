@@ -19,7 +19,7 @@ type UpgradeUserRoleRequest struct {
 
 // RegisterRequest is a request to render the register page.
 type RegisterRequest struct {
-	Token uuid.UUID `in:"form=token"`
+	Token uuid.UUID `in:"path=token"`
 }
 
 // RegisterForm is the register form.

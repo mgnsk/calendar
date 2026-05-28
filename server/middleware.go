@@ -78,7 +78,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 			}
 
 			stack := make([]byte, 4<<10) // 4 KB
-			length := runtime.Stack(stack, true)
+			length := runtime.Stack(stack, false)
 			stack = stack[:length]
 
 			sloghttp.AddCustomAttributes(r, slog.String("err", err.Error()))
