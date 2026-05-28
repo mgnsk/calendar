@@ -16,16 +16,16 @@ import (
 )
 
 // UsersMain renders the users page main content.
-func UsersMain(currentUser *domain.User, users []*domain.User, csrf string) Node {
+func UsersMain(currentUser *domain.User, users []*domain.User) Node {
 	return Main(
 		Div(Class("max-w-3xl mx-auto"),
-			UsersListPartial(currentUser, users, csrf),
+			UsersListPartial(currentUser, users),
 		),
 	)
 }
 
 // UsersListPartial renders users list partial.
-func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf string) Node {
+func UsersListPartial(currentUser *domain.User, users []*domain.User) Node {
 	if len(users) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no users found")),
@@ -54,7 +54,6 @@ func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf strin
 									hx.Post("/delete-user"),
 									hx.Confirm("Delete user. Are you sure?"),
 									hx.Vals(string(must(json.Marshal(map[string]string{
-										"csrf":    csrf,
 										"user_id": user.ID.String(),
 									})))),
 									Href("#"),
@@ -66,7 +65,6 @@ func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf strin
 									hx.Post("/upgrade-user"),
 									hx.Confirm("Upgrade user to admin. Are you sure?"),
 									hx.Vals(string(must(json.Marshal(map[string]string{
-										"csrf":    csrf,
 										"user_id": user.ID.String(),
 									})))),
 									Href("#"),
@@ -82,9 +80,6 @@ func UsersListPartial(currentUser *domain.User, users []*domain.User, csrf strin
 			components.ButtonElement("Invite",
 				hx.Post("/invite"),
 				hx.Swap("outerHTML"),
-				hx.Vals(string(must(json.Marshal(map[string]string{
-					"csrf": csrf,
-				})))),
 			),
 		),
 	)
@@ -106,7 +101,7 @@ func InviteLinkPartial(token uuid.UUID) Node {
 }
 
 // RegisterMain renders the registration page main content.
-func RegisterMain(form contract.RegisterForm, errs url.Values, csrf string) Node {
+func RegisterMain(form contract.RegisterForm, errs url.Values) Node {
 	return Main(
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
@@ -120,8 +115,6 @@ func RegisterMain(form contract.RegisterForm, errs url.Values, csrf string) Node
 
 				Label(Class("block w-full pt-2"), For("password2"), Text("Password again")),
 				components.InputElement("password2", "password", "Password again", form.Password2, errs.Get("password2"), true, false),
-
-				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 
 				components.SubmitButtonElement("Register"),
 			),

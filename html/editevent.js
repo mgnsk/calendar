@@ -4,6 +4,8 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   const el = document.querySelector('textarea[name="desc"]');
+
+  // TODO: not used
   const cacheKeyInput = document.querySelector('[name="easymde_cache_key"]');
 
   if (!el || !cacheKeyInput) {

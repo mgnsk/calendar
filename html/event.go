@@ -19,7 +19,7 @@ import (
 )
 
 // EventsMain renders the events page main content.
-func EventsMain(csrf string) Node {
+func EventsMain() Node {
 	return Main(
 		Div(ID("event-list"),
 			hx.Post(""),
@@ -27,15 +27,12 @@ func EventsMain(csrf string) Node {
 			hx.Swap("beforeend"),
 			hx.Target("#event-list"),
 			hx.Indicator("#loading-spinner"),
-			hx.Vals(string(must(json.Marshal(map[string]string{
-				"csrf": csrf,
-			})))),
 		),
 	)
 }
 
 // EventListPartial renders the event list partial.
-func EventListPartial(user *domain.User, offset int64, events []*domain.Event, csrf string) Node {
+func EventListPartial(user *domain.User, offset int64, events []*domain.Event) Node {
 	if len(events) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("reached the end...")),
@@ -44,13 +41,12 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 
 	return Group{
 		Map(events, func(ev *domain.Event) Node {
-			return EventCard(user, ev, csrf)
+			return EventCard(user, ev)
 		}),
 		Div(ID("load-more"),
 			hx.Post(""),
 			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
-				"csrf":    csrf,
 				"last_id": events[len(events)-1].ID.String(),
 				"offset":  strconv.FormatInt(offset+contract.EventLimitPerPage, 10),
 			})))),
@@ -63,7 +59,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event, c
 }
 
 // EventCard renders the event card.
-func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
+func EventCard(user *domain.User, ev *domain.Event) Node {
 	inPast := ev.StartAt.Before(time.Now())
 
 	return Div(
@@ -98,9 +94,6 @@ func EventCard(user *domain.User, ev *domain.Event, csrf string) Node {
 					A(Class("hover:underline text-amber-600 font-semibold"),
 						hx.Post(fmt.Sprintf("/delete/%d", ev.ID)),
 						hx.Confirm("Are you sure?"),
-						hx.Vals(string(must(json.Marshal(map[string]string{
-							"csrf": csrf,
-						})))),
 						Href("#"),
 						Text("DELETE"),
 					),

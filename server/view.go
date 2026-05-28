@@ -1,29 +1,40 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/html"
 	"maragu.dev/gomponents"
 )
 
 // RenderPage renders a HTML page.
 func RenderPage(
-	c *Context,
+	w http.ResponseWriter,
+	r *http.Request,
 	sm *scs.SessionManager,
 	content gomponents.Node,
-) error {
+) {
 	// Note: Pop must be before writing headers.
-	successMessage := sm.PopString(c.Request().Context(), "flash-success")
+	successMessage := sm.PopString(r.Context(), "flash-success")
 
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	settings := GetSettings(r.Context())
+	user := GetUser(r.Context())
 
-	return html.Page(html.PageProps{
-		Title:        c.Settings.Title,
-		User:         c.User,
-		Path:         c.Path(),
-		CSRF:         c.CSRF,
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+
+	title := "TODO: nil settings"
+	if settings != nil {
+		title = settings.Title
+	}
+
+	if err := html.Page(html.PageProps{
+		Title:        title,
+		User:         user,
+		Path:         r.URL.Path,
 		Children:     content,
 		FlashSuccess: successMessage,
-	}).Render(c.Response())
+	}).Render(w); err != nil {
+		panic(err)
+	}
 }

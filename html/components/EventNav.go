@@ -1,8 +1,6 @@
 package components
 
 import (
-	"encoding/json"
-
 	"github.com/mgnsk/calendar/domain"
 	. "maragu.dev/gomponents"
 	hx "maragu.dev/gomponents-htmx"
@@ -11,7 +9,7 @@ import (
 )
 
 // EventNav renders the event navigation.
-func EventNav(user *domain.User, currentPath, csrf string) Node {
+func EventNav(user *domain.User, currentPath string) Node {
 	type eventNavLink struct {
 		Text   string
 		URL    string
@@ -81,9 +79,6 @@ func EventNav(user *domain.User, currentPath, csrf string) Node {
 						hx.Swap("innerHTML"),
 						hx.PushURL("true"),
 						hx.Indicator("#loading-spinner"),
-						hx.Vals(string(must(json.Marshal(map[string]string{
-							"csrf": csrf,
-						})))),
 						If(link.Active, Aria("current", "page")),
 						Text(link.Text),
 					),
@@ -108,9 +103,6 @@ func EventNav(user *domain.User, currentPath, csrf string) Node {
 						hx.Target("#event-list"),
 						hx.Swap("innerHTML"),
 						hx.Indicator("#search-spinner, #loading-spinner"),
-						hx.Vals(string(must(json.Marshal(map[string]string{
-							"csrf": csrf,
-						})))),
 					),
 					Div(ID("search-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2 htmx-indicator"),
 						Spinner(2),

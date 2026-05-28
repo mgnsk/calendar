@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/ggicci/httpin"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -25,89 +25,100 @@ type SetupHandler struct {
 }
 
 // Setup handles the setup page.
-func (h *SetupHandler) Setup(c *server.Context) error {
-	if c.Settings != nil {
+func (h *SetupHandler) Setup(w http.ResponseWriter, r *http.Request) {
+	settings := server.GetSettings(r.Context())
+	if settings != nil {
 		// Already set up.
-		return calendar.NotFound.New("")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
-	c.Settings = domain.NewDefaultSettings()
+	settings = domain.NewDefaultSettings()
 
-	switch c.Request().Method {
+	switch r.Method {
 	case http.MethodGet:
 		form := contract.SetupForm{
-			Title:       c.Settings.Title,
-			Description: c.Settings.Description,
+			Title:       settings.Title,
+			Description: settings.Description,
 		}
 
-		return server.RenderPage(c, h.sm,
-			html.SetupMain(form, nil, c.CSRF),
+		server.RenderPage(w, r, h.sm,
+			html.SetupMain(form, nil),
 		)
+		return
 
 	case http.MethodPost:
-		form := contract.SetupForm{}
-		if err := c.Bind(&form); err != nil {
-			return err
+		req := contract.SetupForm{}
+		if err := httpin.DecodeTo(r, &req); err != nil {
+			panic(err)
 		}
 
-		if errs := form.Validate(); len(errs) > 0 {
-			return server.RenderPage(c, h.sm,
-				html.SetupMain(form, errs, c.CSRF),
+		if errs := req.Validate(); len(errs) > 0 {
+			server.RenderPage(w, r, h.sm,
+				html.SetupMain(req, errs),
 			)
+			return
 		}
 
-		c.Settings.Title = form.Title
-		c.Settings.Description = form.Description
+		settings.Title = req.Title
+		settings.Description = req.Description
 
 		user := &domain.User{
 			ID:       snowflake.Generate(),
-			Username: form.Username,
+			Username: req.Username,
 			Role:     domain.Admin,
 		}
 
-		if err := user.SetPassword(form.Password1); err != nil {
+		if err := user.SetPassword(req.Password1); err != nil {
 			if errors.Is(err, calendar.InvalidValue) {
 				errs := url.Values{}
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return server.RenderPage(c, h.sm,
-					html.SetupMain(form, errs, c.CSRF),
+				server.RenderPage(w, r, h.sm,
+					html.SetupMain(req, errs),
 				)
+				return
 			}
 
-			return err
+			panic(err)
 		}
 
-		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, db bun.Tx) error {
-			if err := model.InsertSettings(ctx, db, c.Settings); err != nil {
+		if err := h.db.RunInTx(r.Context(), nil, func(ctx context.Context, db bun.Tx) error {
+			if err := model.InsertSettings(ctx, db, settings); err != nil {
 				return err
 			}
 
 			return model.InsertUser(ctx, db, user)
 		}); err != nil {
-			return err
+			panic(err)
 		}
 
 		// First renew the session token.
-		if err := h.sm.RenewToken(c.Request().Context()); err != nil {
-			return err
+		if err := h.sm.RenewToken(r.Context()); err != nil {
+			panic(err)
 		}
 
 		// Then make the privilege-level change.
-		h.sm.Put(c.Request().Context(), "username", user.Username)
+		h.sm.Put(r.Context(), "username", user.Username)
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 
 	default:
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 }
 
 // Register the handler.
-func (h *SetupHandler) Register(g *echo.Group) {
-	g.GET("/setup", server.Wrap(h.db, h.sm, h.Setup))
-	g.POST("/setup", server.Wrap(h.db, h.sm, h.Setup))
+func (h *SetupHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+	}
+
+	mux.Handle("GET /setup", server.WithMiddleware(http.HandlerFunc(h.Setup), middlewares...))
+	mux.Handle("POST /setup", server.WithMiddleware(http.HandlerFunc(h.Setup), middlewares...))
 }
 
 // NewSetupHandler creates a new setup handler.

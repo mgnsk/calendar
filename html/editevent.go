@@ -12,7 +12,7 @@ import (
 )
 
 // EditEventMain render the edit event page main content.
-func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) Node {
+func EditEventMain(form contract.EditEventForm, errs url.Values) Node {
 	return Main(
 		Div(Class("max-w-3xl mx-auto"),
 			Form(ID("edit-form"), Class("w-full px-3 py-4 mx-auto"),
@@ -44,7 +44,6 @@ func EditEventMain(form contract.EditEventForm, errs url.Values, csrf string) No
 
 				components.TextareaElement("desc", form.Description, errs.Get("desc"), 3, true, false),
 
-				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 				Input(Type("hidden"), Name("easymde_cache_key"), Value(form.EventID.String())),
 				Input(Type("hidden"), Name("latitude"), Value(strconv.FormatFloat(form.Latitude, 'f', -1, 64))),
 				Input(Type("hidden"), Name("longitude"), Value(strconv.FormatFloat(form.Longitude, 'f', -1, 64))),

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/ggicci/httpin"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -23,30 +23,32 @@ type StopWordsHandler struct {
 }
 
 // StopWords renders the stopwords form page.
-func (h *StopWordsHandler) StopWords(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *StopWordsHandler) StopWords(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	if c.User.Role != domain.Admin {
-		return calendar.Forbidden.New("Only admins can view stopwords")
+	if user.Role != domain.Admin {
+		panic(calendar.Forbidden.New("Only admins can view stopwords"))
 	}
 
-	switch c.Request().Method {
+	switch r.Method {
 	case http.MethodGet:
-		words, err := model.ListStopWords(c.Request().Context(), h.db)
+		words, err := model.ListStopWords(r.Context(), h.db)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
-		return server.RenderPage(c, h.sm,
-			html.StopWordsMain(words, c.CSRF),
+		server.RenderPage(w, r, h.sm,
+			html.StopWordsMain(words),
 		)
+		return
 
 	case http.MethodPost:
 		form := contract.EditStopWordsForm{}
-		if err := c.Bind(&form); err != nil {
-			return err
+		if err := httpin.DecodeTo(r, &form); err != nil {
+			panic(err)
 		}
 
 		var words []string
@@ -57,24 +59,31 @@ func (h *StopWordsHandler) StopWords(c *server.Context) error {
 		}
 
 		if err := scanner.Err(); err != nil {
-			return err
+			panic(err)
 		}
 
-		if err := model.SetStopWords(c.Request().Context(), h.db, domain.NewStopWordList(words...)); err != nil {
-			return err
+		if err := model.SetStopWords(r.Context(), h.db, domain.NewStopWordList(words...)); err != nil {
+			panic(err)
 		}
 
-		return c.Redirect(http.StatusSeeOther, "/stopwords")
+		http.Redirect(w, r, "/stopwords", http.StatusSeeOther)
+		return
 
 	default:
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 }
 
 // Register the handler.
-func (h *StopWordsHandler) Register(g *echo.Group) {
-	g.GET("/stopwords", server.Wrap(h.db, h.sm, h.StopWords))
-	g.POST("/stopwords", server.Wrap(h.db, h.sm, h.StopWords))
+func (h *StopWordsHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+		server.NewUserMiddleware(h.db, h.sm),
+	}
+
+	mux.Handle("GET /stopwords", server.WithMiddleware(http.HandlerFunc(h.StopWords), middlewares...))
+	mux.Handle("POST /stopwords", server.WithMiddleware(http.HandlerFunc(h.StopWords), middlewares...))
 }
 
 // NewStopWordsHandler creates a new stop words handler.

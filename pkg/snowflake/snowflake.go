@@ -7,11 +7,32 @@ import (
 )
 
 // ID is the snowflake ID.
-type ID = snowflake.ID
+type ID snowflake.ID
+
+func (id ID) String() string {
+	return snowflake.ID(id).String()
+}
+
+// Int64 returns an int64 of the snowflake ID
+func (id ID) Int64() int64 {
+	return snowflake.ID(id).Int64()
+}
+
+// UnmarshalText unmarshals the ID from text.
+func (id *ID) UnmarshalText(text []byte) error {
+	v, err := snowflake.ParseBytes(text)
+	if err != nil {
+		return err
+	}
+
+	*id = ID(v)
+
+	return nil
+}
 
 // Generate a new snowflake ID.
 func Generate() ID {
-	return snowflakeNode.Generate()
+	return ID(snowflakeNode.Generate())
 }
 
 // ParseTime parses time (in local time) from snowflake ID.

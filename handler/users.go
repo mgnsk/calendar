@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/ggicci/httpin"
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -28,91 +28,100 @@ type UsersHandler struct {
 }
 
 // Users handles users page.
-func (h *UsersHandler) Users(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *UsersHandler) Users(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	if c.User.Role != domain.Admin {
-		return calendar.Forbidden.New("Only admins can view users")
+	if user.Role != domain.Admin {
+		panic(calendar.Forbidden.New("Only admins can view users"))
 	}
 
-	users, err := model.ListUsers(c.Request().Context(), h.db)
+	users, err := model.ListUsers(r.Context(), h.db)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	return server.RenderPage(c, h.sm,
-		html.UsersMain(c.User, users, c.CSRF),
+	server.RenderPage(w, r, h.sm,
+		html.UsersMain(user, users),
 	)
 }
 
 // Invite handles invite link generation.
-func (h *UsersHandler) Invite(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *UsersHandler) Invite(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	if c.User.Role != domain.Admin {
-		return calendar.Forbidden.New("Only admins can invite users")
+	if user.Role != domain.Admin {
+		panic(calendar.Forbidden.New("Only admins can invite users"))
 	}
 
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
 		token := uuid.New()
 
-		if err := model.InsertInvite(c.Request().Context(), h.db, &domain.Invite{
+		if err := model.InsertInvite(r.Context(), h.db, &domain.Invite{
 			Token:      token,
 			ValidUntil: time.Now().Add(72 * time.Hour),
-			CreatedBy:  c.User.ID,
+			CreatedBy:  user.ID,
 		}); err != nil {
-			return err
+			panic(err)
 
 		}
 
-		return html.InviteLinkPartial(token).Render(c.Response())
+		if err := html.InviteLinkPartial(token).Render(w); err != nil {
+			panic(err)
+		}
+		return
 	}
 
-	return calendar.NotFound.New("Not found")
+	panic(calendar.NotFound.New("Not found"))
 }
 
 // RegisterUser registers a user with an invite link.
-func (h *UsersHandler) RegisterUser(c *server.Context) error {
-	if c.User != nil {
-		return c.Redirect(http.StatusSeeOther, "/")
+func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	req := contract.RegisterRequest{}
-	if err := c.Bind(&req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
-	invite, err := model.GetInvite(c.Request().Context(), h.db, req.Token)
+	invite, err := model.GetInvite(r.Context(), h.db, req.Token)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	if !invite.IsValid() {
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 
-	switch c.Request().Method {
+	switch r.Method {
 	case http.MethodGet:
 		form := contract.RegisterForm{}
 
-		return server.RenderPage(c, h.sm,
-			html.RegisterMain(form, nil, c.CSRF),
+		server.RenderPage(w, r, h.sm,
+			html.RegisterMain(form, nil),
 		)
+		return
 
 	case http.MethodPost:
 		form := contract.RegisterForm{}
-		if err := c.Bind(&form); err != nil {
-			return err
+		if err := httpin.DecodeTo(r, &form); err != nil {
+			panic(err)
 		}
 
 		if errs := form.Validate(); len(errs) > 0 {
-			return server.RenderPage(c, h.sm,
-				html.RegisterMain(form, errs, c.CSRF),
+			server.RenderPage(w, r, h.sm,
+				html.RegisterMain(form, errs),
 			)
+			return
 		}
 
 		newUser := &domain.User{
@@ -127,15 +136,16 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
 
-				return server.RenderPage(c, h.sm,
-					html.RegisterMain(form, errs, c.CSRF),
+				server.RenderPage(w, r, h.sm,
+					html.RegisterMain(form, errs),
 				)
+				return
 			}
 
-			return err
+			panic(err)
 		}
 
-		if err := h.db.RunInTx(c.Request().Context(), nil, func(ctx context.Context, db bun.Tx) error {
+		if err := h.db.RunInTx(r.Context(), nil, func(ctx context.Context, db bun.Tx) error {
 			if err := model.DeleteInvite(ctx, db, invite.Token); err != nil {
 				return err
 			}
@@ -146,114 +156,124 @@ func (h *UsersHandler) RegisterUser(c *server.Context) error {
 				errs := url.Values{}
 				errs.Set("username", "User already exists")
 
-				return server.RenderPage(c, h.sm,
-					html.RegisterMain(form, errs, c.CSRF),
+				server.RenderPage(w, r, h.sm,
+					html.RegisterMain(form, errs),
 				)
+				return
 			}
 
-			return err
+			panic(err)
 		}
 
 		// First renew the session token.
-		if err := h.sm.RenewToken(c.Request().Context()); err != nil {
-			return err
+		if err := h.sm.RenewToken(r.Context()); err != nil {
+			panic(err)
 		}
 
 		// Then make the privilege-level change.
-		h.sm.Put(c.Request().Context(), "username", newUser.Username)
+		h.sm.Put(r.Context(), "username", newUser.Username)
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 
 	default:
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 }
 
 // Delete a user.
-func (h *UsersHandler) Delete(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	if c.User.Role != domain.Admin {
-		return calendar.Forbidden.New("Only admins can delete users")
+	if user.Role != domain.Admin {
+		panic(calendar.Forbidden.New("Only admins can delete users"))
 	}
 
 	req := contract.DeleteUserRequest{}
-	if err := c.Bind(&req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
-	if c.User.ID == req.UserID {
-		return calendar.Forbidden.New("Cannot delete yourself")
+	if user.ID == req.UserID {
+		panic(calendar.Forbidden.New("Cannot delete yourself"))
 	}
 
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		if err := model.DeleteUser(c.Request().Context(), h.db, req.UserID); err != nil {
-			return err
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
+		if err := model.DeleteUser(r.Context(), h.db, req.UserID); err != nil {
+			panic(err)
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", "User deleted")
+		h.sm.Put(r.Context(), "flash-success", "User deleted")
 
-		hxhttp.SetRefresh(c.Response().Header())
+		hxhttp.SetRefresh(w.Header())
 
-		return nil
+		return
 	}
 
-	return calendar.NotFound.New("Not found")
+	panic(calendar.NotFound.New("Not found"))
 }
 
 // UpgradeUserRole upgrades user role.
-func (h *UsersHandler) UpgradeUserRole(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *UsersHandler) UpgradeUserRole(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	if c.User.Role != domain.Admin {
-		return calendar.Forbidden.New("Only admins can upgrade users")
+	if user.Role != domain.Admin {
+		panic(calendar.Forbidden.New("Only admins can upgrade users"))
 	}
 
 	req := contract.UpgradeUserRoleRequest{}
-	if err := c.Bind(&req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
-	if c.User.ID == req.UserID {
-		return calendar.Forbidden.New("Cannot upgrade yourself")
+	if user.ID == req.UserID {
+		panic(calendar.Forbidden.New("Cannot upgrade yourself"))
 	}
 
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		user, err := model.GetUser(c.Request().Context(), h.db, req.UserID)
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
+		user, err := model.GetUser(r.Context(), h.db, req.UserID)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		user.Role = domain.Admin
 
-		if err := model.UpdateUser(c.Request().Context(), h.db, user); err != nil {
-			return err
+		if err := model.UpdateUser(r.Context(), h.db, user); err != nil {
+			panic(err)
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", "User upgraded to admin")
+		h.sm.Put(r.Context(), "flash-success", "User upgraded to admin")
 
-		hxhttp.SetRefresh(c.Response().Header())
+		hxhttp.SetRefresh(w.Header())
 
-		return nil
+		return
 	}
 
-	return calendar.NotFound.New("Not found")
+	panic(calendar.NotFound.New("Not found"))
 }
 
 // Register the handler.
-func (h *UsersHandler) Register(g *echo.Group) {
-	g.GET("/users", server.Wrap(h.db, h.sm, h.Users))
+func (h *UsersHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+		server.NewUserMiddleware(h.db, h.sm),
+	}
 
-	g.POST("/delete-user", server.Wrap(h.db, h.sm, h.Delete))
-	g.POST("/upgrade-user", server.Wrap(h.db, h.sm, h.UpgradeUserRole))
-	g.POST("/invite", server.Wrap(h.db, h.sm, h.Invite))
+	mux.Handle("GET /users", server.WithMiddleware(http.HandlerFunc(h.Users), middlewares...))
 
-	g.GET("/register/:token", server.Wrap(h.db, h.sm, h.RegisterUser))
-	g.POST("/register/:token", server.Wrap(h.db, h.sm, h.RegisterUser))
+	mux.Handle("POST /delete-user", server.WithMiddleware(http.HandlerFunc(h.Delete), middlewares...))
+	mux.Handle("POST /upgrade-user", server.WithMiddleware(http.HandlerFunc(h.UpgradeUserRole), middlewares...))
+	mux.Handle("POST /invite", server.WithMiddleware(http.HandlerFunc(h.Invite), middlewares...))
+
+	mux.Handle("GET /register/{token}", server.WithMiddleware(http.HandlerFunc(h.RegisterUser), middlewares...))
+	mux.Handle("POST /register/{token}", server.WithMiddleware(http.HandlerFunc(h.RegisterUser), middlewares...))
 }
 
 // NewUsersHandler creates a new users handler.

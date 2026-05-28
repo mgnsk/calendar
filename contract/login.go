@@ -4,8 +4,8 @@ import "net/url"
 
 // LoginForm is a login form.
 type LoginForm struct {
-	Username string `form:"username"`
-	Password string `form:"password"`
+	Username string `in:"form=username"`
+	Password string `in:"form=password"`
 }
 
 // Validate the form.

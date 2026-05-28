@@ -7,7 +7,6 @@ import (
 	"time"
 
 	ics "github.com/arran4/golang-ical"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
@@ -29,11 +28,11 @@ var _ = Describe("RSS feed output", func() {
 			Expect(model.InsertSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
 		})
 
-		e := echo.New()
+		mux := http.NewServeMux()
 		h := handler.NewFeedHandler(db)
-		h.Register(e.Group(""))
+		h.Register(mux)
 
-		server = httptest.NewServer(e)
+		server = httptest.NewServer(mux)
 		DeferCleanup(server.Close)
 	})
 
@@ -44,10 +43,10 @@ var _ = Describe("RSS feed output", func() {
 
 				Expect(r.StatusCode).To(Equal(http.StatusOK))
 				Expect(r.Header).To(SatisfyAll(
-					HaveKeyWithValue(echo.HeaderContentType, HaveExactElements(
+					HaveKeyWithValue("Content-Type", HaveExactElements(
 						Equal(contentType),
 					)),
-					HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
+					HaveKeyWithValue("Content-Disposition", HaveExactElements(
 						Equal(`attachment; filename="feed.rss"`),
 					)),
 				))
@@ -89,10 +88,10 @@ var _ = Describe("RSS feed output", func() {
 
 				Expect(r.StatusCode).To(Equal(http.StatusOK))
 				Expect(r.Header).To(SatisfyAll(
-					HaveKeyWithValue(echo.HeaderContentType, HaveExactElements(
+					HaveKeyWithValue("Content-Type", HaveExactElements(
 						Equal(contentType),
 					)),
-					HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
+					HaveKeyWithValue("Content-Disposition", HaveExactElements(
 						Equal(`attachment; filename="feed.rss"`),
 					)),
 				))
@@ -155,11 +154,11 @@ var _ = Describe("iCal feed output", func() {
 			Expect(model.InsertSettings(ctx, db, domain.NewDefaultSettings())).To(Succeed())
 		})
 
-		e := echo.New()
+		mux := http.NewServeMux()
 		h := handler.NewFeedHandler(db)
-		h.Register(e.Group(""))
+		h.Register(mux)
 
-		server = httptest.NewServer(e)
+		server = httptest.NewServer(mux)
 		DeferCleanup(server.Close)
 	})
 
@@ -169,10 +168,10 @@ var _ = Describe("iCal feed output", func() {
 
 			Expect(r.StatusCode).To(Equal(http.StatusOK))
 			Expect(r.Header).To(SatisfyAll(
-				HaveKeyWithValue(echo.HeaderContentType, HaveExactElements(
+				HaveKeyWithValue("Content-Type", HaveExactElements(
 					Equal("text/calendar; charset=utf-8"),
 				)),
-				HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
+				HaveKeyWithValue("Content-Disposition", HaveExactElements(
 					Equal(`attachment; filename="calendar.ics"`),
 				)),
 			))
@@ -212,10 +211,10 @@ var _ = Describe("iCal feed output", func() {
 
 			Expect(r.StatusCode).To(Equal(http.StatusOK))
 			Expect(r.Header).To(SatisfyAll(
-				HaveKeyWithValue(echo.HeaderContentType, HaveExactElements(
+				HaveKeyWithValue("Content-Type", HaveExactElements(
 					Equal("text/calendar; charset=utf-8"),
 				)),
-				HaveKeyWithValue(echo.HeaderContentDisposition, HaveExactElements(
+				HaveKeyWithValue("Content-Disposition", HaveExactElements(
 					Equal(`attachment; filename="calendar.ics"`),
 				)),
 			))
