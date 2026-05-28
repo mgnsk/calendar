@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/bunstore"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	"github.com/mgnsk/calendar/server"
 	"github.com/ringsaturn/tzf"
+	sloghttp "github.com/samber/slog-http"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -98,7 +98,7 @@ func run() error {
 		}
 	})
 
-	e := server.NewServer()
+	mux := http.NewServeMux()
 
 	// Initialize the session store.
 	store, err := bunstore.New(db)
@@ -107,20 +107,6 @@ func run() error {
 	}
 
 	sm := server.NewSessionManager(store)
-	sessionMiddleware := server.NewSessionMiddleware(sm)
-
-	csrfMiddleware := middleware.CSRFWithConfig(middleware.CSRFConfig{
-		TokenLength:    32,
-		TokenLookup:    "form:csrf",
-		ContextKey:     "csrf",
-		CookieName:     "_csrf",
-		CookieDomain:   "",
-		CookiePath:     "/",
-		CookieMaxAge:   86400,
-		CookieSecure:   true,
-		CookieHTTPOnly: true,
-		CookieSameSite: http.SameSiteStrictMode,
-	})
 
 	finder, err := tzf.NewDefaultFinder()
 	if err != nil {
@@ -128,88 +114,99 @@ func run() error {
 	}
 
 	// Static assets.
-	calendar.RegisterAssetsHandler(e)
+	calendar.RegisterAssetsHandler(mux)
 
 	// Setup.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewSetupHandler(db, sm)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Authentication.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewAuthenticationHandler(db, sm)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Events.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewEventsHandler(db, sm)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Events management.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewEditEventHandler(db, sm, finder)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Users management.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewUsersHandler(db, sm)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Stopwords management.
 	{
-		g := e.Group("",
-			csrfMiddleware,
-			sessionMiddleware,
-		)
-
 		h := handler.NewStopWordsHandler(db, sm)
-		h.Register(g)
+		h.Register(mux)
 	}
 
 	// Feeds.
 	{
 		// TODO: proper caching middleware for RSS and calendar feeds.
 		// Should support conditional get.
-		g := e.Group("")
-
 		h := handler.NewFeedHandler(db)
-		h.Register(g)
+		h.Register(mux)
+	}
+
+	handler := server.WithMiddleware(mux,
+		sloghttp.NewWithConfig(slog.Default(), sloghttp.Config{
+			DefaultLevel:     slog.LevelInfo,
+			ClientErrorLevel: slog.LevelWarn,
+			ServerErrorLevel: slog.LevelError,
+
+			WithUserAgent:      true,
+			WithRequestID:      true,
+			WithRequestBody:    false,
+			WithRequestHeader:  false,
+			WithResponseBody:   false,
+			WithResponseHeader: false,
+			WithSpanID:         false,
+			WithTraceID:        false,
+			WithClientIP:       true,
+			WithCustomMessage:  nil,
+
+			Filters: []sloghttp.Filter{
+				func(w sloghttp.WrapResponseWriter, _ *http.Request) bool {
+					if w.Status() >= 500 {
+						return true
+					}
+
+					if w.Status() >= 400 && w.Status() <= 403 {
+						return true
+					}
+
+					return false
+				},
+			},
+		}),
+		server.ErrorHandler,
+		server.NewTimeoutMiddleware(time.Minute),
+	)
+
+	s := http.Server{
+		Addr:         cfg.ListenAddr,
+		Handler:      handler,
+		ReadTimeout:  time.Minute,
+		WriteTimeout: time.Minute,
+		ErrorLog:     slog.NewLogLogger(slog.Default().Handler(), slog.LevelDebug),
 	}
 
 	g.Go(func() error {
 		slog.Info(fmt.Sprintf("listening at %s", cfg.ListenAddr))
 
-		if err := e.Start(cfg.ListenAddr); err != nil && err != http.ErrServerClosed {
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return calendar.Internal.New("error running server", err)
 		}
 
@@ -224,7 +221,7 @@ func run() error {
 
 		slog.Info("shutting down the server")
 
-		if err := e.Shutdown(ctx); err != nil {
+		if err := s.Shutdown(ctx); err != nil {
 			return calendar.Internal.New("error shutting down server", err)
 		}
 

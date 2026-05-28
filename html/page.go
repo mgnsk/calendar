@@ -26,7 +26,6 @@ type PageProps struct {
 	Title        string
 	User         *domain.User
 	Path         string
-	CSRF         string
 	Children     Node
 	FlashSuccess string
 }
@@ -82,7 +81,7 @@ func Page(props PageProps) Node {
 						props.Path == "/past" ||
 						props.Path == "/tags" ||
 						props.Path == "/my-events",
-					components.EventNav(props.User, props.Path, props.CSRF),
+					components.EventNav(props.User, props.Path),
 				),
 			),
 			props.Children,

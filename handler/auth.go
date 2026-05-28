@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/ggicci/httpin"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/html"
@@ -24,32 +24,36 @@ type AuthenticationHandler struct {
 }
 
 // Login handles login page.
-func (h *AuthenticationHandler) Login(c *server.Context) error {
-	if c.User != nil {
-		return c.Redirect(http.StatusSeeOther, "/")
+func (h *AuthenticationHandler) Login(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 
-	switch c.Request().Method {
+	switch r.Method {
 	case http.MethodGet:
-		return server.RenderPage(c, h.sm,
-			html.LoginMain(contract.LoginForm{}, nil, c.CSRF),
+		server.RenderPage(w, r, h.sm,
+			html.LoginMain(contract.LoginForm{}, nil),
 		)
 
 	case http.MethodPost:
 		req := contract.LoginForm{}
-		if err := c.Bind(&req); err != nil {
-			return err
+		if err := httpin.DecodeTo(r, &req); err != nil {
+			panic(err)
 		}
 
 		if errs := req.Validate(); len(errs) > 0 {
-			return server.RenderPage(c, h.sm,
-				html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
+			// TODO: redirect with flash errors?
+			server.RenderPage(w, r, h.sm,
+				html.LoginMain(contract.LoginForm{Username: req.Username}, errs),
 			)
+			return
 		}
 
 		// Grace timeout for login failures so we always fail in constant time
 		// regardless of whether user does not exist or invalid password provided.
-		ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
 
 		user, err := model.GetUserByUsername(ctx, h.db, req.Username)
@@ -61,11 +65,12 @@ func (h *AuthenticationHandler) Login(c *server.Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return server.RenderPage(c, h.sm,
-					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
+				server.RenderPage(w, r, h.sm,
+					html.LoginMain(contract.LoginForm{Username: req.Username}, errs),
 				)
+				return
 			}
-			return err
+			panic(err)
 		}
 
 		if err := user.VerifyPassword(req.Password); err != nil {
@@ -76,42 +81,50 @@ func (h *AuthenticationHandler) Login(c *server.Context) error {
 				errs.Set("username", "Invalid username or password")
 				errs.Set("password", "Invalid username or password")
 
-				return server.RenderPage(c, h.sm,
-					html.LoginMain(contract.LoginForm{}, errs, c.CSRF),
+				server.RenderPage(w, r, h.sm,
+					html.LoginMain(contract.LoginForm{Username: req.Username}, errs),
 				)
+				return
 			}
-			return err
+			panic(err)
 		}
 
 		// First renew the session token.
-		if err := h.sm.RenewToken(c.Request().Context()); err != nil {
-			return err
+		if err := h.sm.RenewToken(r.Context()); err != nil {
+			panic(err)
 		}
 
 		// Then make the privilege-level change.
-		h.sm.Put(c.Request().Context(), "username", user.Username)
+		h.sm.Put(r.Context(), "username", user.Username)
 
-		return c.Redirect(http.StatusSeeOther, "/")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 
 	default:
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 }
 
 // Logout handles logout page.
-func (h *AuthenticationHandler) Logout(c *server.Context) error {
-	if err := h.sm.Destroy(c.Request().Context()); err != nil {
-		return err
+func (h *AuthenticationHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if err := h.sm.Destroy(r.Context()); err != nil {
+		panic(err)
 	}
-	return c.Redirect(http.StatusSeeOther, "/")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // Register the handler.
-func (h *AuthenticationHandler) Register(g *echo.Group) {
-	g.GET("/login", server.Wrap(h.db, h.sm, h.Login))
-	g.POST("/login", server.Wrap(h.db, h.sm, h.Login))
+func (h *AuthenticationHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+		server.NewUserMiddleware(h.db, h.sm),
+	}
 
-	g.GET("/logout", server.Wrap(h.db, h.sm, h.Logout))
+	mux.Handle("GET /login", server.WithMiddleware(http.HandlerFunc(h.Login), middlewares...))
+	mux.Handle("POST /login", server.WithMiddleware(http.HandlerFunc(h.Login), middlewares...))
+
+	mux.Handle("GET /logout", server.WithMiddleware(http.HandlerFunc(h.Logout), middlewares...))
 }
 
 // NewAuthenticationHandler creates a new authentication handler.

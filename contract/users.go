@@ -9,24 +9,24 @@ import (
 
 // DeleteUserRequest is a request to delete a user.
 type DeleteUserRequest struct {
-	UserID snowflake.ID `form:"user_id"`
+	UserID snowflake.ID `in:"form=user_id"`
 }
 
 // UpgradeUserRoleRequest is a request to upgrade a user role.
 type UpgradeUserRoleRequest struct {
-	UserID snowflake.ID `form:"user_id"`
+	UserID snowflake.ID `in:"form=user_id"`
 }
 
 // RegisterRequest is a request to render the register page.
 type RegisterRequest struct {
-	Token uuid.UUID `param:"token"`
+	Token uuid.UUID `in:"path=token"`
 }
 
 // RegisterForm is the register form.
 type RegisterForm struct {
-	Username  string `form:"username"`
-	Password1 string `form:"password1"`
-	Password2 string `form:"password2"`
+	Username  string `in:"form=username"`
+	Password1 string `in:"form=password1"`
+	Password2 string `in:"form=password2"`
 }
 
 // Validate the form.

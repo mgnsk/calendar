@@ -10,7 +10,7 @@ import (
 )
 
 // SetupMain renders the setup page main content.
-func SetupMain(form contract.SetupForm, errs url.Values, csrf string) Node {
+func SetupMain(form contract.SetupForm, errs url.Values) Node {
 	return Main(
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("text-center w-full sm:w-1/2 px-3 py-4 mx-auto"),
@@ -29,8 +29,6 @@ func SetupMain(form contract.SetupForm, errs url.Values, csrf string) Node {
 
 				Label(Class("block w-full pt-2"), For("password2"), Text("Password again")),
 				components.InputElement("password2", "password", "Password again", form.Password2, errs.Get("password2"), true, false),
-
-				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 
 				components.SubmitButtonElement("Save"),
 			),

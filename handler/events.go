@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/ggicci/httpin"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -26,43 +26,47 @@ type EventsHandler struct {
 }
 
 // Upcoming handles upcoming events.
-func (h *EventsHandler) Upcoming(c *server.Context) error {
-	return h.events(
-		c,
+func (h *EventsHandler) Upcoming(w http.ResponseWriter, r *http.Request) {
+	h.events(
+		w,
+		r,
 		model.NewEventsQuery().WithStartAtFrom(time.Now()),
 		model.OrderStartAtAsc,
 	)
 }
 
 // Past handles past events.
-func (h *EventsHandler) Past(c *server.Context) error {
-	return h.events(
-		c,
+func (h *EventsHandler) Past(w http.ResponseWriter, r *http.Request) {
+	h.events(
+		w,
+		r,
 		model.NewEventsQuery().WithStartAtUntil(time.Now()),
 		model.OrderStartAtDesc,
 	)
 }
 
 // MyEvents handles current user events.
-func (h *EventsHandler) MyEvents(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *EventsHandler) MyEvents(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
-	return h.events(
-		c,
-		model.NewEventsQuery().WithUserID(c.User.ID).WithIncludeDrafts(),
+	h.events(
+		w,
+		r,
+		model.NewEventsQuery().WithUserID(user.ID).WithIncludeDrafts(),
 		model.OrderCreatedAtDesc,
 	)
 }
 
 // Tags handles tags.
-func (h *EventsHandler) Tags(c *server.Context) error {
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		tags, err := model.ListTags(c.Request().Context(), h.db, time.Now(), 500)
+func (h *EventsHandler) Tags(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
+		tags, err := model.ListTags(r.Context(), h.db, time.Now(), 500)
 		if err != nil {
 			if !errors.Is(err, calendar.NotFound) {
-				return err
+				panic(err)
 			}
 		}
 
@@ -70,27 +74,32 @@ func (h *EventsHandler) Tags(c *server.Context) error {
 			return strings.Compare(a.Name, b.Name)
 		})
 
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
 
-		return html.TagListPartial(tags, c.CSRF).Render(c.Response())
+		if err := html.TagListPartial(tags).Render(w); err != nil {
+			panic(err)
+		}
+		return
 	}
 
-	return server.RenderPage(c, h.sm,
-		html.TagsMain(c.CSRF),
+	server.RenderPage(w, r, h.sm,
+		html.TagsMain(),
 	)
 }
 
-func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder, order model.EventOrder) error {
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
+func (h *EventsHandler) events(w http.ResponseWriter, r *http.Request, query model.EventsQueryBuilder, order model.EventOrder) {
+	user := server.GetUser(r.Context())
+
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
 		req := contract.ListEventsRequest{}
-		if err := c.Bind(&req); err != nil {
-			return err
+		if err := httpin.DecodeTo(r, &req); err != nil {
+			panic(err)
 		}
 
 		var cursor int64
 
-		switch c.Path() {
+		switch r.URL.Path {
 		case "/my-events":
 			cursor = req.LastID
 
@@ -98,7 +107,7 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 			cursor = req.Offset
 
 		default:
-			return calendar.NotFound.New("Not found")
+			panic(calendar.NotFound.New("Not found"))
 		}
 
 		query = query.
@@ -111,36 +120,46 @@ func (h *EventsHandler) events(c *server.Context, query model.EventsQueryBuilder
 			err    error
 		)
 
-		events, err = query.List(c.Request().Context(), h.db)
+		events, err = query.List(r.Context(), h.db)
 		if err != nil {
 			if !errors.Is(err, calendar.NotFound) {
-				return err
+				panic(err)
 			}
 		}
 
-		c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-		c.Response().WriteHeader(200)
-		return html.EventListPartial(c.User, cursor, events, c.CSRF).Render(c.Response())
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+
+		if err := html.EventListPartial(user, cursor, events).Render(w); err != nil {
+			panic(err)
+		}
+		return
 	}
 
-	return server.RenderPage(c, h.sm,
-		html.EventsMain(c.CSRF),
+	server.RenderPage(w, r, h.sm,
+		html.EventsMain(),
 	)
 }
 
 // Register the handler.
-func (h *EventsHandler) Register(g *echo.Group) {
-	g.GET("/", server.Wrap(h.db, h.sm, h.Upcoming))
-	g.POST("/", server.Wrap(h.db, h.sm, h.Upcoming)) // For htmx.
+func (h *EventsHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+		server.NewUserMiddleware(h.db, h.sm),
+	}
 
-	g.GET("/past", server.Wrap(h.db, h.sm, h.Past))
-	g.POST("/past", server.Wrap(h.db, h.sm, h.Past)) // For htmx.
+	mux.Handle("GET /{$}", server.WithMiddleware(http.HandlerFunc(h.Upcoming), middlewares...))
+	mux.Handle("POST /{$}", server.WithMiddleware(http.HandlerFunc(h.Upcoming), middlewares...)) // For htmx.
 
-	g.GET("/tags", server.Wrap(h.db, h.sm, h.Tags))
-	g.POST("/tags", server.Wrap(h.db, h.sm, h.Tags)) // For htmx.
+	mux.Handle("GET /past", server.WithMiddleware(http.HandlerFunc(h.Past), middlewares...))
+	mux.Handle("POST /past", server.WithMiddleware(http.HandlerFunc(h.Past), middlewares...)) // For htmx.
 
-	g.GET("/my-events", server.Wrap(h.db, h.sm, h.MyEvents))
-	g.POST("/my-events", server.Wrap(h.db, h.sm, h.MyEvents)) // For htmx.
+	mux.Handle("GET /tags", server.WithMiddleware(http.HandlerFunc(h.Tags), middlewares...))
+	mux.Handle("POST /tags", server.WithMiddleware(http.HandlerFunc(h.Tags), middlewares...)) // For htmx.
+
+	mux.Handle("GET /my-events", server.WithMiddleware(http.HandlerFunc(h.MyEvents), middlewares...))
+	mux.Handle("POST /my-events", server.WithMiddleware(http.HandlerFunc(h.MyEvents), middlewares...)) // For htmx.
 }
 
 // NewEventsHandler creates a new events handler.

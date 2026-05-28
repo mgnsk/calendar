@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/labstack/echo/v4"
+	"github.com/ggicci/httpin"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
@@ -32,36 +32,33 @@ type EditEventHandler struct {
 }
 
 // Edit handles adding and editing events.
-func (h *EditEventHandler) Edit(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *EditEventHandler) Edit(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.EditEventForm{}
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-
-	if err := (&echo.DefaultBinder{}).BindQueryParams(c, &req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
 	var ev *domain.Event
 
 	if req.EventID > 0 {
-		event, err := model.GetEvent(c.Request().Context(), h.db, req.EventID)
+		event, err := model.GetEvent(r.Context(), h.db, req.EventID)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
-		if c.User.Role != domain.Admin && c.User.ID != event.UserID {
-			return calendar.Forbidden.New("Non-admin users can only edit own events")
+		if user.Role != domain.Admin && user.ID != event.UserID {
+			panic(calendar.Forbidden.New("Non-admin users can only edit own events"))
 		}
 
 		ev = event
 	}
 
-	switch c.Request().Method {
+	switch r.Method {
 	case http.MethodGet:
 		if ev != nil {
 			req.Title = ev.Title
@@ -78,24 +75,27 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			req.TimezoneOffset = offset
 		}
 
-		return server.RenderPage(c, h.sm,
-			html.EditEventMain(req, nil, c.CSRF),
+		server.RenderPage(w, r, h.sm,
+			html.EditEventMain(req, nil),
 		)
+		return
 
 	case http.MethodPost:
 		if errs := req.Validate(); len(errs) > 0 {
-			return server.RenderPage(c, h.sm,
-				html.EditEventMain(req, errs, c.CSRF),
+			server.RenderPage(w, r, h.sm,
+				html.EditEventMain(req, errs),
 			)
+			return
 		}
 
 		startAt, err := h.parseStartAt(req)
 		if err != nil {
 			errs := url.Values{}
 			errs.Set("start_at", "Invalid start_at value")
-			return server.RenderPage(c, h.sm,
-				html.EditEventMain(req, errs, c.CSRF),
+			server.RenderPage(w, r, h.sm,
+				html.EditEventMain(req, errs),
 			)
+			return
 		}
 
 		if ev != nil {
@@ -110,22 +110,23 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			ev.Latitude = req.Latitude
 			ev.Longitude = req.Longitude
 
-			if err := model.UpdateEvent(c.Request().Context(), h.db, ev); err != nil {
-				return err
+			if err := model.UpdateEvent(r.Context(), h.db, ev); err != nil {
+				panic(err)
 			}
 
 			if req.IsDraft {
-				h.sm.Put(c.Request().Context(), "flash-success", "Draft saved")
+				h.sm.Put(r.Context(), "flash-success", "Draft saved")
 			} else {
-				h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+				h.sm.Put(r.Context(), "flash-success", "Event published")
 			}
 
-			return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", ev.ID))
+			http.Redirect(w, r, fmt.Sprintf("/edit/%d", ev.ID), http.StatusSeeOther)
+			return
 		}
 
 		eventID := snowflake.Generate()
 
-		if err := model.InsertEvent(c.Request().Context(), h.db, &domain.Event{
+		if err := model.InsertEvent(r.Context(), h.db, &domain.Event{
 			ID:          eventID,
 			StartAt:     startAt,
 			Title:       req.Title,
@@ -137,72 +138,71 @@ func (h *EditEventHandler) Edit(c *server.Context) error {
 			Latitude:    req.Latitude,
 			Longitude:   req.Longitude,
 			IsDraft:     req.IsDraft,
-			UserID:      c.User.ID,
+			UserID:      user.ID,
 		}); err != nil {
-			return err
+			panic(err)
 		}
 
 		if req.IsDraft {
-			h.sm.Put(c.Request().Context(), "flash-success", "Draft saved")
+			h.sm.Put(r.Context(), "flash-success", "Draft saved")
 		} else {
-			h.sm.Put(c.Request().Context(), "flash-success", "Event published")
+			h.sm.Put(r.Context(), "flash-success", "Event published")
 		}
 
-		return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/edit/%d", eventID))
+		http.Redirect(w, r, fmt.Sprintf("/edit/%d", eventID), http.StatusSeeOther)
+		return
 
 	default:
-		return calendar.NotFound.New("Not found")
+		panic(calendar.NotFound.New("Not found"))
 	}
 }
 
 // Delete handles deleting events.
-func (h *EditEventHandler) Delete(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *EditEventHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.DeleteEventRequest{}
-	if err := c.Bind(&req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
-	ev, err := model.GetEvent(c.Request().Context(), h.db, req.EventID)
+	ev, err := model.GetEvent(r.Context(), h.db, req.EventID)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
-	if c.User.Role != domain.Admin && c.User.ID != ev.UserID {
-		return calendar.Forbidden.New("Non-admin users can only edit own events")
+	if user.Role != domain.Admin && user.ID != ev.UserID {
+		panic(calendar.Forbidden.New("Non-admin users can only edit own events"))
 	}
 
-	if c.Request().Method == http.MethodPost && hxhttp.IsRequest(c.Request().Header) {
-		if err := model.DeleteEvent(c.Request().Context(), h.db, ev); err != nil {
-			return err
+	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
+		if err := model.DeleteEvent(r.Context(), h.db, ev); err != nil {
+			panic(err)
 		}
 
-		h.sm.Put(c.Request().Context(), "flash-success", "Event deleted")
+		h.sm.Put(r.Context(), "flash-success", "Event deleted")
 
-		hxhttp.SetRefresh(c.Response().Header())
+		hxhttp.SetRefresh(w.Header())
 
-		return nil
+		return
 	}
 
-	return calendar.NotFound.New("Not found")
+	panic(calendar.NotFound.New("Not found"))
 }
 
 // Preview returns a preview of the event.
-func (h *EditEventHandler) Preview(c *server.Context) error {
-	if c.User == nil {
-		return calendar.Forbidden.New("Must be logged in")
+func (h *EditEventHandler) Preview(w http.ResponseWriter, r *http.Request) {
+	user := server.GetUser(r.Context())
+	if user == nil {
+		panic(calendar.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.EditEventForm{}
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-
-	if err := (&echo.DefaultBinder{}).BindQueryParams(c, &req); err != nil {
-		return err
+	if err := httpin.DecodeTo(r, &req); err != nil {
+		panic(err)
 	}
 
 	startAt, _ := h.parseStartAt(req)
@@ -220,19 +220,28 @@ func (h *EditEventHandler) Preview(c *server.Context) error {
 		IsDraft:     req.IsDraft,
 	}
 
-	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
-	c.Response().WriteHeader(200)
-	return html.EventCard(nil, ev, c.CSRF).Render(c.Response())
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	if err := html.EventCard(nil, ev).Render(w); err != nil {
+		panic(err)
+	}
 }
 
 // Register the handler.
-func (h *EditEventHandler) Register(g *echo.Group) {
-	g.GET("/edit/:event_id", server.Wrap(h.db, h.sm, h.Edit))
-	g.POST("/edit/:event_id", server.Wrap(h.db, h.sm, h.Edit))
+func (h *EditEventHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSessionMiddleware(h.sm),
+		server.NewSettingsMiddleware(h.db),
+		server.NewUserMiddleware(h.db, h.sm),
+	}
 
-	g.POST("/delete/:event_id", server.Wrap(h.db, h.sm, h.Delete))
+	mux.Handle("GET /edit/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Edit), middlewares...))
+	mux.Handle("POST /edit/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Edit), middlewares...))
 
-	g.POST("/preview", server.Wrap(h.db, h.sm, h.Preview))
+	mux.Handle("POST /delete/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Delete), middlewares...))
+
+	mux.Handle("POST /preview", server.WithMiddleware(http.HandlerFunc(h.Preview), middlewares...))
 }
 
 func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, error) {

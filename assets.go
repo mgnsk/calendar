@@ -2,27 +2,27 @@ package calendar
 
 import (
 	"fmt"
+	"net/http"
 	"time"
-
-	"github.com/labstack/echo/v4"
 )
 
-// RegisterAssetsHandler registers the static assets echo handler.
-func RegisterAssetsHandler(e *echo.Echo) {
-	e.GET("/assets/*",
-		echo.StaticDirectoryHandler(assetsFS, false),
-		assetCacheMiddleware(30*24*time.Hour),
+// RegisterAssetsHandler registers the static assets HTTP handler.
+func RegisterAssetsHandler(mux *http.ServeMux) {
+	handler := newAssetCacheMiddleware(30 * 24 * time.Hour)(
+		http.StripPrefix("/assets", http.FileServerFS(assetsFS)),
 	)
+
+	mux.Handle("/assets/", handler)
 }
 
-func assetCacheMiddleware(d time.Duration) echo.MiddlewareFunc {
+func newAssetCacheMiddleware(d time.Duration) func(http.Handler) http.Handler {
 	value := fmt.Sprintf("max-age=%d, immutable", int64(d.Seconds()))
 
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			c.Response().Header().Set("Cache-Control", value)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", value)
 
-			return next(c)
-		}
+			next.ServeHTTP(w, r)
+		})
 	}
 }

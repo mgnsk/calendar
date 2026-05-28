@@ -9,7 +9,7 @@ import (
 )
 
 // StopWordsMain renders the stop words form.
-func StopWordsMain(words []string, csrf string) Node {
+func StopWordsMain(words []string) Node {
 	return Main(
 		Div(Class("max-w-3xl mx-auto"),
 			Form(Class("text-center w-full  px-3 py-4 mx-auto"),
@@ -24,8 +24,6 @@ func StopWordsMain(words []string, csrf string) Node {
 					false,
 					false,
 				),
-
-				Input(Type("hidden"), Name("csrf"), Value(csrf)),
 
 				components.SubmitButtonElement("Save"),
 			),

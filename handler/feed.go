@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 
 	ics "github.com/arran4/golang-ical"
 	"github.com/gorilla/feeds"
-	"github.com/labstack/echo/v4"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
@@ -23,22 +23,24 @@ type FeedHandler struct {
 }
 
 // HandleRSS handles RSS feeds.
-func (h *FeedHandler) HandleRSS(c *server.Context) error {
-	return h.handleRSSFeed(c, "rss")
+func (h *FeedHandler) HandleRSS(w http.ResponseWriter, r *http.Request) {
+	h.handleRSSFeed(w, r, "rss")
 }
 
 // HandleICal handles iCal feeds.
-func (h *FeedHandler) HandleICal(c *server.Context) error {
-	events, err := h.getEvents(c)
+func (h *FeedHandler) HandleICal(w http.ResponseWriter, r *http.Request) {
+	events, err := h.getEvents(r.Context())
 	if err != nil {
-		return err
+		panic(err)
 	}
+
+	settings := server.GetSettings(r.Context())
 
 	cal := ics.NewCalendar()
 	cal.SetProductId("Calendar - github.com/mgnsk/calendar")
 	cal.SetMethod(ics.MethodPublish)
-	cal.SetName(c.Settings.Title)
-	cal.SetDescription(c.Settings.Description)
+	cal.SetName(settings.Title)
+	cal.SetDescription(settings.Description)
 
 	for _, ev := range events {
 		event := cal.AddEvent(ev.ID.String())
@@ -59,29 +61,33 @@ func (h *FeedHandler) HandleICal(c *server.Context) error {
 		event.SetDescription(ev.Description)
 	}
 
-	c.Response().Header().Set(echo.HeaderContentType, "text/calendar; charset=utf-8")
-	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="calendar.ics"`)
+	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="calendar.ics"`)
 
-	c.Response().WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 
-	return cal.SerializeTo(c.Response())
+	if err := cal.SerializeTo(w); err != nil {
+		panic(err)
+	}
 }
 
-func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
-	events, err := h.getEvents(c)
+func (h *FeedHandler) handleRSSFeed(w http.ResponseWriter, r *http.Request, _ string) {
+	events, err := h.getEvents(r.Context())
 	if err != nil {
-		return err
+		panic(err)
 	}
 
+	settings := server.GetSettings(r.Context())
+
 	feed := &feeds.Feed{
-		Title:       c.Settings.Title,
-		Description: c.Settings.Description,
+		Title:       settings.Title,
+		Description: settings.Description,
 	}
 
 	for _, ev := range events {
 		var htmlContent strings.Builder
-		if err := html.EventCard(nil, ev, "").Render(&htmlContent); err != nil {
-			return err
+		if err := html.EventCard(nil, ev).Render(&htmlContent); err != nil {
+			panic(err)
 		}
 
 		feed.Add(&feeds.Item{
@@ -96,36 +102,42 @@ func (h *FeedHandler) handleRSSFeed(c *server.Context, _ string) error {
 		})
 	}
 
-	c.Response().Header().Set(echo.HeaderContentDisposition, `attachment; filename="feed.rss"`)
-	c.Response().Header().Set(echo.HeaderContentType, "application/rss+xml; charset=utf-8")
+	w.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="feed.rss"`)
 
-	c.Response().WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusOK)
 
 	rss := (&feeds.Rss{Feed: feed}).RssFeed()
 	rss.Generator = "Calendar - github.com/mgnsk/calendar"
 	x := rss.FeedXml()
 
 	// write default xml header, without the newline
-	if _, err := c.Response().Write([]byte(xml.Header[:len(xml.Header)-1])); err != nil {
-		return err
+	if _, err := w.Write([]byte(xml.Header[:len(xml.Header)-1])); err != nil {
+		panic(err)
 	}
 
-	e := xml.NewEncoder(c.Response())
+	e := xml.NewEncoder(w)
 	e.Indent("", "  ")
 
-	return e.Encode(x)
+	if err := e.Encode(x); err != nil {
+		panic(err)
+	}
 }
 
-func (h *FeedHandler) getEvents(c *server.Context) ([]*domain.Event, error) {
+func (h *FeedHandler) getEvents(ctx context.Context) ([]*domain.Event, error) {
 	return model.NewEventsQuery().
 		WithOrder(0, model.OrderCreatedAtAsc).
-		List(c.Request().Context(), h.db)
+		List(ctx, h.db)
 }
 
 // Register the handler.
-func (h *FeedHandler) Register(g *echo.Group) {
-	g.GET("/feed", server.Wrap(h.db, nil, h.HandleRSS))
-	g.GET("/calendar.ics", server.Wrap(h.db, nil, h.HandleICal))
+func (h *FeedHandler) Register(mux *http.ServeMux) {
+	middlewares := []server.MiddlewareFunc{
+		server.NewSettingsMiddleware(h.db),
+	}
+
+	mux.Handle("GET /feed", server.WithMiddleware(http.HandlerFunc(h.HandleRSS), middlewares...))
+	mux.Handle("GET /calendar.ics", server.WithMiddleware(http.HandlerFunc(h.HandleICal), middlewares...))
 }
 
 // NewFeedHandler creates a new feed handler.

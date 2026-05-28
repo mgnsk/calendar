@@ -9,21 +9,21 @@ import (
 
 // EditEventForm is an edit event form.
 type EditEventForm struct {
-	EventID     snowflake.ID `param:"event_id"`
-	IsDraft     bool         `query:"draft"`
-	Title       string       `form:"title"`
-	Description string       `form:"desc"`
-	URL         string       `form:"url"`
-	StartAt     string       `form:"start_at"`
+	EventID     snowflake.ID `in:"path=event_id"`
+	IsDraft     bool         `in:"query=draft"`
+	Title       string       `in:"form=title"`
+	Description string       `in:"form=desc"`
+	URL         string       `in:"form=url"`
+	StartAt     string       `in:"form=start_at"`
 
-	Location string `form:"location"`
-	OSMType  string `form:"osm_type"`
-	OSMID    uint64 `form:"osm_id"`
+	Location string `in:"form=location"`
+	OSMType  string `in:"form=osm_type"`
+	OSMID    uint64 `in:"form=osm_id"`
 
-	Latitude       float64 `form:"latitude"`
-	Longitude      float64 `form:"longitude"`
-	TimezoneOffset int     `form:"timezone_offset"`
-	UserTimezone   string  `form:"user_timezone"`
+	Latitude       float64 `in:"form=latitude"`
+	Longitude      float64 `in:"form=longitude"`
+	TimezoneOffset int     `in:"form=timezone_offset"`
+	UserTimezone   string  `in:"form=user_timezone"`
 }
 
 // IsDraftOrNew reports whether the current event is draft or a new event.

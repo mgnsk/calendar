@@ -4,11 +4,11 @@ import "net/url"
 
 // SetupForm is a setup form.
 type SetupForm struct {
-	Title       string `form:"pagetitle"`
-	Description string `form:"pagedesc"`
-	Username    string `form:"username"`
-	Password1   string `form:"password1"`
-	Password2   string `form:"password2"`
+	Title       string `in:"form=pagetitle"`
+	Description string `in:"form=pagedesc"`
+	Username    string `in:"form=username"`
+	Password1   string `in:"form=password1"`
+	Password2   string `in:"form=password2"`
 }
 
 // Validate the form.

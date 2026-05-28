@@ -15,7 +15,7 @@ import (
 )
 
 // TagsMain renders the tags page main content.
-func TagsMain(csrf string) Node {
+func TagsMain() Node {
 	return Main(
 		Div(ID("event-list"),
 			hx.Post(""),
@@ -23,15 +23,12 @@ func TagsMain(csrf string) Node {
 			hx.Swap("beforeend"),
 			hx.Target("#event-list"),
 			hx.Indicator("#loading-spinner"),
-			hx.Vals(string(must(json.Marshal(map[string]string{
-				"csrf": csrf,
-			})))),
 		),
 	)
 }
 
 // TagListPartial renders the tag list partial.
-func TagListPartial(tags []*domain.Tag, csrf string) Node {
+func TagListPartial(tags []*domain.Tag) Node {
 	if len(tags) == 0 {
 		return Div(Class("px-3 py-4 text-center"),
 			P(Text("no tags found")),
@@ -74,7 +71,6 @@ func TagListPartial(tags []*domain.Tag, csrf string) Node {
 						hx.PushURL("true"),
 						hx.Indicator("#loading-spinner"),
 						hx.Vals(string(must(json.Marshal(map[string]string{
-							"csrf":   csrf,
 							"search": tag.Name,
 						})))),
 					),
