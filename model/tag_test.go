@@ -17,7 +17,7 @@ var _ = Describe("inserting tags", func() {
 		It("is inserted", func(ctx SpecContext) {
 			Expect(model.InsertTags(ctx, db, "tag1", "tag2")).To(Succeed())
 
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
 					"Name": Equal("tag1"),
@@ -38,7 +38,7 @@ var _ = Describe("inserting tags", func() {
 		It("is ignored", func(ctx SpecContext) {
 			Expect(model.InsertTags(ctx, db, "tag1", "tag2", "tag3")).To(Succeed())
 
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 			Expect(tags).To(HaveExactElements(
 				PointTo(MatchFields(IgnoreExtras, Fields{
@@ -67,6 +67,7 @@ var _ = Describe("listing tags", func() {
 					Title:       "Event 1",
 					Description: "Desc 1 tag1",
 					URL:         "",
+					UserID:      1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -74,6 +75,7 @@ var _ = Describe("listing tags", func() {
 					Title:       "Event 2",
 					Description: "Desc 2 tag1 tag2",
 					URL:         "",
+					UserID:      1,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -81,6 +83,7 @@ var _ = Describe("listing tags", func() {
 					Title:       "Event 3",
 					Description: "Desc 3 tag3",
 					URL:         "",
+					UserID:      2,
 				},
 				{
 					ID:          snowflake.Generate(),
@@ -88,6 +91,7 @@ var _ = Describe("listing tags", func() {
 					Title:       "Event 4",
 					Description: "Desc 4 tag4",
 					URL:         "",
+					UserID:      2,
 				},
 			}
 
@@ -98,7 +102,7 @@ var _ = Describe("listing tags", func() {
 	})
 
 	Specify("tags contain the number of related future events", func(ctx SpecContext) {
-		tags := Must(model.ListTags(ctx, db, time.Now(), 0))
+		tags := Must(model.ListTags(ctx, db, time.Now(), time.Time{}, 0, 0))
 
 		Expect(tags).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{
@@ -128,10 +132,57 @@ var _ = Describe("listing tags", func() {
 		))
 	})
 
+	Specify("tags contain the number of related past events", func(ctx SpecContext) {
+		tags := Must(model.ListTags(ctx, db, time.Time{}, time.Now(), 0, 0))
+
+		Expect(tags).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("desc"),
+				"EventCount": Equal(uint64(1)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("event"),
+				"EventCount": Equal(uint64(1)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("tag4"),
+				"EventCount": Equal(uint64(1)),
+			})),
+		))
+	})
+
+	Specify("tags contain the number of related user events", func(ctx SpecContext) {
+		tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 1, 0))
+
+		Expect(tags).To(HaveExactElements(
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("desc"),
+				"EventCount": Equal(uint64(2)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("event"),
+				"EventCount": Equal(uint64(2)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("tag1"),
+				"EventCount": Equal(uint64(2)),
+			})),
+
+			PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name":       Equal("tag2"),
+				"EventCount": Equal(uint64(1)),
+			})),
+		))
+	})
+
 	Specify("tags exclude stopwords case-insensitive", func(ctx SpecContext) {
 		Expect(model.SetStopWords(ctx, db, domain.NewStopWordList("desc", "TAG2"))).To(Succeed())
 
-		tags := Must(model.ListTags(ctx, db, time.Now(), 0))
+		tags := Must(model.ListTags(ctx, db, time.Now(), time.Time{}, 0, 0))
 
 		Expect(tags).To(HaveExactElements(
 			PointTo(MatchFields(IgnoreExtras, Fields{

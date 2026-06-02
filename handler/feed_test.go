@@ -240,7 +240,7 @@ var _ = Describe("iCal feed output", func() {
 
 			for _, target := range []*domain.Event{event1, event2, event3} {
 				matchers = append(matchers, MakeMatcher(func(ev *ics.VEvent) (bool, error) {
-					Expect(Must(ev.GetLastModifiedAt())).To(BeTemporally("~", time.Now(), time.Second))
+					Expect(Must(ev.GetLastModifiedAt())).To(BeTemporally("~", target.GetCreatedAt(), time.Second))
 					Expect(Must(ev.GetStartAt())).To(BeTemporally("~", target.StartAt, time.Second))
 					Expect(Must(ev.GetEndAt())).To(BeTemporally("~", target.StartAt.Add(time.Hour), time.Second))
 

@@ -4,9 +4,9 @@ import "github.com/mgnsk/calendar/pkg/snowflake"
 
 // ListEventsRequest is a request to list events.
 type ListEventsRequest struct {
-	Offset int64  `in:"form=offset"`
-	LastID int64  `in:"form=last_id"`
-	Search string `in:"form=search"`
+	Offset int64  `in:"query=offset"`
+	LastID int64  `in:"query=last_id"`
+	Search string `in:"query=search"`
 }
 
 // DeleteEventRequest is a request to delete an event.

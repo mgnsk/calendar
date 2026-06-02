@@ -113,7 +113,7 @@ var _ = Describe("updating events", func() {
 		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
 
 		By("asserting tags are created", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 			Expect(tags).To(HaveExactElements(
 				HaveField("Name", "description"),
@@ -142,7 +142,7 @@ var _ = Describe("updating events", func() {
 				"Title":       Equal("New title"),
 				"Description": Equal("New description"),
 				"URL":         Equal("https://new.testing"),
-				"StartAt":     BeTemporally("~", ev.StartAt),
+				"StartAt":     BeTemporally("==", ev.StartAt),
 				"Location":    Equal("new"),
 				"OSMType":     Equal("node"),
 				"OSMID":       Equal(uint64(123)),
@@ -153,7 +153,7 @@ var _ = Describe("updating events", func() {
 		})
 
 		By("asserting tags are updated", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 			Expect(tags).To(HaveExactElements(
 				HaveField("Name", "description"),
@@ -170,7 +170,7 @@ var _ = Describe("updating events", func() {
 		})
 
 		Specify("tags are removed", func(ctx SpecContext) {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 			Expect(tags).To(BeEmpty())
 		})
@@ -195,7 +195,7 @@ var _ = Describe("deleting events", func() {
 		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
 
 		By("asserting tags are created", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 			Expect(tags).To(HaveExactElements(
 				HaveField("Name", "description"),
@@ -213,7 +213,7 @@ var _ = Describe("deleting events", func() {
 		})
 
 		By("asserting tags are updated", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 			Expect(tags).To(BeEmpty())
 		})
 	})
@@ -366,7 +366,7 @@ var _ = Describe("listing events", func() {
 	})
 
 	Specify("draft event tags are not inserted", func(ctx SpecContext) {
-		tags := Must(model.ListTags(ctx, db, time.Time{}, 0))
+		tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
 		Expect(tags).To(HaveExactElements(
 			PointTo(MatchAllFields(Fields{
