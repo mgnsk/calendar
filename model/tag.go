@@ -42,7 +42,6 @@ func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
 }
 
 // ListTags lists most popular tags, excluding stopwords.
-// TODO: events start at from and until plus user id
 func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom, eventStartAtUntil time.Time, userID snowflake.ID, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
 
@@ -56,14 +55,16 @@ func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom, eventStartAtUnt
 		Limit(limit)
 
 	query.Join("LEFT JOIN events AS ev ON et.event_id = ev.id")
+
 	if userID != 0 {
 		query.Where("ev.user_id = ?", userID)
 	}
 
-	// TODO: these are mutually exclusive
 	if !eventStartAtFrom.IsZero() {
 		query.Where("ev.start_at_unix >= ?", eventStartAtFrom.Unix())
-	} else if !eventStartAtUntil.IsZero() {
+	}
+
+	if !eventStartAtUntil.IsZero() {
 		query.Where("ev.start_at_unix <= ?", eventStartAtUntil.Unix())
 	}
 

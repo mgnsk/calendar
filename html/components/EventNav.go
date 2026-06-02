@@ -85,7 +85,7 @@ func EventNav(user *domain.User, currentPath string) Node {
 						Name("search"),
 						Type("text"),
 						Placeholder("Filter..."),
-						hx.Get(""), // Post to current URL.
+						hx.Get(""),
 						hx.Trigger("input delay:0.2s"),
 						hx.Target("#event-list"),
 						hx.Swap("innerHTML"),
