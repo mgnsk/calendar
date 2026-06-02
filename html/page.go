@@ -75,7 +75,6 @@ func Page(props PageProps) Node {
 				If(
 					props.Path == "/" ||
 						props.Path == "/past" ||
-						props.Path == "/tags" ||
 						props.Path == "/my-events",
 					components.EventNav(props.User, props.Path),
 				),

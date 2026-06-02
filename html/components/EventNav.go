@@ -37,12 +37,6 @@ func EventNav(user *domain.User, currentPath string) Node {
 		})
 	}
 
-	links = append(links, eventNavLink{
-		Text:   "Tags",
-		URL:    "/tags",
-		Active: currentPath == "/tags",
-	})
-
 	return Div(Class("max-w-3xl mx-auto"),
 		Ul(Class("flex border-b border-gray-200"),
 			Map(links, func(link eventNavLink) Node {
@@ -77,30 +71,28 @@ func EventNav(user *domain.User, currentPath string) Node {
 					),
 				)
 			}),
-			If(currentPath != "/tags",
-				Li(Class("flex items-baseline ml-auto border-l border-t border-r border-gray-200 rounded-t"),
-					Div(Class("relative"),
-						Input(Classes{
-							"block":   true,
-							"w-full":  true,
-							"mx-auto": true,
-							"py-2":    true,
-							"px-3":    true,
-							"rounded": true,
-						},
-							ID("search"),
-							Name("search"),
-							Type("text"),
-							Placeholder("Filter..."),
-							hx.Post(""), // Post to current URL.
-							hx.Trigger("input delay:0.2s"),
-							hx.Target("#event-list"),
-							hx.Swap("innerHTML"),
-							hx.Indicator("#search-spinner, #loading-spinner"),
-						),
-						Div(ID("search-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2 htmx-indicator"),
-							Spinner(2),
-						),
+			Li(Class("flex items-baseline ml-auto border-l border-t border-r border-gray-200 rounded-t"),
+				Div(Class("relative"),
+					Input(Classes{
+						"block":   true,
+						"w-full":  true,
+						"mx-auto": true,
+						"py-2":    true,
+						"px-3":    true,
+						"rounded": true,
+					},
+						ID("search"),
+						Name("search"),
+						Type("text"),
+						Placeholder("Filter..."),
+						hx.Get(""), // Post to current URL.
+						hx.Trigger("input delay:0.2s"),
+						hx.Target("#event-list"),
+						hx.Swap("innerHTML"),
+						hx.Indicator("#search-spinner, #loading-spinner"),
+					),
+					Div(ID("search-spinner"), Class("opacity-0 absolute top-0 right-0 h-full flex items-center mr-2 htmx-indicator"),
+						Spinner(2),
 					),
 				),
 			),

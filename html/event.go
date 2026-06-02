@@ -19,14 +19,11 @@ import (
 )
 
 // EventsMain renders the events page main content.
-func EventsMain() Node {
+func EventsMain(user *domain.User, offset int64, events []*domain.Event, tags []*domain.Tag) Node {
 	return Main(
+		TagListPartial(tags),
 		Div(ID("event-list"),
-			hx.Post(""),
-			hx.Trigger("load"),
-			hx.Swap("beforeend"),
-			hx.Target("#event-list"),
-			hx.Indicator("#loading-spinner"),
+			EventListPartial(user, offset, events),
 		),
 	)
 }
@@ -44,7 +41,7 @@ func EventListPartial(user *domain.User, offset int64, events []*domain.Event) N
 			return EventCard(user, ev)
 		}),
 		Div(ID("load-more"),
-			hx.Post(""),
+			hx.Get(""),
 			hx.Include("[name='search']"), // CSS query to include data from inputs.
 			hx.Vals(string(must(json.Marshal(map[string]string{
 				"last_id": events[len(events)-1].ID.String(),

@@ -14,19 +14,6 @@ import (
 	. "maragu.dev/gomponents/html"
 )
 
-// TagsMain renders the tags page main content.
-func TagsMain() Node {
-	return Main(
-		Div(ID("event-list"),
-			hx.Post(""),
-			hx.Trigger("load"),
-			hx.Swap("beforeend"),
-			hx.Target("#event-list"),
-			hx.Indicator("#loading-spinner"),
-		),
-	)
-}
-
 // TagListPartial renders the tag list partial.
 func TagListPartial(tags []*domain.Tag) Node {
 	if len(tags) == 0 {
@@ -61,14 +48,12 @@ func TagListPartial(tags []*domain.Tag) Node {
 						Sup(Class("text-gray-400"),
 							Textf("(%d)", tag.EventCount),
 						),
-						// Show upcoming tagged events on click.
-						hx.Post("/"),
+						// Show tagged events on click on current tab.
+						hx.Get(""),
 						hx.Trigger("click"),
-						Attr("onclick", fmt.Sprintf(`changeTab(document.querySelectorAll(".nav-link")[0]); setSearch("%s")`, tag.Name)),
-
+						Attr("onclick", fmt.Sprintf(`setSearch("%s")`, tag.Name)),
 						hx.Target("#event-list"),
 						hx.Swap("innerHTML"),
-						hx.PushURL("true"),
 						hx.Indicator("#loading-spinner"),
 						hx.Vals(string(must(json.Marshal(map[string]string{
 							"search": tag.Name,
