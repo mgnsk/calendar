@@ -142,7 +142,7 @@ var _ = Describe("updating events", func() {
 				"Title":       Equal("New title"),
 				"Description": Equal("New description"),
 				"URL":         Equal("https://new.testing"),
-				"StartAt":     BeTemporally("~", ev.StartAt),
+				"StartAt":     BeTemporally("==", ev.StartAt),
 				"Location":    Equal("new"),
 				"OSMType":     Equal("node"),
 				"OSMID":       Equal(uint64(123)),

@@ -17,17 +17,18 @@ var _ = Describe("inserting invites", func() {
 	It("is inserted", func(ctx SpecContext) {
 		token := uuid.New()
 		createdBy := snowflake.Generate()
+		now := time.Now()
 
 		Expect(model.InsertInvite(ctx, db, &domain.Invite{
 			Token:      token,
-			ValidUntil: time.Now(),
+			ValidUntil: now,
 			CreatedBy:  createdBy,
 		})).To(Succeed())
 
 		invite := Must(model.GetInvite(ctx, db, token))
 
 		Expect(invite.Token).To(Equal(token))
-		Expect(invite.ValidUntil).To(BeTemporally("~", time.Now(), time.Second))
+		Expect(invite.ValidUntil).To(BeTemporally("~", now, time.Second))
 		Expect(invite.CreatedBy).To(Equal(createdBy))
 	})
 })
