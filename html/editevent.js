@@ -102,6 +102,8 @@ document.addEventListener("DOMContentLoaded", () => {
     select: function (_, ui) {
       document.querySelector('[name="osm_type"]').value = ui.item.raw.osm_type;
       document.querySelector('[name="osm_id"]').value = ui.item.raw.osm_id;
+      document.querySelector('[name="latitude"]').value = ui.item.y;
+      document.querySelector('[name="longitude"]').value = ui.item.x;
     },
     delay: 1000,
     minLength: 3,

@@ -71,8 +71,6 @@ func (h *EditEventHandler) Edit(w http.ResponseWriter, r *http.Request) {
 			req.OSMID = ev.OSMID
 			req.Latitude = ev.Latitude
 			req.Longitude = ev.Longitude
-			_, offset := ev.StartAt.Zone()
-			req.TimezoneOffset = offset
 		}
 
 		server.RenderPage(w, r, h.sm,

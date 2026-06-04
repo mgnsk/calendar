@@ -20,10 +20,9 @@ type EditEventForm struct {
 	OSMType  string `in:"form=osm_type"`
 	OSMID    uint64 `in:"form=osm_id"`
 
-	Latitude       float64 `in:"form=latitude"`
-	Longitude      float64 `in:"form=longitude"`
-	TimezoneOffset int     `in:"form=timezone_offset"`
-	UserTimezone   string  `in:"form=user_timezone"`
+	Latitude     float64 `in:"form=latitude"`
+	Longitude    float64 `in:"form=longitude"`
+	UserTimezone string  `in:"form=user_timezone"`
 }
 
 // IsDraftOrNew reports whether the current event is draft or a new event.
