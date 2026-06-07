@@ -88,7 +88,7 @@ func (h *SettingsHandler) Settings(w http.ResponseWriter, r *http.Request) {
 
 		if err := h.db.RunInTx(r.Context(), nil, func(ctx context.Context, db bun.Tx) error {
 			if err := model.UpdateSettings(ctx, db, settings); err != nil {
-				panic(err)
+				return err
 			}
 
 			return model.SetStopWords(ctx, db, domain.NewStopWordList(words...))
