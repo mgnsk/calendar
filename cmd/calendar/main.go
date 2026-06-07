@@ -122,6 +122,12 @@ func run() error {
 		h.Register(mux)
 	}
 
+	// Settings.
+	{
+		h := handler.NewSettingsHandler(db, sm)
+		h.Register(mux)
+	}
+
 	// Authentication.
 	{
 		h := handler.NewAuthenticationHandler(db, sm)
@@ -143,12 +149,6 @@ func run() error {
 	// Users management.
 	{
 		h := handler.NewUsersHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Stopwords management.
-	{
-		h := handler.NewStopWordsHandler(db, sm)
 		h.Register(mux)
 	}
 

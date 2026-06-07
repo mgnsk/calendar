@@ -40,6 +40,7 @@ func Page(props PageProps) Node {
 				"node_modules/easymde/dist/easymde.min.css",
 				"node_modules/@fortawesome/fontawesome-free/css/fontawesome.min.css",
 				"node_modules/@fortawesome/fontawesome-free/css/solid.min.css",
+				"node_modules/@fortawesome/fontawesome-free/css/regular.min.css",
 				"node_modules/leaflet/dist/leaflet.css",
 				"node_modules/leaflet-geosearch/dist/geosearch.css",
 				"node_modules/jquery-ui/dist/themes/base/jquery-ui.min.css",
