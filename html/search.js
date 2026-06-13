@@ -27,10 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (search && eventList) {
-    highlightResults(eventList, search.value);
-
-    eventList.addEventListener("htmx:afterSettle", function (evt) {
-      highlightResults(evt.target, search.value);
+    eventList.addEventListener("htmx:afterSettle", function () {
+      // Highlight all search results when events dynamically load.
+      // When searching, all events load dynamically.
+      highlightResults(eventList, search.value);
     });
   }
 });

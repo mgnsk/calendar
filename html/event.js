@@ -13,10 +13,12 @@ function localizeDates(eventList) {
 document.addEventListener("DOMContentLoaded", () => {
   const eventList = document.getElementById("event-list");
   if (eventList) {
+    // Localize dates on all events on the first HTML load.
     localizeDates(eventList);
 
     eventList.addEventListener("htmx:afterSettle", function (evt) {
-      localizeDates(evt.target);
+      // Localize dates on dynamically loaded events.
+      localizeDates(evt.detail.elt);
     });
   }
 });
