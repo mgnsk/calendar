@@ -157,13 +157,15 @@ func eventDay(ev *domain.Event) Node {
 }
 
 func eventDate(ev *domain.Event) Node {
-	id := fmt.Sprintf("event-date-%d", ev.ID)
+	// Use ISO8601 format which is the standard for <time> datetime attribute.
+	startAtISO := ev.StartAt.Format(time.RFC3339)
 
-	return Group{
-		H2(ID(id), Class("block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
-			Text(ev.StartAt.Format(time.RFC3339)),   // This gets replaced with user-local datetime.
-			Title(ev.StartAt.Format(time.RFC1123Z)), // On hover show event-local datetime.
+	return H2(Class("block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
+		Time(
+			Attr("datetime", startAtISO),
+			Class("localize-date"), // External script targets this class.
+			Text(startAtISO),
+			Title(startAtISO),
 		),
-		Script(Rawf(`var el = document.getElementById(%q); el.textContent = new Date(el.textContent).toLocaleString(navigator.language, {dateStyle: 'long', timeStyle: 'short'})`, id)),
-	}
+	)
 }

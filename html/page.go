@@ -18,6 +18,9 @@ var searchScript string
 //go:embed editevent.js
 var editEventScript string
 
+//go:embed event.js
+var eventScript string
+
 // PageProps is props for page.
 type PageProps struct {
 	Title        string
@@ -68,6 +71,7 @@ func Page(props PageProps) Node {
 			Map([]string{
 				searchScript,
 				editEventScript,
+				eventScript,
 			}, func(s string) Node {
 				return Script(Defer(), Raw(s))
 			}),
