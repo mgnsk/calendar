@@ -35,7 +35,6 @@ services:
     stdin_open: true
     tty: true
     environment:
-      HOSTNAME: "calendar.localhost"
       LISTEN_ADDR: ":8080"
       DATABASE_DIR: "/database"
     volumes:
