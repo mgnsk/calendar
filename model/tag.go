@@ -22,25 +22,6 @@ type Tag struct {
 	bun.BaseModel `bun:"tags"`
 }
 
-// InsertTags inserts tags into the database. If a tag exists, it is ignored.
-func InsertTags(ctx context.Context, db bun.IDB, names ...string) error {
-	model := lo.Map(names, func(name string, _ int) Tag {
-		return Tag{
-			ID:   snowflake.Generate(),
-			Name: name,
-		}
-	})
-
-	if err := sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx)); err != nil {
-		if errors.Is(err, calendar.PreconditionFailed) {
-			return nil
-		}
-		return err
-	}
-
-	return nil
-}
-
 // ListTags lists most popular tags, excluding stopwords.
 func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom, eventStartAtUntil time.Time, userID snowflake.ID, limit int) ([]*domain.Tag, error) {
 	model := []*Tag{}
@@ -51,6 +32,7 @@ func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom, eventStartAtUnt
 		Join("LEFT JOIN stopwords AS sw ON sw.word = tag.name COLLATE NOCASE").
 		Where("sw.word IS NULL").
 		Group("tag.id").
+		Having("event_count > 0").
 		Order("event_count DESC", "name ASC").
 		Limit(limit)
 
@@ -115,6 +97,25 @@ func DeleteTags(ctx context.Context, db bun.IDB, eventID snowflake.ID) error {
 			return nil
 		}
 
+		return err
+	}
+
+	return nil
+}
+
+// insertTags inserts tags into the database. If a tag exists, it is ignored.
+func insertTags(ctx context.Context, db bun.IDB, names ...string) error {
+	model := lo.Map(names, func(name string, _ int) Tag {
+		return Tag{
+			ID:   snowflake.Generate(),
+			Name: name,
+		}
+	})
+
+	if err := sqlite.WithErrorChecking(db.NewInsert().Model(&model).Ignore().Exec(ctx)); err != nil {
+		if errors.Is(err, calendar.PreconditionFailed) {
+			return nil
+		}
 		return err
 	}
 
