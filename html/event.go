@@ -157,9 +157,15 @@ func eventDay(ev *domain.Event) Node {
 }
 
 func eventDate(ev *domain.Event) Node {
-	return Group{
-		H2(Class("block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
-			Text(ev.GetDateString()),
+	// Use ISO8601 format which is the standard for <time> datetime attribute.
+	startAtISO := ev.StartAt.Format(time.RFC3339)
+
+	return H2(Class("block mt-2 uppercase tracking-wide text-sm text-amber-600 font-semibold"),
+		Time(
+			Attr("datetime", startAtISO),
+			Class("localize-date"), // External script targets this class.
+			Text(startAtISO),
+			Title(startAtISO),
 		),
-	}
+	)
 }

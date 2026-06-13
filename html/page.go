@@ -18,6 +18,9 @@ var searchScript string
 //go:embed editevent.js
 var editEventScript string
 
+//go:embed event.js
+var eventScript string
+
 // PageProps is props for page.
 type PageProps struct {
 	Title        string
@@ -35,6 +38,10 @@ func Page(props PageProps) Node {
 		Head: []Node{
 			Link(Rel("alternate"), Type("application/rss+xml"), Title(fmt.Sprintf("RSS feed for %s", props.Title)), Href("/feed")),
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
+			Meta(
+				Attr("http-equiv", "Content-Security-Policy"),
+				Attr("content", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"),
+			),
 
 			Map([]string{
 				"node_modules/easymde/dist/easymde.min.css",
@@ -64,6 +71,7 @@ func Page(props PageProps) Node {
 			Map([]string{
 				searchScript,
 				editEventScript,
+				eventScript,
 			}, func(s string) Node {
 				return Script(Defer(), Raw(s))
 			}),

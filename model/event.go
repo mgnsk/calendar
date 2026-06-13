@@ -170,7 +170,7 @@ func createEventTagRelations(ctx context.Context, db bun.IDB, ev *domain.Event) 
 	}
 
 	// Ensure tags exist.
-	if err := InsertTags(ctx, db, tags...); err != nil {
+	if err := insertTags(ctx, db, tags...); err != nil {
 		return err
 	}
 

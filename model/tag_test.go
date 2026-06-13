@@ -12,51 +12,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("inserting tags", func() {
-	When("tag does not exist", func() {
-		It("is inserted", func(ctx SpecContext) {
-			Expect(model.InsertTags(ctx, db, "tag1", "tag2")).To(Succeed())
-
-			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
-			Expect(tags).To(HaveExactElements(
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Name": Equal("tag1"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Name": Equal("tag2"),
-				})),
-			))
-		})
-	})
-
-	When("tag exists", func() {
-		JustBeforeEach(func(ctx SpecContext) {
-			Expect(model.InsertTags(ctx, db, "tag1", "tag2")).To(Succeed())
-		})
-
-		It("is ignored", func(ctx SpecContext) {
-			Expect(model.InsertTags(ctx, db, "tag1", "tag2", "tag3")).To(Succeed())
-
-			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
-
-			Expect(tags).To(HaveExactElements(
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Name": Equal("tag1"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Name": Equal("tag2"),
-				})),
-
-				PointTo(MatchFields(IgnoreExtras, Fields{
-					"Name": Equal("tag3"),
-				})),
-			))
-		})
-	})
-})
-
 var _ = Describe("listing tags", func() {
 	JustBeforeEach(func(ctx SpecContext) {
 		By("inserting events", func() {

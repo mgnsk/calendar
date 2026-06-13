@@ -106,7 +106,7 @@ var _ = Describe("RSS feed output", func() {
 					"Items": HaveExactElements(
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event1.Title),
-							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event1.GetDateString(), event1.Description)),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event1.StartAt.Format(time.RFC1123Z), event1.Description)),
 							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event1.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event1.ID.String()),
@@ -114,7 +114,7 @@ var _ = Describe("RSS feed output", func() {
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event2.Title),
-							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event2.GetDateString(), event2.Description)),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event2.StartAt.Format(time.RFC1123Z), event2.Description)),
 							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event2.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event2.ID.String()),
@@ -122,7 +122,7 @@ var _ = Describe("RSS feed output", func() {
 						})),
 						PointTo(MatchFields(IgnoreExtras, Fields{
 							"Title":           Equal(event3.Title),
-							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event3.GetDateString(), event3.Description)),
+							"Description":     Equal(fmt.Sprintf("%s\n\n%s", event3.StartAt.Format(time.RFC1123Z), event3.Description)),
 							"Content":         Not(BeEmpty()),
 							"PublishedParsed": PointTo(BeTemporally("~", event3.GetCreatedAt(), time.Second)),
 							"GUID":            Equal(event3.ID.String()),

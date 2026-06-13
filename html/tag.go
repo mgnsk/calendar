@@ -45,9 +45,12 @@ func TagListPartial(tags []*domain.Tag) Node {
 				return Li(
 					A(classes,
 						Text(tag.Name),
-						Sup(Class("text-gray-400"),
-							Textf("(%d)", tag.EventCount),
-						),
+						Iff(tag.EventCount == 1, func() Node {
+							return Title(fmt.Sprintf("%d event", tag.EventCount))
+						}),
+						Iff(tag.EventCount > 1, func() Node {
+							return Title(fmt.Sprintf("%d events", tag.EventCount))
+						}),
 						// Show tagged events on click on current tab.
 						hx.Get(""),
 						hx.Trigger("click"),
