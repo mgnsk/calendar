@@ -93,7 +93,7 @@ func (h *FeedHandler) handleRSSFeed(w http.ResponseWriter, r *http.Request, _ st
 		feed.Add(&feeds.Item{
 			Title:       ev.Title,
 			Link:        &feeds.Link{Href: ev.URL},
-			Description: fmt.Sprintf("%s\n\n%s", ev.GetDateString(), ev.Description),
+			Description: fmt.Sprintf("%s\n\n%s", ev.StartAt.Format(time.RFC1123Z), ev.Description),
 			Content:     htmlContent.String(),
 			Id:          ev.ID.String(),
 			IsPermaLink: "false",

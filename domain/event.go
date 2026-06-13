@@ -2,7 +2,6 @@ package domain
 
 import (
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/mgnsk/calendar/pkg/snowflake"
@@ -28,20 +27,6 @@ type Event struct {
 // GetCreatedAt returns the event created at time.
 func (e *Event) GetCreatedAt() time.Time {
 	return snowflake.ParseTime(e.ID.Int64())
-}
-
-// GetDateString returns a formatted string with event start datetime.
-func (e *Event) GetDateString() string {
-	var buf strings.Builder
-	buf.WriteString(e.StartAt.Format("January _2, 2006 "))
-
-	if e.StartAt.Minute() == 0 {
-		buf.WriteString(e.StartAt.Format("3PM"))
-	} else {
-		buf.WriteString(e.StartAt.Format("3:04PM"))
-	}
-
-	return buf.String()
 }
 
 // GetTags returns unique words in title and description.
