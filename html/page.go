@@ -35,6 +35,10 @@ func Page(props PageProps) Node {
 		Head: []Node{
 			Link(Rel("alternate"), Type("application/rss+xml"), Title(fmt.Sprintf("RSS feed for %s", props.Title)), Href("/feed")),
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
+			Meta(
+				Attr("http-equiv", "Content-Security-Policy"),
+				Attr("content", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"),
+			),
 
 			Map([]string{
 				"node_modules/easymde/dist/easymde.min.css",
