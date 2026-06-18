@@ -9,7 +9,6 @@ import (
 // Keys for error data in errors.
 const (
 	KeyHTTPCode = "http_code"
-	Stack       = "stack"
 )
 
 // Base errors.
