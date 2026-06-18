@@ -40,7 +40,7 @@ func Page(props PageProps) Node {
 			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
 			Meta(
 				Attr("http-equiv", "Content-Security-Policy"),
-				Attr("content", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"),
+				Attr("content", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' nominatim.openstreetmap.org"),
 			),
 
 			Map([]string{

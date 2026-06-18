@@ -1,12 +1,13 @@
+const dateFormatter = new Intl.DateTimeFormat(navigator.language, {
+  dateStyle: "long",
+  timeStyle: "short",
+});
+
 function localizeDates(eventList) {
   eventList.querySelectorAll(".localize-date").forEach((el) => {
-    const date = new Date(el.getAttribute("datetime"));
-    if (!isNaN(date.getTime())) {
-      el.textContent = date.toLocaleString(navigator.language, {
-        dateStyle: "long",
-        timeStyle: "short",
-      });
-    }
+    el.textContent = dateFormatter.format(
+      new Date(el.getAttribute("datetime")),
+    );
   });
 }
 
