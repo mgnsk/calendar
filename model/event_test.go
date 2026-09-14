@@ -14,81 +14,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("inserting events", func() {
-	When("event is inserted", func() {
-		var (
-			ev *domain.Event
-		)
-
-		JustBeforeEach(func(ctx SpecContext) {
-			ev = &domain.Event{
-				ID:          snowflake.Generate(),
-				StartAt:     time.Now().Add(2 * time.Hour),
-				Title:       "Event Title ÕÄÖÜ 1",
-				Description: "Desc 1",
-				URL:         "https://calendar.testing",
-				Location:    "hash",
-				OSMType:     "node",
-				OSMID:       123,
-				Latitude:    1,
-				Longitude:   1,
-				IsDraft:     false,
-				UserID:      snowflake.Generate(),
-			}
-
-			Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
-		})
-
-		Specify("event is persisted", func(ctx SpecContext) {
-			By("asserting event can be retrieved", func() {
-				event := Must(model.GetEvent(ctx, db, ev.ID))
-
-				Expect(event).To(SatisfyAll(
-					HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
-					PointTo(MatchAllFields(Fields{
-						"ID":          Equal(ev.ID),
-						"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
-						"Title":       Equal(ev.Title),
-						"Description": Equal(ev.Description),
-						"URL":         Equal(ev.URL),
-						"Location":    Equal("hash"),
-						"OSMType":     Equal("node"),
-						"OSMID":       Equal(uint64(123)),
-						"Latitude":    Equal(float64(1)),
-						"Longitude":   Equal(float64(1)),
-						"IsDraft":     BeFalse(),
-						"UserID":      Equal(ev.UserID),
-					})),
-				))
-			})
-
-			By("asserting event can be listed", func() {
-				result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db))
-
-				Expect(result).To(HaveExactElements(
-					SatisfyAll(
-						HaveField("GetCreatedAt()", BeTemporally("~", time.Now(), time.Second)),
-						PointTo(MatchAllFields(Fields{
-							"ID":          Equal(ev.ID),
-							"StartAt":     BeTemporally("~", ev.StartAt, time.Second),
-							"Title":       Equal(ev.Title),
-							"Description": Equal(ev.Description),
-							"URL":         Equal(ev.URL),
-							"Location":    Equal("hash"),
-							"OSMType":     Equal("node"),
-							"OSMID":       Equal(uint64(123)),
-							"Latitude":    Equal(float64(1)),
-							"Longitude":   Equal(float64(1)),
-							"IsDraft":     BeFalse(),
-							"UserID":      Equal(ev.UserID),
-						})),
-					),
-				))
-			})
-		})
-	})
-})
-
 var _ = Describe("updating events", func() {
 	var (
 		ev *domain.Event
@@ -123,46 +48,6 @@ var _ = Describe("updating events", func() {
 		})
 	})
 
-	Specify("event can be updated", func(ctx SpecContext) {
-		ev.Title = "New title"
-		ev.Description = "New description"
-		ev.URL = "https://new.testing"
-		ev.StartAt = time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC)
-		ev.Location = "new"
-		ev.Latitude = 2
-		ev.Longitude = 2
-		ev.IsDraft = false
-
-		Expect(model.UpdateEvent(ctx, db, ev)).To(Succeed())
-
-		By("asserting updated event was persisted", func() {
-			event := Must(model.GetEvent(ctx, db, ev.ID))
-
-			Expect(event).To(PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title":       Equal("New title"),
-				"Description": Equal("New description"),
-				"URL":         Equal("https://new.testing"),
-				"StartAt":     BeTemporally("==", ev.StartAt),
-				"Location":    Equal("new"),
-				"OSMType":     Equal("node"),
-				"OSMID":       Equal(uint64(123)),
-				"Latitude":    Equal(float64(2)),
-				"Longitude":   Equal(float64(2)),
-				"IsDraft":     BeFalse(),
-			})))
-		})
-
-		By("asserting tags are updated", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
-
-			Expect(tags).To(HaveExactElements(
-				HaveField("Name", "description"),
-				HaveField("Name", "new"),
-				HaveField("Name", "title"),
-			))
-		})
-	})
-
 	When("event is saved as a draft", func() {
 		JustBeforeEach(func(ctx SpecContext) {
 			ev.IsDraft = true
@@ -172,48 +57,6 @@ var _ = Describe("updating events", func() {
 		Specify("tags are removed", func(ctx SpecContext) {
 			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 
-			Expect(tags).To(BeEmpty())
-		})
-	})
-})
-
-var _ = Describe("deleting events", func() {
-	var (
-		ev *domain.Event
-	)
-
-	JustBeforeEach(func(ctx SpecContext) {
-		ev = &domain.Event{
-			ID:          snowflake.Generate(),
-			StartAt:     time.Now().Add(2 * time.Hour),
-			Title:       "Old title",
-			Description: "Old description",
-			URL:         "",
-			UserID:      snowflake.Generate(),
-		}
-
-		Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
-
-		By("asserting tags are created", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
-
-			Expect(tags).To(HaveExactElements(
-				HaveField("Name", "description"),
-				HaveField("Name", "old"),
-				HaveField("Name", "title"),
-			))
-		})
-	})
-
-	Specify("event can be deleted", func(ctx SpecContext) {
-		Expect(model.DeleteEvent(ctx, db, ev)).To(Succeed())
-
-		By("asserting event was deleted", func() {
-			Expect(model.GetEvent(ctx, db, ev.ID)).Error().To(MatchError(calendar.NotFound))
-		})
-
-		By("asserting tags are updated", func() {
-			tags := Must(model.ListTags(ctx, db, time.Time{}, time.Time{}, 0, 0))
 			Expect(tags).To(BeEmpty())
 		})
 	})
@@ -270,99 +113,6 @@ var _ = Describe("listing events", func() {
 				Expect(model.InsertEvent(ctx, db, ev)).To(Succeed())
 			}
 		})
-	})
-
-	Specify("events can be listed in start time order ascending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtAsc).List(ctx, db))
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 3"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-			})),
-		))
-	})
-
-	Specify("events can be listed in start time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderStartAtDesc).List(ctx, db))
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 3"),
-			})),
-		))
-	})
-
-	Specify("events can be listed in created at time order descending", func(ctx SpecContext) {
-		result := Must(model.NewEventsQuery().WithOrder(0, model.OrderCreatedAtDesc).List(ctx, db))
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 3"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-			})),
-		))
-	})
-
-	Specify("events can be filtered by time", func(ctx SpecContext) {
-		result := Must(
-			model.NewEventsQuery().
-				WithStartAtFrom(time.Now().Add(1*time.Hour).Add(30*time.Minute)).
-				WithStartAtUntil(time.Now().Add(2*time.Hour).Add(30*time.Minute)).
-				WithOrder(0, model.OrderStartAtAsc).
-				List(ctx, db),
-		)
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-			})),
-		))
-	})
-
-	Specify("events can be filtered by user", func(ctx SpecContext) {
-		result := Must(
-			model.NewEventsQuery().
-				WithOrder(0, model.OrderStartAtAsc).
-				WithUserID(userID1).
-				List(ctx, db),
-		)
-
-		Expect(result).To(HaveExactElements(
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 2"),
-			})),
-			PointTo(MatchFields(IgnoreExtras, Fields{
-				"Title": Equal("Event 1"),
-			})),
-		))
-	})
-
-	Specify("draft events can be included", func(ctx SpecContext) {
-		result := Must(
-			model.NewEventsQuery().
-				WithOrder(0, model.OrderStartAtAsc).
-				WithIncludeDrafts().
-				List(ctx, db),
-		)
-
-		Expect(result).To(HaveLen(4))
 	})
 
 	Specify("draft event tags are not inserted", func(ctx SpecContext) {

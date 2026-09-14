@@ -15,6 +15,11 @@ import (
 
 var db *bun.DB
 
+// suiteT is the one real *testing.T Ginkgo is given, stashed here so specs
+// that need testing/synctest (which requires a genuine *testing.T, not
+// Ginkgo's GinkgoTInterface) can reach it - see auth_test.go.
+var suiteT *testing.T
+
 var _ = BeforeEach(func() {
 	db = sqlite.NewDB(":memory:").Connect()
 	DeferCleanup(db.Close)
@@ -26,6 +31,8 @@ var _ = BeforeEach(func() {
 })
 
 func TestSuite(t *testing.T) {
+	suiteT = t
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "handler")
 }
