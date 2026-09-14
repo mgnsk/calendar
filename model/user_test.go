@@ -1,7 +1,6 @@
 package model_test
 
 import (
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/pkg/snowflake"
@@ -11,64 +10,11 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("inserting users", func() {
-	When("user does not exist", func() {
-		It("is inserted", func(ctx SpecContext) {
-			userID := snowflake.Generate()
-
-			Expect(model.InsertUser(ctx, db, &domain.User{
-				ID:       userID,
-				Username: "username",
-				Password: []byte("password"),
-				Role:     domain.Admin,
-			})).To(Succeed())
-
-			{
-				user := Must(model.GetUserByUsername(ctx, db, "username"))
-
-				Expect(user).To(PointTo(MatchAllFields(Fields{
-					"ID":       Equal(userID),
-					"Username": Equal("username"),
-					"Password": Equal([]byte("password")),
-					"Role":     Equal(domain.Admin),
-				})))
-			}
-
-			{
-				user := Must(model.GetUser(ctx, db, userID))
-				Expect(user).To(PointTo(MatchAllFields(Fields{
-					"ID":       Equal(userID),
-					"Username": Equal("username"),
-					"Password": Equal([]byte("password")),
-					"Role":     Equal(domain.Admin),
-				})))
-			}
-		})
-	})
-
-	When("user exists", func() {
-		JustBeforeEach(func(ctx SpecContext) {
-			Expect(model.InsertUser(ctx, db, &domain.User{
-				ID:       snowflake.Generate(),
-				Username: "username",
-				Password: []byte("password"),
-				Role:     domain.Admin,
-			})).To(Succeed())
-		})
-
-		Specify("already exists error is returned", func(ctx SpecContext) {
-			err := model.InsertUser(ctx, db, &domain.User{
-				ID:       snowflake.Generate(),
-				Username: "username",
-				Password: []byte("password"),
-				Role:     domain.Admin,
-			})
-
-			Expect(err).To(MatchError(calendar.AlreadyExists))
-		})
-	})
-})
-
+// Note: basic insert / duplicate-username / delete flows are covered by the
+// setup, register, and delete-user HTTP integration tests
+// (handler/setup_test.go, handler/users_test.go). This case remains because
+// no HTTP route exposes changing a user's own username/password together -
+// POST /upgrade-user only ever mutates Role.
 var _ = Describe("updating users", func() {
 	When("user exists", func() {
 		var userID snowflake.ID
@@ -100,31 +46,6 @@ var _ = Describe("updating users", func() {
 				"Role":     Equal(domain.Author),
 			})))
 		})
-	})
-})
-
-var _ = Describe("deleting users", func() {
-	var userID snowflake.ID
-
-	JustBeforeEach(func(ctx SpecContext) {
-		userID = snowflake.Generate()
-
-		Expect(model.InsertUser(ctx, db, &domain.User{
-			ID:       userID,
-			Username: "username",
-			Password: []byte("password"),
-			Role:     domain.Admin,
-		})).To(Succeed())
-	})
-
-	Specify("user is deleted", func(ctx SpecContext) {
-		users := Must(model.ListUsers(ctx, db))
-		Expect(users).To(HaveLen(1))
-
-		Expect(model.DeleteUser(ctx, db, userID)).To(Succeed())
-
-		users = Must(model.ListUsers(ctx, db))
-		Expect(users).To(HaveLen(0))
 	})
 })
 

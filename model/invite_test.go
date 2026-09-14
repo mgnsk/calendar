@@ -13,47 +13,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("inserting invites", func() {
-	It("is inserted", func(ctx SpecContext) {
-		token := uuid.New()
-		createdBy := snowflake.Generate()
-		now := time.Now()
-
-		Expect(model.InsertInvite(ctx, db, &domain.Invite{
-			Token:      token,
-			ValidUntil: now,
-			CreatedBy:  createdBy,
-		})).To(Succeed())
-
-		invite := Must(model.GetInvite(ctx, db, token))
-
-		Expect(invite.Token).To(Equal(token))
-		Expect(invite.ValidUntil).To(BeTemporally("~", now, time.Second))
-		Expect(invite.CreatedBy).To(Equal(createdBy))
-	})
-})
-
-var _ = Describe("deleting invites", func() {
-	var token uuid.UUID
-
-	BeforeEach(func(ctx SpecContext) {
-		token = uuid.New()
-
-		Expect(model.InsertInvite(ctx, db, &domain.Invite{
-			Token:      token,
-			ValidUntil: time.Now(),
-			CreatedBy:  snowflake.Generate(),
-		})).To(Succeed())
-	})
-
-	Specify("invite can be deleted", func(ctx SpecContext) {
-		Expect(model.DeleteInvite(ctx, db, token)).To(Succeed())
-
-		_, err := model.GetInvite(ctx, db, token)
-		Expect(err).To(MatchError(calendar.NotFound))
-	})
-})
-
+// Note: basic insert/delete flows are covered by the invite and register HTTP
+// integration tests (handler/users_test.go). Expired-invite cleanup remains
+// because it is only ever invoked from the periodic background ticker in
+// cmd/calendar/main.go, never reachable via HTTP.
 var _ = Describe("deleting expired invites", func() {
 	When("both expired and active invites exist", func() {
 		var tokenFuture, tokenPast uuid.UUID

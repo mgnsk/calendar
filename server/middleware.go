@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/ggicci/httpin/core"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
@@ -67,11 +68,19 @@ func ErrorHandler(next http.Handler) http.Handler {
 			)
 
 			// Attempt to detect status code and message from error.
+			var invalidFieldErr *core.InvalidFieldError
 			if werr, ok := errors.AsType[*wreck.Error](err); ok {
-				if v, ok := wreck.Value[int](werr, calendar.KeyHTTPCode); ok {
-					code = v
+				// log/slog normalizes int-kind attribute values to int64, so
+				// wreck.Value must be read back as int64, not int.
+				if v, ok := wreck.Value[int64](werr, calendar.KeyHTTPCode); ok {
+					code = int(v)
 				}
 				msg = cmp.Or(werr.Message(), msg)
+			} else if errors.As(err, &invalidFieldErr) {
+				// httpin.DecodeTo failed to bind a request field (bad path
+				// param, malformed form value, etc.) - a client input error.
+				code = http.StatusBadRequest
+				msg = "Invalid request"
 			} else if errors.Is(err, context.DeadlineExceeded) { // TODO: context.Canceled
 				code = http.StatusGatewayTimeout
 				msg = "Timeout"

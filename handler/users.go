@@ -202,6 +202,14 @@ func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
+		// Look up the target first so a nonexistent user consistently
+		// surfaces as NotFound, matching UpgradeUserRole's behavior, rather
+		// than the generic PreconditionFailed a blind zero-row delete would
+		// otherwise produce.
+		if _, err := model.GetUser(r.Context(), h.db, req.UserID); err != nil {
+			panic(err)
+		}
+
 		if err := model.DeleteUser(r.Context(), h.db, req.UserID); err != nil {
 			panic(err)
 		}

@@ -103,6 +103,7 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Latitude:       ev.Latitude,
 				Longitude:      ev.Longitude,
 				IsDraft:        ev.IsDraft,
+				UserID:         ev.UserID,
 			}).
 				Where("id = ?", ev.ID).
 				Exec(ctx),
