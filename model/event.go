@@ -104,19 +104,6 @@ func UpdateEvent(ctx context.Context, db *bun.DB, ev *domain.Event) error {
 				Longitude:      ev.Longitude,
 				IsDraft:        ev.IsDraft,
 			}).
-				Column(
-					"start_at_unix",
-					"tz_offset",
-					"title",
-					"description",
-					"url",
-					"location",
-					"osm_type",
-					"osm_id",
-					"latitude",
-					"longitude",
-					"is_draft",
-				).
 				Where("id = ?", ev.ID).
 				Exec(ctx),
 		); err != nil {

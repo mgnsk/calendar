@@ -38,11 +38,6 @@ func UpdateUser(ctx context.Context, db bun.IDB, user *domain.User) error {
 		Password: user.Password,
 		Role:     string(user.Role),
 	}).
-		Column(
-			"username",
-			"password",
-			"role",
-		).
 		Where("id = ?", user.ID).
 		Exec(ctx))
 }
