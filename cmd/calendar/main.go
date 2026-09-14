@@ -19,7 +19,6 @@ import (
 	"github.com/mgnsk/calendar/pkg/sqlite"
 	"github.com/mgnsk/calendar/server"
 	"github.com/ringsaturn/tzf"
-	sloghttp "github.com/samber/slog-http"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -98,8 +97,6 @@ func run() error {
 		}
 	})
 
-	mux := http.NewServeMux()
-
 	// Initialize the session store.
 	store, err := bunstore.New(db)
 	if err != nil {
@@ -113,91 +110,30 @@ func run() error {
 		return calendar.Internal.New("error creating tzf", err)
 	}
 
-	// Static assets.
-	calendar.RegisterAssetsHandler(mux)
-
-	// Setup.
-	{
-		h := handler.NewSetupHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Settings.
-	{
-		h := handler.NewSettingsHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Authentication.
-	{
-		h := handler.NewAuthenticationHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Events.
-	{
-		h := handler.NewEventsHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Events management.
-	{
-		h := handler.NewEditEventHandler(db, sm, finder)
-		h.Register(mux)
-	}
-
-	// Users management.
-	{
-		h := handler.NewUsersHandler(db, sm)
-		h.Register(mux)
-	}
-
-	// Feeds.
-	{
+	httpHandler := server.NewHandler(
+		// Static assets.
+		calendar.RegisterAssetsHandler,
+		// Setup.
+		func(mux *http.ServeMux) { handler.NewSetupHandler(db, sm).Register(mux) },
+		// Settings.
+		func(mux *http.ServeMux) { handler.NewSettingsHandler(db, sm).Register(mux) },
+		// Authentication.
+		func(mux *http.ServeMux) { handler.NewAuthenticationHandler(db, sm).Register(mux) },
+		// Events.
+		func(mux *http.ServeMux) { handler.NewEventsHandler(db, sm).Register(mux) },
+		// Events management.
+		func(mux *http.ServeMux) { handler.NewEditEventHandler(db, sm, finder).Register(mux) },
+		// Users management.
+		func(mux *http.ServeMux) { handler.NewUsersHandler(db, sm).Register(mux) },
+		// Feeds.
 		// TODO: proper caching middleware for RSS and calendar feeds.
 		// Should support conditional get.
-		h := handler.NewFeedHandler(db)
-		h.Register(mux)
-	}
-
-	handler := server.WithMiddleware(mux,
-		sloghttp.NewWithConfig(slog.Default(), sloghttp.Config{
-			DefaultLevel:     slog.LevelInfo,
-			ClientErrorLevel: slog.LevelWarn,
-			ServerErrorLevel: slog.LevelError,
-
-			WithUserAgent:      true,
-			WithRequestID:      true,
-			WithRequestBody:    false,
-			WithRequestHeader:  false,
-			WithResponseBody:   false,
-			WithResponseHeader: false,
-			WithSpanID:         false,
-			WithTraceID:        false,
-			WithClientIP:       true,
-			WithCustomMessage:  nil,
-
-			Filters: []sloghttp.Filter{
-				func(w sloghttp.WrapResponseWriter, _ *http.Request) bool {
-					if w.Status() >= 500 {
-						return true
-					}
-
-					if w.Status() >= 400 && w.Status() <= 403 {
-						return true
-					}
-
-					return false
-				},
-			},
-		}),
-		server.ErrorHandler,
-		server.NewTimeoutMiddleware(time.Minute),
+		func(mux *http.ServeMux) { handler.NewFeedHandler(db).Register(mux) },
 	)
 
 	s := http.Server{
 		Addr:         cfg.ListenAddr,
-		Handler:      handler,
+		Handler:      httpHandler,
 		ReadTimeout:  time.Minute,
 		WriteTimeout: time.Minute,
 		ErrorLog:     slog.NewLogLogger(slog.Default().Handler(), slog.LevelDebug),
