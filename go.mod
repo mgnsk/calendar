@@ -1,6 +1,6 @@
 module github.com/mgnsk/calendar
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/alexedwards/scs/bunstore v0.0.0-20250205215704-2e2c681ccff8
@@ -24,7 +24,7 @@ require (
 	github.com/uptrace/bun/extra/bundebug v1.2.18
 	github.com/yuin/goldmark v1.8.2
 	golang.org/x/crypto v0.52.0
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.21.0
 	maragu.dev/gomponents v1.3.0
 	maragu.dev/gomponents-htmx v0.6.1
 	modernc.org/sqlite v1.51.0
@@ -43,7 +43,7 @@ require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -55,7 +55,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gohugoio/hashstructure v0.6.0 // indirect
-	github.com/gohugoio/hugo v0.161.0 // indirect
+	github.com/gohugoio/hugo v0.163.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260402051712-545e8a4df936 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
@@ -74,7 +74,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/paulmach/orb v0.13.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/ringsaturn/tzf-dist v0.0.2026-b-fix1 // indirect
@@ -92,11 +92,11 @@ require (
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
