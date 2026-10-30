@@ -34,7 +34,7 @@ func ListTags(ctx context.Context, db bun.IDB, eventStartAtFrom, eventStartAtUnt
 		Group("tag.id").
 		Having("event_count > 0").
 		Order("event_count DESC", "name ASC").
-		Limit(limit)
+		Limit(int64(limit))
 
 	query.Join("LEFT JOIN events AS ev ON et.event_id = ev.id")
 
