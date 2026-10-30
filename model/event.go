@@ -212,7 +212,7 @@ func (build EventsQueryBuilder) WithLimit(limit int) EventsQueryBuilder {
 	return func(q *SelectQuery) {
 		build(q)
 
-		q.Limit(limit)
+		q.Limit(int64(limit))
 	}
 }
 
@@ -225,13 +225,13 @@ func (build EventsQueryBuilder) WithOrder(cursor int64, orders EventOrder) Event
 		case OrderStartAtAsc:
 			q.Order(*orders...)
 			if cursor > 0 {
-				q.Offset(int(cursor))
+				q.Offset(cursor)
 			}
 
 		case OrderStartAtDesc:
 			q.Order(*orders...)
 			if cursor > 0 {
-				q.Offset(int(cursor))
+				q.Offset(cursor)
 			}
 
 		case OrderCreatedAtAsc:
