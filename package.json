@@ -1,14 +1,14 @@
 {
   "type": "module",
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.3.0",
-    "@tailwindcss/cli": "^4.3.2",
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "@tailwindcss/cli": "^4.3.3",
     "easymde": "^2.21.0",
-    "htmx.org": "^2.0.10",
+    "htmx.org": "^2.0.11",
     "jquery": "^4.0.0",
     "jquery-ui": "^1.14.2",
     "leaflet": "^1.9.4",
-    "leaflet-geosearch": "^4.4.0",
+    "leaflet-geosearch": "^5.2.0",
     "mark.js": "^8.11.1",
     "tailwindcss": "^4.0.8"
   },
