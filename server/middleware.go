@@ -38,13 +38,9 @@ func NewSettingsMiddleware(db *bun.DB) web.Middleware {
 	}
 }
 
-// NewUserMiddleware creates a new user middleware. A nil sm means a public
-// endpoint without a user.
+// NewUserMiddleware creates a middleware that loads the logged in user
+// into the request context. Sessions of deleted users are destroyed.
 func NewUserMiddleware(db *bun.DB, sm *scs.SessionManager) web.Middleware {
-	if sm == nil {
-		return func(next http.Handler) http.Handler { return next }
-	}
-
 	return session.LoadUser(sm, UserKey, func(ctx context.Context, sm *scs.SessionManager) (*domain.User, error) {
 		username := sm.GetString(ctx, "username")
 		if username == "" {
