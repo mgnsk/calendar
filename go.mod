@@ -68,7 +68,7 @@ require (
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mgechev/revive v1.17.1 // indirect
-	github.com/mgnsk/webkit v0.0.0
+	github.com/mgnsk/webkit v0.0.1
 	github.com/mmcdole/goxpp/v2 v2.0.0 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -105,5 +105,3 @@ tool (
 	github.com/air-verse/air
 	github.com/mgechev/revive
 )
-
-replace github.com/mgnsk/webkit => ../webkit

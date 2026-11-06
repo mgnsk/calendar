@@ -198,6 +198,8 @@ github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3v
 github.com/mfridman/tparse v0.18.0/go.mod h1:gEvqZTuCgEhPbYk/2lS3Kcxg1GmTxxU7kTC8DvP0i/A=
 github.com/mgechev/revive v1.17.1 h1:z8hV0L3uJ6yrwOMnJbkc5qBJpxXa2AxYKFKERGJyA4s=
 github.com/mgechev/revive v1.17.1/go.mod h1:FRd64pJwWSEE6j8ESoaX0PixPzjh2rpNSfckbEu3rIE=
+github.com/mgnsk/webkit v0.0.1 h1:BsIlvWToEEYmnrpju6bbn1t4QKIs4ceaLVFSol/s0C0=
+github.com/mgnsk/webkit v0.0.1/go.mod h1:WOCAwLguQSCZZNf8OqaU9O2QUlQ72cfQoHxnKJSRymA=
 github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b h1:nd0xBG749SNnwzpsOgOAX11EXjm9GlFTThhnimk704o=
 github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b/go.mod h1:bS73R6oQIFUxBL+BnpVrNg81KXNy8ZEm2urLpUyysYQ=
 github.com/microcosm-cc/bluemonday v1.0.27 h1:MpEUotklkwCSLeH+Qdx1VJgNqLlpY2KXwXFM08ygZfk=
