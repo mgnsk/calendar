@@ -4,7 +4,7 @@ import (
 	"net/url"
 
 	"github.com/google/uuid"
-	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/webkit/snowflake"
 )
 
 // DeleteUserRequest is a request to delete a user.

@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
-	. "github.com/mgnsk/calendar/pkg/testing"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/snowflake"
+	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -51,7 +51,7 @@ var _ = Describe("deleting expired invites", func() {
 			})
 
 			By("asserting expired invite was deleted", func() {
-				Expect(model.GetInvite(ctx, db, tokenPast)).Error().To(MatchError(calendar.NotFound))
+				Expect(model.GetInvite(ctx, db, tokenPast)).Error().To(MatchError(webkit.NotFound))
 			})
 		})
 	})

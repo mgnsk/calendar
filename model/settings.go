@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/mgnsk/calendar/domain"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit/sqlite"
 	"github.com/uptrace/bun"
 )
 

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/sqlite"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
@@ -25,7 +25,7 @@ func SetStopWords(ctx context.Context, db bun.IDB, words domain.StopWordList) er
 		// Delete all stop words.
 		if err := sqlite.WithErrorChecking(
 			db.NewTruncateTable().Model((*StopWord)(nil)).Exec(ctx),
-		); err != nil && !errors.Is(err, calendar.PreconditionFailed) {
+		); err != nil && !errors.Is(err, webkit.PreconditionFailed) {
 			return err
 		}
 

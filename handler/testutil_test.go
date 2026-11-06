@@ -14,8 +14,8 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit/snowflake"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -46,7 +46,7 @@ func newTestHandler(finder handler.TimezoneFinder) http.Handler {
 	sm := server.NewSessionManager(store)
 
 	return server.NewHandler(
-		calendar.RegisterAssetsHandler,
+		calendar.Assets.Register,
 		func(mux *http.ServeMux) { handler.NewSetupHandler(db, sm).Register(mux) },
 		func(mux *http.ServeMux) { handler.NewSettingsHandler(db, sm).Register(mux) },
 		func(mux *http.ServeMux) { handler.NewAuthenticationHandler(db, sm).Register(mux) },

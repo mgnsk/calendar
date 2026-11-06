@@ -4,8 +4,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/pkg/textfilter"
+	"github.com/mgnsk/webkit/snowflake"
 )
 
 // Event is the event domain model.

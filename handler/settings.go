@@ -8,12 +8,14 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 )
 
@@ -32,13 +34,13 @@ func (h *SettingsHandler) Settings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	if user.Role != domain.Admin {
-		panic(calendar.Forbidden.New("Only admins can change settings"))
+		panic(webkit.Forbidden.New("Only admins can change settings"))
 	}
 
 	switch r.Method {
@@ -102,20 +104,20 @@ func (h *SettingsHandler) Settings(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 }
 
 // Register the handler.
 func (h *SettingsHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 		server.NewUserMiddleware(h.db, h.sm),
 	}
 
-	mux.Handle("GET /settings", server.WithMiddleware(http.HandlerFunc(h.Settings), middlewares...))
-	mux.Handle("POST /settings", server.WithMiddleware(http.HandlerFunc(h.Settings), middlewares...))
+	mux.Handle("GET /settings", web.Chain(http.HandlerFunc(h.Settings), middlewares...))
+	mux.Handle("POST /settings", web.Chain(http.HandlerFunc(h.Settings), middlewares...))
 }
 
 // NewSettingsHandler creates a new settings handler.

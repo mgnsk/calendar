@@ -37,7 +37,7 @@ func Page(props PageProps) Node {
 		Language: "en",
 		Head: []Node{
 			Link(Rel("alternate"), Type("application/rss+xml"), Title(fmt.Sprintf("RSS feed for %s", props.Title)), Href("/feed")),
-			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.GetAssetPath("favicon.ico"))),
+			Link(Rel("icon"), Type("image/x-icon"), Href(calendar.Assets.Path("favicon.ico"))),
 			Meta(
 				Attr("http-equiv", "Content-Security-Policy"),
 				Attr("content", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' nominatim.openstreetmap.org"),
@@ -53,7 +53,7 @@ func Page(props PageProps) Node {
 				"node_modules/jquery-ui/dist/themes/base/jquery-ui.min.css",
 				"app.css",
 			}, func(path string) Node {
-				return Link(Rel("stylesheet"), Href(calendar.GetAssetPath(path)))
+				return Link(Rel("stylesheet"), Href(calendar.Assets.Path(path)))
 			}),
 
 			Map([]string{
@@ -65,7 +65,7 @@ func Page(props PageProps) Node {
 				"node_modules/jquery/dist/jquery.min.js",
 				"node_modules/jquery-ui/dist/jquery-ui.min.js",
 			}, func(path string) Node {
-				return Script(Defer(), Src(calendar.GetAssetPath(path)))
+				return Script(Defer(), Src(calendar.Assets.Path(path)))
 			}),
 
 			Map([]string{

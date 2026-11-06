@@ -7,9 +7,5 @@ import (
 )
 
 // assetsFS is an empty placeholder assets filesystem for testing.
+// Asset paths are returned unchanged and nothing is served.
 var assetsFS fs.FS
-
-// GetAssetPath returns the asset path.
-func GetAssetPath(name string) string {
-	return name
-}

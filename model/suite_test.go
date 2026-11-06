@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit/sqlite"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/uptrace/bun"
@@ -16,9 +16,9 @@ var _ = BeforeEach(func() {
 	db = sqlite.NewDB(":memory:").Connect()
 	DeferCleanup(db.Close)
 
-	Expect(calendar.MigrateUp(db.DB)).To(Succeed())
+	Expect(sqlite.MigrateUp(db.DB, calendar.Migrations, "migrations")).To(Succeed())
 	DeferCleanup(func() error {
-		return calendar.MigrateDown(db.DB)
+		return sqlite.MigrateDown(db.DB, calendar.Migrations, "migrations")
 	})
 })
 

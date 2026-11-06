@@ -5,6 +5,8 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/mgnsk/calendar/html"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/web"
 	"maragu.dev/gomponents"
 )
 
@@ -16,25 +18,18 @@ func RenderPage(
 	content gomponents.Node,
 ) {
 	// Note: Pop must be before writing headers.
-	successMessage := sm.PopString(r.Context(), "flash-success")
-
-	settings := GetSettings(r.Context())
-	user := GetUser(r.Context())
-
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	successMessage := session.PopFlash(r.Context(), sm)
 
 	title := "TODO: nil settings"
-	if settings != nil {
+	if settings := GetSettings(r.Context()); settings != nil {
 		title = settings.Title
 	}
 
-	if err := html.Page(html.PageProps{
+	web.Render(w, html.Page(html.PageProps{
 		Title:        title,
-		User:         user,
+		User:         UserKey.Get(r.Context()),
 		Path:         r.URL.Path,
 		Children:     content,
 		FlashSuccess: successMessage,
-	}).Render(w); err != nil {
-		panic(err)
-	}
+	}))
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 )
 
@@ -132,12 +133,12 @@ func (h *FeedHandler) getEvents(ctx context.Context) ([]*domain.Event, error) {
 
 // Register the handler.
 func (h *FeedHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
+	middlewares := []web.Middleware{
 		server.NewSettingsMiddleware(h.db),
 	}
 
-	mux.Handle("GET /feed", server.WithMiddleware(http.HandlerFunc(h.HandleRSS), middlewares...))
-	mux.Handle("GET /calendar.ics", server.WithMiddleware(http.HandlerFunc(h.HandleICal), middlewares...))
+	mux.Handle("GET /feed", web.Chain(http.HandlerFunc(h.HandleRSS), middlewares...))
+	mux.Handle("GET /calendar.ics", web.Chain(http.HandlerFunc(h.HandleICal), middlewares...))
 }
 
 // NewFeedHandler creates a new feed handler.

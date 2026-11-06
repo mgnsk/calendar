@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/webkit/snowflake"
 )
 
 // EditEventForm is an edit event form.

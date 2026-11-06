@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
-	. "github.com/mgnsk/calendar/pkg/testing"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/snowflake"
+	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -376,7 +376,7 @@ var _ = Describe("edit event", func() {
 			Expect(resp.Header.Get("HX-Refresh")).To(Equal("true"))
 
 			_, err := model.GetEvent(ctx, db, existing.ID)
-			Expect(err).To(MatchError(calendar.NotFound))
+			Expect(err).To(MatchError(webkit.NotFound))
 		})
 
 		It("returns 404 for a nonexistent event id", func() {

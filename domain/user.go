@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/snowflake"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,7 +39,7 @@ func (u *User) SetPassword(password string) error {
 	h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
-			return calendar.InvalidValue.New("Password too long", err)
+			return webkit.InvalidValue.New("Password too long", err)
 		}
 		return err
 	}
@@ -53,7 +53,7 @@ func (u *User) SetPassword(password string) error {
 func (u *User) VerifyPassword(password string) error {
 	if err := bcrypt.CompareHashAndPassword(u.Password, []byte(password)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return calendar.InvalidValue.New("Invalid credentials", err)
+			return webkit.InvalidValue.New("Invalid credentials", err)
 		}
 		return err
 	}

@@ -4,9 +4,6 @@ package calendar
 
 import (
 	"embed"
-	"fmt"
-	"hash/crc32"
-	"io/fs"
 )
 
 // assetsFS contains the bundled assets for web page.
@@ -27,16 +24,3 @@ import (
 //go:embed node_modules/jquery-ui/dist/jquery-ui.min.js
 //go:embed node_modules/jquery-ui/dist/themes/base
 var assetsFS embed.FS
-
-// GetAssetPath returns the asset path with appended
-// CRC checksum query parameter for cache-busting.
-func GetAssetPath(name string) string {
-	b, err := fs.ReadFile(assetsFS, name)
-	if err != nil {
-		panic(err)
-	}
-
-	sum := crc32.ChecksumIEEE(b)
-
-	return fmt.Sprintf("/assets/%s?crc=%d", name, sum)
-}

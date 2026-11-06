@@ -10,13 +10,15 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
 	"github.com/google/uuid"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -29,13 +31,13 @@ type UsersHandler struct {
 
 // Users handles users page.
 func (h *UsersHandler) Users(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	if user.Role != domain.Admin {
-		panic(calendar.Forbidden.New("Only admins can view users"))
+		panic(webkit.Forbidden.New("Only admins can view users"))
 	}
 
 	users, err := model.ListUsers(r.Context(), h.db)
@@ -50,13 +52,13 @@ func (h *UsersHandler) Users(w http.ResponseWriter, r *http.Request) {
 
 // Invite handles invite link generation.
 func (h *UsersHandler) Invite(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	if user.Role != domain.Admin {
-		panic(calendar.Forbidden.New("Only admins can invite users"))
+		panic(webkit.Forbidden.New("Only admins can invite users"))
 	}
 
 	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
@@ -77,12 +79,12 @@ func (h *UsersHandler) Invite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic(calendar.NotFound.New("Not found"))
+	panic(webkit.NotFound.New("Not found"))
 }
 
 // RegisterUser registers a user with an invite link.
 func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -99,7 +101,7 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !invite.IsValid() {
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 
 	switch r.Method {
@@ -131,7 +133,7 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := newUser.SetPassword(form.Password1); err != nil {
-			if errors.Is(err, calendar.InvalidValue) {
+			if errors.Is(err, webkit.InvalidValue) {
 				errs := url.Values{}
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
@@ -152,7 +154,7 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 			return model.InsertUser(ctx, db, newUser)
 		}); err != nil {
-			if errors.Is(err, calendar.AlreadyExists) {
+			if errors.Is(err, webkit.AlreadyExists) {
 				errs := url.Values{}
 				errs.Set("username", "User already exists")
 
@@ -177,19 +179,19 @@ func (h *UsersHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 }
 
 // Delete a user.
 func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	if user.Role != domain.Admin {
-		panic(calendar.Forbidden.New("Only admins can delete users"))
+		panic(webkit.Forbidden.New("Only admins can delete users"))
 	}
 
 	req := contract.DeleteUserRequest{}
@@ -198,7 +200,7 @@ func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.ID == req.UserID {
-		panic(calendar.Forbidden.New("Cannot delete yourself"))
+		panic(webkit.Forbidden.New("Cannot delete yourself"))
 	}
 
 	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
@@ -221,18 +223,18 @@ func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic(calendar.NotFound.New("Not found"))
+	panic(webkit.NotFound.New("Not found"))
 }
 
 // UpgradeUserRole upgrades user role.
 func (h *UsersHandler) UpgradeUserRole(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	if user.Role != domain.Admin {
-		panic(calendar.Forbidden.New("Only admins can upgrade users"))
+		panic(webkit.Forbidden.New("Only admins can upgrade users"))
 	}
 
 	req := contract.UpgradeUserRoleRequest{}
@@ -241,7 +243,7 @@ func (h *UsersHandler) UpgradeUserRole(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.ID == req.UserID {
-		panic(calendar.Forbidden.New("Cannot upgrade yourself"))
+		panic(webkit.Forbidden.New("Cannot upgrade yourself"))
 	}
 
 	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
@@ -263,25 +265,25 @@ func (h *UsersHandler) UpgradeUserRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic(calendar.NotFound.New("Not found"))
+	panic(webkit.NotFound.New("Not found"))
 }
 
 // Register the handler.
 func (h *UsersHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 		server.NewUserMiddleware(h.db, h.sm),
 	}
 
-	mux.Handle("GET /users", server.WithMiddleware(http.HandlerFunc(h.Users), middlewares...))
+	mux.Handle("GET /users", web.Chain(http.HandlerFunc(h.Users), middlewares...))
 
-	mux.Handle("POST /delete-user", server.WithMiddleware(http.HandlerFunc(h.Delete), middlewares...))
-	mux.Handle("POST /upgrade-user", server.WithMiddleware(http.HandlerFunc(h.UpgradeUserRole), middlewares...))
-	mux.Handle("POST /invite", server.WithMiddleware(http.HandlerFunc(h.Invite), middlewares...))
+	mux.Handle("POST /delete-user", web.Chain(http.HandlerFunc(h.Delete), middlewares...))
+	mux.Handle("POST /upgrade-user", web.Chain(http.HandlerFunc(h.UpgradeUserRole), middlewares...))
+	mux.Handle("POST /invite", web.Chain(http.HandlerFunc(h.Invite), middlewares...))
 
-	mux.Handle("GET /register/{token}", server.WithMiddleware(http.HandlerFunc(h.RegisterUser), middlewares...))
-	mux.Handle("POST /register/{token}", server.WithMiddleware(http.HandlerFunc(h.RegisterUser), middlewares...))
+	mux.Handle("GET /register/{token}", web.Chain(http.HandlerFunc(h.RegisterUser), middlewares...))
+	mux.Handle("POST /register/{token}", web.Chain(http.HandlerFunc(h.RegisterUser), middlewares...))
 }
 
 // NewUsersHandler creates a new users handler.

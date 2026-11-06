@@ -10,7 +10,7 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/handler"
 	"github.com/mgnsk/calendar/model"
-	. "github.com/mgnsk/calendar/pkg/testing"
+	. "github.com/mgnsk/webkit/testutil"
 	"github.com/mmcdole/gofeed"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -8,13 +8,15 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -33,9 +35,9 @@ type EditEventHandler struct {
 
 // Edit handles adding and editing events.
 func (h *EditEventHandler) Edit(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.EditEventForm{}
@@ -52,7 +54,7 @@ func (h *EditEventHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if user.Role != domain.Admin && user.ID != event.UserID {
-			panic(calendar.Forbidden.New("Non-admin users can only edit own events"))
+			panic(webkit.Forbidden.New("Non-admin users can only edit own events"))
 		}
 
 		ev = event
@@ -151,15 +153,15 @@ func (h *EditEventHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 }
 
 // Delete handles deleting events.
 func (h *EditEventHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.DeleteEventRequest{}
@@ -173,7 +175,7 @@ func (h *EditEventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Role != domain.Admin && user.ID != ev.UserID {
-		panic(calendar.Forbidden.New("Non-admin users can only edit own events"))
+		panic(webkit.Forbidden.New("Non-admin users can only edit own events"))
 	}
 
 	if r.Method == http.MethodPost && hxhttp.IsRequest(r.Header) {
@@ -188,14 +190,14 @@ func (h *EditEventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic(calendar.NotFound.New("Not found"))
+	panic(webkit.NotFound.New("Not found"))
 }
 
 // Preview returns a preview of the event.
 func (h *EditEventHandler) Preview(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user == nil {
-		panic(calendar.Forbidden.New("Must be logged in"))
+		panic(webkit.Forbidden.New("Must be logged in"))
 	}
 
 	req := contract.EditEventForm{}
@@ -228,18 +230,18 @@ func (h *EditEventHandler) Preview(w http.ResponseWriter, r *http.Request) {
 
 // Register the handler.
 func (h *EditEventHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 		server.NewUserMiddleware(h.db, h.sm),
 	}
 
-	mux.Handle("GET /edit/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Edit), middlewares...))
-	mux.Handle("POST /edit/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Edit), middlewares...))
+	mux.Handle("GET /edit/{event_id}", web.Chain(http.HandlerFunc(h.Edit), middlewares...))
+	mux.Handle("POST /edit/{event_id}", web.Chain(http.HandlerFunc(h.Edit), middlewares...))
 
-	mux.Handle("POST /delete/{event_id}", server.WithMiddleware(http.HandlerFunc(h.Delete), middlewares...))
+	mux.Handle("POST /delete/{event_id}", web.Chain(http.HandlerFunc(h.Delete), middlewares...))
 
-	mux.Handle("POST /preview", server.WithMiddleware(http.HandlerFunc(h.Preview), middlewares...))
+	mux.Handle("POST /preview", web.Chain(http.HandlerFunc(h.Preview), middlewares...))
 }
 
 func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, error) {
@@ -259,7 +261,7 @@ func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, 
 		l, err := time.LoadLocation(ianaTimezone)
 		if err != nil {
 			// TODO: should we log this error and still use UTC?
-			return time.Time{}, calendar.InvalidValue.New("Invalid location timezone", err)
+			return time.Time{}, webkit.InvalidValue.New("Invalid location timezone", err)
 		}
 
 		loc = l
@@ -267,7 +269,7 @@ func (h *EditEventHandler) parseStartAt(req contract.EditEventForm) (time.Time, 
 
 	startAt, err := time.ParseInLocation(contract.FormDateTimeLayout, req.StartAt, loc)
 	if err != nil {
-		return time.Time{}, calendar.InvalidValue.New("Invalid start_at value", err)
+		return time.Time{}, webkit.InvalidValue.New("Invalid start_at value", err)
 	}
 
 	return startAt, nil
