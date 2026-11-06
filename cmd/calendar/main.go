@@ -56,6 +56,10 @@ func run() error {
 		return calendar.Internal.New("error migrating database", err)
 	}
 
+	if err := sqlite.Optimize(context.Background(), db.DB, "events_fts"); err != nil {
+		return calendar.Internal.New("error optimizing database", err)
+	}
+
 	// Initialize the session store.
 	store, err := bunstore.New(db)
 	if err != nil {
@@ -100,12 +104,9 @@ func run() error {
 
 	return app.Run(context.Background(), s,
 		// Run SQL optimizer periodic task.
-		func(ctx context.Context) error {
-			if err := sqlite.RunOptimizer(ctx, db.DB, "events_fts"); err != nil {
-				return calendar.Internal.New("error running sqlite optimizer", err)
-			}
-			return nil
-		},
+		app.Every(24*time.Hour, func(ctx context.Context, _ time.Time) error {
+			return sqlite.Optimize(ctx, db.DB, "events_fts")
+		}),
 		// Run expired invites cleanup periodic task.
 		app.Every(5*time.Minute, func(ctx context.Context, _ time.Time) error {
 			return model.DeleteExpiredInvites(ctx, db)
