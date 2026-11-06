@@ -8,13 +8,15 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
 	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 )
 
@@ -70,7 +72,7 @@ func (h *SetupHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := user.SetPassword(req.Password1); err != nil {
-			if errors.Is(err, calendar.InvalidValue) {
+			if errors.Is(err, webkit.InvalidValue) {
 				errs := url.Values{}
 				errs.Set("password1", err.Error())
 				errs.Set("password2", err.Error())
@@ -106,19 +108,19 @@ func (h *SetupHandler) Setup(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 }
 
 // Register the handler.
 func (h *SetupHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 	}
 
-	mux.Handle("GET /setup", server.WithMiddleware(http.HandlerFunc(h.Setup), middlewares...))
-	mux.Handle("POST /setup", server.WithMiddleware(http.HandlerFunc(h.Setup), middlewares...))
+	mux.Handle("GET /setup", web.Chain(http.HandlerFunc(h.Setup), middlewares...))
+	mux.Handle("POST /setup", web.Chain(http.HandlerFunc(h.Setup), middlewares...))
 }
 
 // NewSetupHandler creates a new setup handler.

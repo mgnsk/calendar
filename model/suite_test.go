@@ -16,9 +16,9 @@ var _ = BeforeEach(func() {
 	db = sqlite.NewDB(":memory:").Connect()
 	DeferCleanup(db.Close)
 
-	Expect(calendar.MigrateUp(db.DB)).To(Succeed())
+	Expect(sqlite.MigrateUp(db.DB, calendar.Migrations, "migrations")).To(Succeed())
 	DeferCleanup(func() error {
-		return calendar.MigrateDown(db.DB)
+		return sqlite.MigrateDown(db.DB, calendar.Migrations, "migrations")
 	})
 })
 

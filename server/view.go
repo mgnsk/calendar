@@ -20,7 +20,7 @@ func RenderPage(
 	successMessage := session.PopFlash(r.Context(), sm)
 
 	settings := GetSettings(r.Context())
-	user := GetUser(r.Context())
+	user := UserKey.Get(r.Context())
 
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 

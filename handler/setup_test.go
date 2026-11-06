@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/webkit"
 	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,7 +40,7 @@ var _ = Describe("setup", func() {
 				Expect(body).To(ContainSubstring(wantErrorMessage))
 
 				_, err := model.GetSettings(ctx, db)
-				Expect(err).To(MatchError(calendar.NotFound))
+				Expect(err).To(MatchError(webkit.NotFound))
 			},
 
 			Entry("missing title", url.Values{
@@ -121,7 +121,7 @@ var _ = Describe("setup", func() {
 			Expect(resp.Header.Get("Location")).To(Equal("/"))
 
 			_, err := model.GetUserByUsername(ctx, db, "someone")
-			Expect(err).To(MatchError(calendar.NotFound))
+			Expect(err).To(MatchError(webkit.NotFound))
 		})
 	})
 })

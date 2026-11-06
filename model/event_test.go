@@ -4,9 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/webkit"
 	"github.com/mgnsk/webkit/snowflake"
 	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
@@ -184,7 +184,7 @@ var _ = Describe("full text search", func() {
 				List(ctx, db)
 
 			Expect(result).To(BeEmpty())
-			Expect(err).To(MatchError(calendar.InvalidValue))
+			Expect(err).To(MatchError(webkit.InvalidValue))
 		},
 		Entry("only AND operator", "AND"),
 		Entry("multiple operators prefix", "AND AND Desc"),

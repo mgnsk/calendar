@@ -7,15 +7,10 @@ import (
 	"github.com/mgnsk/webkit/web"
 )
 
-var (
-	userKey     web.ContextKey[domain.User]
-	settingsKey web.ContextKey[domain.Settings]
-)
+// UserKey is the request context key of the signed-in user.
+var UserKey web.ContextKey[domain.User]
 
-// GetUser returns the current user from context if present.
-func GetUser(ctx context.Context) *domain.User {
-	return userKey.Get(ctx)
-}
+var settingsKey web.ContextKey[domain.Settings]
 
 // GetSettings returns the settings from context. It returns nil when the
 // settings middleware found no settings (before first setup).

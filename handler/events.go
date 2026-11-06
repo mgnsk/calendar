@@ -9,13 +9,15 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
 	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )
@@ -28,7 +30,7 @@ type EventsHandler struct {
 
 // Events handles event list page.
 func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 
 	req := contract.ListEventsRequest{}
 	if err := httpin.DecodeTo(r, &req); err != nil {
@@ -59,7 +61,7 @@ func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	case "/my-events":
 		if user == nil {
-			panic(calendar.Forbidden.New("Must be logged in"))
+			panic(webkit.Forbidden.New("Must be logged in"))
 		}
 
 		filterUserID = user.ID
@@ -68,7 +70,7 @@ func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
 		query = model.NewEventsQuery().WithUserID(filterUserID).WithIncludeDrafts()
 
 	default:
-		panic(calendar.Internal.New("Unhandled path"))
+		panic(webkit.Internal.New("Unhandled path"))
 	}
 
 	query = query.
@@ -83,7 +85,7 @@ func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	events, err = query.List(r.Context(), h.db)
 	if err != nil {
-		if !errors.Is(err, calendar.NotFound) {
+		if !errors.Is(err, webkit.NotFound) {
 			panic(err)
 		}
 	}
@@ -100,7 +102,7 @@ func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 	tags, err := model.ListTags(r.Context(), h.db, startAtFrom, startAtUntil, filterUserID, 500)
 	if err != nil {
-		if !errors.Is(err, calendar.NotFound) {
+		if !errors.Is(err, webkit.NotFound) {
 			panic(err)
 		}
 	}
@@ -116,15 +118,15 @@ func (h *EventsHandler) Events(w http.ResponseWriter, r *http.Request) {
 
 // Register the handler.
 func (h *EventsHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 		server.NewUserMiddleware(h.db, h.sm),
 	}
 
-	mux.Handle("GET /{$}", server.WithMiddleware(http.HandlerFunc(h.Events), middlewares...))
-	mux.Handle("GET /past", server.WithMiddleware(http.HandlerFunc(h.Events), middlewares...))
-	mux.Handle("GET /my-events", server.WithMiddleware(http.HandlerFunc(h.Events), middlewares...))
+	mux.Handle("GET /{$}", web.Chain(http.HandlerFunc(h.Events), middlewares...))
+	mux.Handle("GET /past", web.Chain(http.HandlerFunc(h.Events), middlewares...))
+	mux.Handle("GET /my-events", web.Chain(http.HandlerFunc(h.Events), middlewares...))
 }
 
 // NewEventsHandler creates a new events handler.

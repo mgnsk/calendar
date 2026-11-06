@@ -46,7 +46,7 @@ func newTestHandler(finder handler.TimezoneFinder) http.Handler {
 	sm := server.NewSessionManager(store)
 
 	return server.NewHandler(
-		calendar.RegisterAssetsHandler,
+		calendar.Assets.Register,
 		func(mux *http.ServeMux) { handler.NewSetupHandler(db, sm).Register(mux) },
 		func(mux *http.ServeMux) { handler.NewSettingsHandler(db, sm).Register(mux) },
 		func(mux *http.ServeMux) { handler.NewAuthenticationHandler(db, sm).Register(mux) },

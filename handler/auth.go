@@ -9,11 +9,13 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/ggicci/httpin"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/contract"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 )
 
@@ -25,7 +27,7 @@ type AuthenticationHandler struct {
 
 // Login handles login page.
 func (h *AuthenticationHandler) Login(w http.ResponseWriter, r *http.Request) {
-	user := server.GetUser(r.Context())
+	user := server.UserKey.Get(r.Context())
 	if user != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -58,7 +60,7 @@ func (h *AuthenticationHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 		user, err := model.GetUserByUsername(ctx, h.db, req.Username)
 		if err != nil {
-			if errors.Is(err, calendar.NotFound) {
+			if errors.Is(err, webkit.NotFound) {
 				<-ctx.Done()
 
 				errs := url.Values{}
@@ -74,7 +76,7 @@ func (h *AuthenticationHandler) Login(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := user.VerifyPassword(req.Password); err != nil {
-			if errors.Is(err, calendar.InvalidValue) {
+			if errors.Is(err, webkit.InvalidValue) {
 				<-ctx.Done()
 
 				errs := url.Values{}
@@ -101,7 +103,7 @@ func (h *AuthenticationHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 
 	default:
-		panic(calendar.NotFound.New("Not found"))
+		panic(webkit.NotFound.New("Not found"))
 	}
 }
 
@@ -115,16 +117,16 @@ func (h *AuthenticationHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 // Register the handler.
 func (h *AuthenticationHandler) Register(mux *http.ServeMux) {
-	middlewares := []server.MiddlewareFunc{
-		server.NewSessionMiddleware(h.sm),
+	middlewares := []web.Middleware{
+		session.Middleware(h.sm),
 		server.NewSettingsMiddleware(h.db),
 		server.NewUserMiddleware(h.db, h.sm),
 	}
 
-	mux.Handle("GET /login", server.WithMiddleware(http.HandlerFunc(h.Login), middlewares...))
-	mux.Handle("POST /login", server.WithMiddleware(http.HandlerFunc(h.Login), middlewares...))
+	mux.Handle("GET /login", web.Chain(http.HandlerFunc(h.Login), middlewares...))
+	mux.Handle("POST /login", web.Chain(http.HandlerFunc(h.Login), middlewares...))
 
-	mux.Handle("GET /logout", server.WithMiddleware(http.HandlerFunc(h.Logout), middlewares...))
+	mux.Handle("GET /logout", web.Chain(http.HandlerFunc(h.Logout), middlewares...))
 }
 
 // NewAuthenticationHandler creates a new authentication handler.

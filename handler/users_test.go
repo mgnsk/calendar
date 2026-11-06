@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
+	"github.com/mgnsk/webkit"
 	"github.com/mgnsk/webkit/snowflake"
 	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
@@ -256,7 +256,7 @@ var _ = Describe("users management", func() {
 			Expect(newUser.Role).To(Equal(domain.Author))
 
 			_, err := model.GetInvite(ctx, db, token)
-			Expect(err).To(MatchError(calendar.NotFound))
+			Expect(err).To(MatchError(webkit.NotFound))
 		})
 	})
 
@@ -316,7 +316,7 @@ var _ = Describe("users management", func() {
 			Expect(resp.Header.Get("HX-Refresh")).To(Equal("true"))
 
 			_, err := model.GetUserByUsername(ctx, db, "author1")
-			Expect(err).To(MatchError(calendar.NotFound))
+			Expect(err).To(MatchError(webkit.NotFound))
 		})
 
 		It("returns 404 for a nonexistent target user id", func() {
