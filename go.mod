@@ -7,28 +7,31 @@ require (
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/arran4/golang-ical v0.3.8
 	github.com/aybabtme/uniplot v0.0.0-20151203143629-039c559e5e7e
-	github.com/bwmarrin/snowflake v0.3.0
 	github.com/ggicci/httpin v0.20.5
-	github.com/golang-migrate/migrate/v4 v4.20.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
-	github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/ringsaturn/tzf v1.2.5
 	github.com/samber/lo v1.53.0
-	github.com/samber/slog-http v1.12.1
 	github.com/uptrace/bun v1.3.0
-	github.com/uptrace/bun/dialect/sqlitedialect v1.3.0
-	github.com/uptrace/bun/extra/bundebug v1.3.0
 	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.58.0
-	golang.org/x/sync v0.24.0
 	maragu.dev/gomponents v1.4.0
 	maragu.dev/gomponents-htmx v0.6.1
-	modernc.org/sqlite v1.61.0
 	mvdan.cc/xurls/v2 v2.6.0
+)
+
+require (
+	github.com/bwmarrin/snowflake v0.3.0 // indirect
+	github.com/golang-migrate/migrate/v4 v4.20.1 // indirect
+	github.com/mgnsk/wreck v0.0.0-20250814111550-d27b8a6e5d5b // indirect
+	github.com/samber/slog-http v1.12.1 // indirect
+	github.com/uptrace/bun/dialect/sqlitedialect v1.3.0 // indirect
+	github.com/uptrace/bun/extra/bundebug v1.3.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	modernc.org/sqlite v1.61.0 // indirect
 )
 
 require (
@@ -65,6 +68,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mgechev/dots v1.0.0 // indirect
 	github.com/mgechev/revive v1.15.0 // indirect
+	github.com/mgnsk/webkit v0.0.0
 	github.com/mmcdole/goxpp/v2 v2.0.0 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
@@ -102,3 +106,5 @@ tool (
 	github.com/air-verse/air
 	github.com/mgechev/revive
 )
+
+replace github.com/mgnsk/webkit => ../webkit

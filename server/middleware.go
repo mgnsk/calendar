@@ -1,119 +1,28 @@
 package server
 
 import (
-	"cmp"
 	"context"
 	"errors"
-	"fmt"
-	"log/slog"
 	"net/http"
-	"runtime"
-	"slices"
-	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/ggicci/httpin/core"
 	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/html"
+	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/wreck"
-	sloghttp "github.com/samber/slog-http"
+	"github.com/mgnsk/webkit/session"
+	"github.com/mgnsk/webkit/web"
 	"github.com/uptrace/bun"
 )
 
 // MiddlewareFunc is a HTTP middleware function.
-type MiddlewareFunc func(next http.Handler) http.Handler
+type MiddlewareFunc = web.Middleware
 
 // WithMiddleware applies middleware to run in order before handler.
-func WithMiddleware(h http.Handler, middlewares ...MiddlewareFunc) http.Handler {
-	for _, mw := range slices.Backward(middlewares) {
-		h = mw(h)
-	}
-	return h
-}
-
-// NewTimeoutMiddleware creates a new context timeout middleware.
-func NewTimeoutMiddleware(timeout time.Duration) MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), timeout)
-			defer cancel()
-
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-// ErrorHandler is a HTTP error handler middleware.
-// It renders HTML error pages and logs errors.
-func ErrorHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			var err error
-
-			if r := recover(); r == nil {
-				return
-			} else if r == http.ErrAbortHandler {
-				panic(r)
-			} else if rerr, ok := r.(error); ok {
-				err = rerr
-			} else {
-				err = fmt.Errorf("%v", r)
-			}
-
-			// Default status code and message.
-			var (
-				code = http.StatusInternalServerError
-				msg  = "Something went wrong"
-			)
-
-			// Attempt to detect status code and message from error.
-			var invalidFieldErr *core.InvalidFieldError
-			if werr, ok := errors.AsType[*wreck.Error](err); ok {
-				// log/slog normalizes int-kind attribute values to int64, so
-				// wreck.Value must be read back as int64, not int.
-				if v, ok := wreck.Value[int64](werr, calendar.KeyHTTPCode); ok {
-					code = int(v)
-				}
-				msg = cmp.Or(werr.Message(), msg)
-			} else if errors.As(err, &invalidFieldErr) {
-				// httpin.DecodeTo failed to bind a request field (bad path
-				// param, malformed form value, etc.) - a client input error.
-				code = http.StatusBadRequest
-				msg = "Invalid request"
-			} else if errors.Is(err, context.DeadlineExceeded) { // TODO: context.Canceled
-				code = http.StatusGatewayTimeout
-				msg = "Timeout"
-			}
-
-			stack := make([]byte, 4<<10) // 4 KB
-			length := runtime.Stack(stack, false)
-			stack = stack[:length]
-
-			sloghttp.AddCustomAttributes(r, slog.String("err", err.Error()))
-			sloghttp.AddCustomAttributes(r, slog.String("stack", string(stack)))
-
-			w.WriteHeader(code)
-
-			if err := html.Page(html.PageProps{
-				Title:        "Error",
-				User:         nil,
-				Path:         r.URL.Path,
-				Children:     html.ErrorMain(fmt.Sprintf("Error %d: %s", code, msg)),
-				FlashSuccess: "",
-			}).Render(w); err != nil {
-				// TODO
-				_ = err
-			}
-		}()
-
-		next.ServeHTTP(w, r)
-	})
-}
+var WithMiddleware = web.Chain
 
 // NewSessionMiddleware creates a new session middleware.
 func NewSessionMiddleware(sm *scs.SessionManager) MiddlewareFunc {
-	return sm.LoadAndSave
+	return session.Middleware(sm)
 }
 
 // NewSettingsMiddleware creates a new settings middleware.
@@ -133,44 +42,25 @@ func NewSettingsMiddleware(db *bun.DB) MiddlewareFunc {
 				return
 			}
 
-			r = r.WithContext(context.WithValue(r.Context(), settingsCtxKey{}, settings))
+			r = r.WithContext(settingsKey.With(r.Context(), settings))
 
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-// NewUserMiddleware creates a new user middleware.
+// NewUserMiddleware creates a new user middleware. A nil sm means a public
+// endpoint without a user.
 func NewUserMiddleware(db *bun.DB, sm *scs.SessionManager) MiddlewareFunc {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if sm == nil {
-				// Public endpoint.
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			if username := sm.GetString(r.Context(), "username"); username != "" {
-				user, err := model.GetUserByUsername(r.Context(), db, username)
-				if err != nil {
-					if !errors.Is(err, calendar.NotFound) {
-						panic(err)
-					}
-				}
-
-				if user == nil {
-					// User has been deleted.
-					if err := sm.Destroy(r.Context()); err != nil {
-						panic(err)
-					}
-					http.Redirect(w, r, "/", http.StatusSeeOther)
-					return
-				}
-
-				r = r.WithContext(context.WithValue(r.Context(), userCtxKey{}, user))
-			}
-
-			next.ServeHTTP(w, r)
-		})
+	if sm == nil {
+		return func(next http.Handler) http.Handler { return next }
 	}
+
+	return session.LoadUser(sm, userKey, func(ctx context.Context, sm *scs.SessionManager) (*domain.User, error) {
+		username := sm.GetString(ctx, "username")
+		if username == "" {
+			return nil, nil
+		}
+		return model.GetUserByUsername(ctx, db, username)
+	}, "/")
 }

@@ -13,8 +13,8 @@ import (
 	"github.com/mgnsk/calendar/domain"
 	"github.com/mgnsk/calendar/html"
 	"github.com/mgnsk/calendar/model"
-	"github.com/mgnsk/calendar/pkg/snowflake"
 	"github.com/mgnsk/calendar/server"
+	"github.com/mgnsk/webkit/snowflake"
 	"github.com/uptrace/bun"
 	hxhttp "maragu.dev/gomponents-htmx/http"
 )

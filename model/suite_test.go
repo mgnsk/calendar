@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit/sqlite"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/uptrace/bun"

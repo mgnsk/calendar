@@ -1,6 +1,6 @@
 package contract
 
-import "github.com/mgnsk/calendar/pkg/snowflake"
+import "github.com/mgnsk/webkit/snowflake"
 
 // ListEventsRequest is a request to list events.
 type ListEventsRequest struct {

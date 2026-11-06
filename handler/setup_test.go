@@ -7,7 +7,7 @@ import (
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/model"
-	. "github.com/mgnsk/calendar/pkg/testing"
+	. "github.com/mgnsk/webkit/testutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

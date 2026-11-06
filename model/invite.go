@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
-	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/sqlite"
 	"github.com/uptrace/bun"
 )
 

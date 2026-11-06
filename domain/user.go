@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/mgnsk/calendar"
-	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/webkit/snowflake"
 	"golang.org/x/crypto/bcrypt"
 )
 

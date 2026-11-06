@@ -1,24 +1,23 @@
 package calendar
 
 import (
-	"net/http"
-
-	"github.com/mgnsk/wreck"
+	"github.com/mgnsk/webkit"
 )
 
 // Keys for error data in errors.
 const (
-	KeyHTTPCode = "http_code"
+	KeyHTTPCode = webkit.KeyHTTPCode
 )
 
-// Base errors.
+// Base errors, shared with webkit so that its middleware maps them to
+// HTTP status codes.
 var (
-	PreconditionFailed = wreck.New("precondition_failed").With(KeyHTTPCode, http.StatusPreconditionFailed)
-	InvalidValue       = wreck.New("invalid_value").With(KeyHTTPCode, http.StatusBadRequest)
-	AlreadyExists      = wreck.New("already_exists").With(KeyHTTPCode, http.StatusConflict)
-	NotFound           = wreck.New("not_found").With(KeyHTTPCode, http.StatusNotFound)
-	Timeout            = wreck.New("timeout").With(KeyHTTPCode, http.StatusRequestTimeout)
-	Forbidden          = wreck.New("forbidden").With(KeyHTTPCode, http.StatusForbidden)
+	PreconditionFailed = webkit.PreconditionFailed
+	InvalidValue       = webkit.InvalidValue
+	AlreadyExists      = webkit.AlreadyExists
+	NotFound           = webkit.NotFound
+	Timeout            = webkit.Timeout
+	Forbidden          = webkit.Forbidden
 
-	Internal = wreck.New("internal").With(KeyHTTPCode, http.StatusInternalServerError)
+	Internal = webkit.Internal
 )

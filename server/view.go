@@ -5,6 +5,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/mgnsk/calendar/html"
+	"github.com/mgnsk/webkit/session"
 	"maragu.dev/gomponents"
 )
 
@@ -16,7 +17,7 @@ func RenderPage(
 	content gomponents.Node,
 ) {
 	// Note: Pop must be before writing headers.
-	successMessage := sm.PopString(r.Context(), "flash-success")
+	successMessage := session.PopFlash(r.Context(), sm)
 
 	settings := GetSettings(r.Context())
 	user := GetUser(r.Context())

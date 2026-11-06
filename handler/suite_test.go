@@ -6,8 +6,8 @@ import (
 
 	"github.com/mgnsk/calendar"
 	"github.com/mgnsk/calendar/domain"
-	"github.com/mgnsk/calendar/pkg/snowflake"
-	"github.com/mgnsk/calendar/pkg/sqlite"
+	"github.com/mgnsk/webkit/snowflake"
+	"github.com/mgnsk/webkit/sqlite"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/uptrace/bun"

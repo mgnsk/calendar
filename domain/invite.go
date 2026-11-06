@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mgnsk/calendar/pkg/snowflake"
+	"github.com/mgnsk/webkit/snowflake"
 )
 
 // Invite is the invite domain model.
