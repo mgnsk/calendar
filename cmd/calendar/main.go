@@ -17,7 +17,7 @@ import (
 	"github.com/mgnsk/webkit"
 	"github.com/mgnsk/webkit/app"
 	"github.com/mgnsk/webkit/sqlite"
-	"github.com/ringsaturn/tzf"
+	"github.com/ringsaturn/tzf/v2"
 )
 
 func main() {

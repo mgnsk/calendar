@@ -13,7 +13,7 @@ require (
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/onsi/ginkgo/v2 v2.34.0
 	github.com/onsi/gomega v1.44.0
-	github.com/ringsaturn/tzf v1.2.5
+	github.com/ringsaturn/tzf/v2 v2.3.0
 	github.com/samber/lo v1.53.0
 	github.com/uptrace/bun v1.3.0
 	github.com/yuin/goldmark v1.8.7
@@ -75,13 +75,10 @@ require (
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/ringsaturn/orb v0.15.0 // indirect
-	github.com/ringsaturn/tzf-dist v0.0.2026-c-fix1 // indirect
+	github.com/ringsaturn/tzf-dist v0.0.2026-f // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/tdewolff/parse/v2 v2.8.12 // indirect
-	github.com/tidwall/geoindex v1.7.0 // indirect
-	github.com/tidwall/rtree v1.11.1 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
