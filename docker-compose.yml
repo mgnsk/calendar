@@ -22,11 +22,7 @@ services:
     image: ghcr.io/mgnsk/calendar:edge
     build:
       context: .
-    command: /bin/calendar
     container_name: calendar
     restart: unless-stopped
-    environment:
-      LISTEN_ADDR: ":8080"
-      DATABASE_DIR: "/database"
     volumes:
       - calendar-database:/database

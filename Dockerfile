@@ -40,4 +40,10 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certifica
 COPY --from=build --chown=65534:65534 /cache/ /cache/
 COPY --from=build --chown=65534:65534 /database/ /database/
 
+ENV DATABASE_DIR=/database
+ENV LISTEN_ADDR=:8080
+EXPOSE 8080
+
 USER 65534:65534
+
+ENTRYPOINT ["/bin/calendar"]
