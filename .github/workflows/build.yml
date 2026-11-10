@@ -10,9 +10,16 @@ env:
   IMAGE_NAME: mgnsk/calendar
 
 jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   build:
     name: Build and publish Docker image
     runs-on: ubuntu-latest
+    needs: test
     permissions:
       contents: read
       packages: write
