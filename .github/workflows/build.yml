@@ -15,6 +15,9 @@ jobs:
     uses: ./.github/workflows/test.yml
     permissions:
       contents: read
+      # For the eslint job's annotations.
+      pull-requests: read
+      checks: write
 
   build:
     name: Build and publish Docker image
