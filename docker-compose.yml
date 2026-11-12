@@ -6,7 +6,7 @@ volumes:
 
 services:
   caddy:
-    image: caddy@sha256:af5fdcd76f2db5e4e974ee92f96ee8c0fc3edb55bd4ba5032547cbf3f65e486d
+    image: caddy:2.11.9@sha256:e40b94d0a43b5ff69cb20568d73f10c70703df7b0ffc2298eb3d723cdc9d0bd1
     restart: unless-stopped
     environment:
       HOSTNAME: "events.example.testing"
